@@ -1,0 +1,106 @@
+<macros>
+
+    <xml name="options">
+        <param name="rules_selector" argument="--rules_selector" type="select" label="Gene-Protein-Reaction rules:">
+            <option value="HMRcore" selected="true">HMRcore rules</option>
+            <option value="Recon">Recon 2.2 rules</option>
+            <option value="Custom">Custom rules</option>
+        </param>
+    </xml>
+
+   <token name="@CUSTOM_RULES_EXEMPLE@">
+
++--------------------+-------------------------------+
+|         id         |     rule (with entrez-id)     |
++====================+===============================+
+|        SHMT1       |        155060 or 10357        |
++--------------------+-------------------------------+
+|        NIT2        |      155060 or 100134869      |
++--------------------+-------------------------------+
+| GOT1_GOT2_GOT1L1_2 | 155060 and 100134869 or 10357 |
++--------------------+-------------------------------+
+
+|
+
+    </token>
+
+    <token name="@DATASET_EXEMPLE1@">
+
++------------+------------+------------+------------+   
+|  Hugo_ID   | TCGAA62670 | TCGAA62671 | TCGAA62672 |   
++============+============+============+============+   
+| HGNC:24086 |  0.523167  |  0.371355  |  0.925661  |   
++------------+------------+------------+------------+    
+| HGNC:24086 |  0.568765  |  0.765567  |  0.456789  |    
++------------+------------+------------+------------+    
+| HGNC:9876  |  0.876545  |  0.768933  |  0.987654  |   
++------------+------------+------------+------------+    
+| HGNC:9     |  0.456788  |  0.876543  |  0.876542  |   
++------------+------------+------------+------------+    
+| HGNC:23    |  0.876543  |  0.786543  |  0.897654  |   
++------------+------------+------------+------------+ 
+   
+|
+
+    </token>
+
+    <token name="@DATASET_EXEMPLE2@">
+
++-------------+------------+------------+------------+
+| Hugo_Symbol | TCGAA62670 | TCGAA62671 | TCGAA62672 |
++=============+============+============+============+
+|    A1BG     |  0.523167  |  0.371355  |  0.925661  |
++-------------+------------+------------+------------+
+|    A1CF     |  0.568765  |  0.765567  |  0.456789  |
++-------------+------------+------------+------------+
+|     A2M     |  0.876545  |  0.768933  |  0.987654  |
++-------------+------------+------------+------------+
+|    A4GALT   |  0.456788  |  0.876543  |  0.876542  |
++-------------+------------+------------+------------+
+|   M664Y65   |  0.876543  |  0.786543  |  0.897654  |
++-------------+------------+------------+------------+
+
+|
+
+    </token>
+
+    <token name="@REFERENCE@">
+
+This tool is developed by the `BIMIB`_ at the `Department of Informatics, Systems and Communications`_ of `University of Milan - Bicocca`_.
+
+.. _BIMIB: https://bimib.disco.unimib.it/index.php/Home
+.. _Department of Informatics, Systems and Communications: https://www.disco.unimib.it/en
+.. _University of Milan - Bicocca: https://en.unimib.it/
+
+    </token>
+
+    <xml name="citations">
+        <citations> <!--esempio di citazione-->
+            <citation type="bibtex">
+              @article{graudenzi2018integration,
+              title={Integration of transcriptomic data and metabolic networks in cancer samples reveals highly significant prognostic power},
+              author={Graudenzi, Alex and Maspero, Davide and Di Filippo, Marzia and Gnugnoli, Marco and Isella, Claudio and Mauri, Giancarlo and Medico, Enzo and Antoniotti, Marco and Damiani, Chiara},
+              journal={Journal of biomedical informatics},
+              volume={87},
+              pages={37--49},
+              year={2018},
+              publisher={Elsevier},
+              url = {https://doi.org/10.1016/j.jbi.2018.09.010},
+              }
+            </citation>
+            <citation type="bibtex">
+              @article{damiani2020marea4galaxy,
+              title={MaREA4Galaxy: Metabolic reaction enrichment analysis and visualization of RNA-seq data within Galaxy},
+              author={Damiani, Chiara and Rovida, Lorenzo and Maspero, Davide and Sala, Irene and Rosato, Luca and Di Filippo, Marzia and Pescini, Dario and Graudenzi, Alex and Antoniotti, Marco and Mauri, Giancarlo},
+              journal={Computational and Structural Biotechnology Journal},
+              volume={18},
+              pages={993},
+              year={2020},
+              publisher={Research Network of Computational and Structural Biotechnology},
+              url = {https://doi.org/10.1016/j.csbj.2020.04.008},
+              }
+            </citation>
+        </citations>
+    </xml>
+
+</macros>

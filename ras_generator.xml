@@ -1,0 +1,113 @@
+<tool id="MaREA RAS Generator" name="Expression2RAS" version="1.0.7">
+    <description>- Reaction Activity Scores computation</description>
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="0.25.3">pandas</requirement>
+        <requirement type="package" version="1.6.3">scipy</requirement>
+        <requirement type="package" version="4.6.3">lxml</requirement>
+        <requirement type="package" version="1.1.0">svglib</requirement>
+        <requirement type="package" version="3.5.67">reportlab</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+      	python $__tool_directory__/ras_generator.py
+      	--rules_selector $cond_rule.rules_selector	
+        --input $input
+        --none $none
+        --tool_dir $__tool_directory__
+        --out_log $log	
+        --ras_output $ras_output
+        #if $cond_rule.rules_selector == 'Custom'
+        	--custom $cond_rule.Custom_rules
+        #end if
+        ]]>
+    </command>
+    <inputs>
+        <conditional name="cond_rule">
+            <expand macro="options"/>
+            <when value="HMRcore">
+            </when>
+            <when value="Recon">
+            </when>
+            <when value="Custom">
+                <param name="Custom_rules" type="data" format="tabular, csv, tsv, xml" label="Custom rules" />
+            </when>
+        </conditional>
+        <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Gene Expression dataset:" />
+        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+        <param name="none" argument="--none" type="boolean" truevalue="true" falsevalue="false" checked="true" label="(A and NaN) solved as (A)?" /> 
+    </inputs>
+
+    <outputs>
+        <data format="txt" name="log" label="Expression2RAS - $name - Log" />
+        <data format="tabular" name="ras_output" label="$name RAS"/>
+    </outputs>
+
+    <help>
+<![CDATA[
+
+What it does
+-------------
+
+This tool computes Reaction Activity Scores from gene expression (RNA-seq) dataset(s), as described in Graudenzi et al. Integration of transcriptomic data and metabolic networks in cancer samples reveals highly significant prognostic power. Journal of Biomedical Informatics, 2018, 87: 37-49.
+ 
+Accepted files:
+    - A gene expression dataset
+ 
+Format:
+Tab-separated text file reporting the normalized expression level (e.g., TPM, RPKM, ...) of each gene (row) for a given sample (column).
+Column header: sample ID.
+Row header: gene ID.
+ 
+ 
+Optional files:
+    - custom GPR (Gene-Protein-Reaction) rules. Two accepted formats:
+
+	* (Cobra Toolbox and CobraPy compliant) xml of metabolic model;
+	* .csv file specifyig for each reaction ID (column 1) the corresponding GPR rule (column 2).
+ 
+Computation option ‘(A and NaN) solved as (A)’:
+In case of missing expression value, referred to as NaN (Not a Number), for a gene joined with an AND operator in a given GPR rule, the rule ‘A and NaN’
+ 
+If YES is selected: the GPR will be solved as A.
+ 
+If NO is selected: the GPR will be disregarded tout-court (i.e., treated as NaN).
+
+Example input
+-------------
+
+Custom GPR rules:
+
++------------+--------------------------------------+   
+| id         |         rule (with entrez-id         |   
++============+======================================+   
+| r1642      |             155060 or 10357          |   
++------------+--------------------------------------+    
+| r1643      |        155060 or 100134869           |    
++------------+--------------------------------------+    
+| r1640      |     155060 and 100134869 or 10357    |   
++------------+--------------------------------------+
+
+RNA-seq dataset:
+
++------------+----------------+----------------+----------------+ 
+| Hugo_ID    |   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| HGNC:24086 |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| HGNC:24086 |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| HGNC:9876  |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| HGNC:9     |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| HGNC:23    |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+]]>
+    </help>
+<expand macro="citations" />
+</tool>
+	

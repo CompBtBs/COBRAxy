@@ -1,0 +1,293 @@
+<tool id="MaREA" name="Metabolic Reaction Enrichment Analysis" version="1.1.7">
+	<macros>
+		<import>marea_macros.xml</import>
+	</macros>
+	<requirements>
+		<requirement type="package" version="0.25.3">pandas</requirement>
+		<requirement type="package" version="1.6.3">scipy</requirement>
+		<requirement type="package" version="4.6.3">lxml</requirement>
+		<requirement type="package" version="1.1.0">svglib</requirement>
+		<requirement type="package" version="3.5.67">reportlab</requirement>
+	</requirements>
+	<command detect_errors="exit_code">
+		<![CDATA[
+      	python $__tool_directory__/marea.py
+
+      	--tool_dir $__tool_directory__
+      	--option $cond.type_selector
+        --out_log $log		
+	
+        #if $cond.type_selector == 'datasets':
+            --input_datas
+            #for $data in $cond.input_Datasets:
+                ${data.input}
+            #end for
+            --names
+            #for $data in $cond.input_Datasets:
+                ${data.input_name}
+            #end for
+            --comparison ${cond.comparis.comparison}
+			#if $cond.comparis.comparison == 'onevsmany'
+            	--control '${cond.comparis.controlgroup}'
+            #end if
+            
+            #if $cond.advanced.choice == 'true':
+				#if $cond.advanced.cond_map.cond_map_choice == 'true':
+					--custom_rules true
+					--custom_map ${cond.advanced.cond_map.custom_map}
+				#end if
+      	       --pValue ${cond.advanced.pValue}
+      	       --fChange ${cond.advanced.fChange}
+	           --generate_svg ${cond.advanced.generateSvg}
+	    	   --generate_pdf ${cond.advanced.generatePdf}
+     	    #else 
+	            --pValue 0.05
+	            --fChange 1.5
+	            --generate_svg false
+	            --generate_pdf true
+	        #end if
+        #elif $cond.type_selector == 'dataset_class':
+            --input_data ${input_data}
+            --input_class ${input_class}
+            --comparison ${cond.comparis.comparison}
+            #if $cond.comparis.comparison == 'onevsmany'
+            	--control '${cond.comparis.controlgroup}'
+            #end if
+            #if $cond.advanced.choice == 'true':
+				#if $cond.advanced.cond_map.cond_map_choice == 'true':
+					--custom_rules true
+					--custom_map ${cond.advanced.cond_map.custom_map}
+				#end if
+      	        --pValue ${cond.advanced.pValue}
+      	        --fChange ${cond.advanced.fChange}
+	            --generate_svg ${cond.advanced.generateSvg}
+	            --generate_pdf ${cond.advanced.generatePdf}
+	        #else 
+	            --pValue 0.05
+	            --fChange 1.5
+	            --generate_svg false
+	            --generate_pdf true
+	        #end if
+        #end if
+        ]]>
+	</command>
+	<inputs>
+		<conditional name="cond">
+			<param name="type_selector" argument="--option" type="select" label="Input format:">
+				<option value="datasets" selected="true">RAS of group 1 + RAS of group 2 + ... + RAS of group N</option>
+				<option value="dataset_class">RAS of all samples + sample group specification</option>
+			</param>
+			<when value="datasets">
+				<repeat name="input_Datasets" title="RAS dataset" min="2">
+					<param name="input" argument="--input_datas" type="data" format="tabular, csv, tsv" label="add dataset" />
+					<param name="input_name" argument="--names" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+				</repeat>
+				<conditional name="comparis">
+					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
+						<option value="manyvsmany" selected="true">One vs One</option>
+						<option value="onevsrest">One vs All</option>
+						<option value="onevsmany">One vs Control</option>
+					</param>
+					<when value="onevsmany">
+						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					</when>
+				</conditional>
+				<conditional name="advanced">
+					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+						<option value="true" selected="true">No</option>
+						<option value="false">Yes</option>
+					</param>
+					<when value="false"></when>
+					<when value="true">
+						<conditional name="cond_map">
+						<param name="cond_map_choice" type="boolean" checked="false" label="Use custom map?" help="Use this option only if you have generated RAS using a custom set of rules">
+							<option value="false" selected="true">No</option>
+							<option value="true">Yes</option>
+						</param>
+						<when value="true">				
+							<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
+						</when>
+					</conditional>
+						<param name="pValue" argument="--pValue" type="float" size="20" value="0.01" max="1" min="0" label="P-value threshold:" help="min value 0" />
+						<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
+						<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
+						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+					</when>
+			</conditional>
+			</when>
+			<when value="dataset_class">
+                <param name="input_data" argument="--input_data" type="data" format="tabular, csv, tsv" label="RAS of all samples" />
+                <param name="input_class" argument="--input_class" type="data" format="tabular, csv, tsv" label="Sample group specification" />
+                <conditional name="comparis">
+					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
+						<option value="manyvsmany" selected="true">One vs One</option>
+						<option value="onevsrest">One vs All</option>
+						<option value="onevsmany">One vs Control</option>
+					</param>
+					<when value="onevsmany">
+						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					</when>
+				</conditional>
+				<conditional name="advanced">
+				<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+					<option value="true" selected="true">No</option>
+					<option value="false">Yes</option>
+				</param>
+				<when value="false"></when>
+				<when value="true">
+					<conditional name="cond_map">
+						<param name="cond_map_choice" type="boolean" checked="false" label="Use custom map?" help="Use this option only if you have generated RAS using a custom set of rules">
+							<option value="false" selected="true">No</option>
+							<option value="true">Yes</option>
+						</param>
+						<when value="true">								
+							<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
+						</when>
+					</conditional>
+					<param name="pValue" argument="--pValue" type="float" size="20" value="0.01" max="1" min="0" label="P-value threshold:" help="min value 0" />
+					<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
+					<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
+					<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+				</when>
+			</conditional>
+		</when>
+	</conditional>
+</inputs>
+<outputs>
+	<data format="txt" name="log" label="MaREA - Log" />
+	<collection name="results" type="list" label="MaREA - Results">
+		<discover_datasets pattern="__name_and_ext__" directory="result"/>
+	</collection>
+</outputs>
+<help>
+	<![CDATA[
+
+What it does
+-------------
+
+This tool analyzes and visualizes differences in the Reaction Activity Scores (RASs) of groups of samples, as computed by the Expression2RAS tool, of groups of samples.
+
+Accepted files are: 
+    - option 1) two or more RAS datasets, each referring to samples in a given group. The user can specify a label for each group (as e.g. "classA" and "classB");
+    - option 2) one RAS dataset and one group-file specifying the group each sample belongs to.
+    
+RAS datasets format: tab-separated text files, reporting the RAS value of each reaction (row) for a given sample (column).
+
+Column header: sample ID.
+Raw header: reaction ID. 
+
+Optional files:
+    - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.
+
+The tool generates:
+    - 1) a tab-separated file: reporting fold-change and p-values of reaction activity scores (RASs) between a pair of conditions/classes;
+    - 2) a metabolic map file (downloadable as .svg): visualizing up- and down-regulated reactions between a pair of conditions/classes;
+    - 3) a log file (.txt).
+    
+Output options:
+To calculate P-Values and Fold-Changes and to enrich maps, comparisons are performed for each possible pair of groups (default option ‘One vs One’).
+
+Alternative options are:
+    - comparison of each group vs. the rest of samples (option ‘One vs Rest’)
+    - comparison of each group vs. a control group (option ‘One vs Control). If this option is selected the user must indicate the control group label.
+
+Output files will be named as classA_vs_classB. Reactions will conventionally be reported as up-regulated (down-regulated) if they are significantly more (less) active in class having label "classA".
+
+Example input
+-------------
+
+"RAS of group 1 + RAS of group 2 + ... + RAS of group N" option:
+
+RAS Dataset 1:
+
++------------+----------------+----------------+----------------+ 
+| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| r1642      |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| r1643      |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| r1640      |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| r1641      |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| r1646      |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+RAS Dataset 2:
+
++------------+----------------+----------------+----------------+ 
+| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| r1642      |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| r1643      |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| r1640      |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| r1641      |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| r1646      |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+"RAS of all samples + sample group specification" option:
+
+RAS Dataset:
+
++------------+----------------+----------------+----------------+ 
+| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| r1642      |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| r1643      |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| r1640      |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| r1641      |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| r1646      |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+Group-file
+
++---------------+-----------+
+| Patient ID    |   Class   | 
++===============+===========+
+| TCGAAA3529    |    MSI    | 
++---------------+-----------+  
+| TCGAA62671    |    MSS    |    
++---------------+-----------+   
+| TCGAA62672    |    MSI    |
++---------------+-----------+
+
+Advanced options
+----------------
+
+P-Value threshold: the threshold used for significance Kolmogorov-Smirnov (KS) test, to verify whether the distributions of RASs over the samples in two sets are significantly different
+
+Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the KS test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map;
+
+
+.. class:: infomark
+
+**TIP**: If your data is not TAB delimited, use `Convert delimiters to TAB`_.
+
+.. class:: infomark
+
+**TIP**: If your dataset is not split into classes, use `MaREA cluster analysis`_.
+
+.. class:: infomark
+
+**TIP**: This tool using the RAS scores computed by `Ras tool`_.
+
+@REFERENCE@
+
+.. _Ras tool: http://bimib.disco.unimib.it:5555/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fbimib%2Fmarea%2FMaREA+RAS+Generator%2F1.0.6&version=1.0.6&__identifer=auulv6gbp76
+.. _Convert delimiters to TAB: http://bimib.disco.unimib.it:5555/?tool_id=Convert+characters1&version=1.0.0&__identifer=76g7trea4j6
+.. _MaREA cluster analysis: http://bimib.disco.unimib.it:5555/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fbimib%2Fmarea%2FMaREA_cluester%2F1.1.2&version=1.1.2&__identifer=lxbyzn2me9
+
+]]>
+</help>
+<expand macro="citations" />
+</tool>
+	

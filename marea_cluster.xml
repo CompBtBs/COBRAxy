@@ -1,0 +1,150 @@
+<tool id="MaREA_cluester" name="Cluster Analysis" version="1.1.2">
+    <description></description>
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="0.25.3">pandas</requirement>
+        <requirement type="package" version="1.6.3">scipy</requirement>
+        <requirement type="package" version="0.24.2">scikit-learn</requirement>
+        <requirement type="package" version="3.4.2">matplotlib</requirement>
+	      <requirement type="package" version="1.20.3">numpy</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+      	python $__tool_directory__/marea_cluster.py
+        --input $input
+      	--tool_dir $__tool_directory__
+        --out_log $log
+        --best_cluster $best_cluster
+        --cluster_type ${data.clust_type}
+        #if $data.clust_type == 'kmeans':
+        	--k_min ${data.k_min}
+        	--k_max ${data.k_max}
+        	--elbow ${data.elbow}
+        	--silhouette ${data.silhouette}
+        #end if
+        #if $data.clust_type == 'dbscan':
+        	#if $data.dbscan_advanced.advanced == 'true'
+        		--eps ${data.dbscan_advanced.eps}
+        		--min_samples ${data.dbscan_advanced.min_samples}
+        	#end if
+        #end if
+        #if $data.clust_type == 'hierarchy':
+        	--k_min ${data.k_min}
+        	--k_max ${data.k_max}
+        	--silhouette ${data.silhouette}
+      	#end if
+        ]]>
+    </command>
+    <inputs>
+        <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Input dataset" />
+        
+        <conditional name="data">
+			<param name="clust_type" argument="--cluster_type" type="select" label="Choose clustering type:">
+                	<option value="kmeans" selected="true">KMeans</option>
+                	<option value="dbscan">DBSCAN</option>
+                	<option value="hierarchy">Agglomerative Hierarchical</option>
+        	</param>
+        	<when value="kmeans">
+        		<param name="k_min" argument="--k_min" type="integer" min="2" max="20" value="2" label="Min number of clusters (k) to be tested" />
+        		<param name="k_max" argument="--k_max" type="integer" min="2" max="20" value="3" label="Max number of clusters (k) to be tested" />
+        		<param name="elbow" argument="--elbow" type="boolean" value="true" label="Draw the elbow plot from k-min to k-max"/>
+        		<param name="silhouette" argument="--silhouette" type="boolean" value="true" label="Draw the Silhouette plot from k-min to k-max"/>
+        	</when>
+        	<when value="dbscan">
+        		<conditional name="dbscan_advanced">
+        			<param name="advanced" type="boolean" value="false" label="Want to use custom params for DBSCAN? (if not optimal values will be used)">
+        				<option value="true">Yes</option>
+        				<option value="false">No</option>
+        			</param>
+        			<when value="false"></when>
+        			<when value="true">
+        				<param name="eps" argument="--eps" type="float" value="0.5" label="Epsilon - The maximum distance between two samples for one to be considered as in the neighborhood of the other" />
+        				<param name="min_samples" argument="min_samples" type="integer" value="5" label="Min samples - The number of samples in a neighborhood for a point to be considered as a core point (this includes the point itself)"/>
+        			
+        			</when>
+        		</conditional>   	
+        	</when>
+        	<when value="hierarchy">
+        		<param name="k_min" argument="--k_min" type="integer" min="2" max="20" value="2" label="Min number of clusters (k) to be tested" />
+        		<param name="k_max" argument="--k_max" type="integer" min="3" max="20" value="3" label="Max number of clusters (k) to be tested" />
+        		<param name="silhouette" argument="--silhouette" type="boolean" value="true" label="Draw the Silhouette plot from k-min to k-max"/>
+        	</when>
+		</conditional>
+    </inputs>
+
+    <outputs>
+        <data format="txt" name="log" label="${tool.name} - Log" />
+        <data format="tabular" name="best_cluster" label="${tool.name} - best cluster assignment" />
+        <collection name="results" type="list" label="${tool.name} - Plots and results">
+            <discover_datasets pattern="__name_and_ext__" directory="clustering"/>
+            <filter>data['clust_type'] == "kmeans" or data['clust_type'] == "hierarchy"</filter>
+        </collection>
+    </outputs>
+    <help>
+<![CDATA[
+
+What it does
+-------------
+
+The tool performs cluster analysis of any dataset, according to most used algorithms: K-means, agglomerative
+clustering and DBSCAN (Density Based Spatial Clustering of Applications with Noise).
+
+Accepted files are:
+    - Tabular files in which rows indicate different variables and columns different observations. The first row reports the observations’ labels.
+
+
+Example of input dataset:
+-------------------------
+
++----------+----------+----------+ 
+|TCGAA62670|TCGAA62671|TCGAA62672|   
++==========+==========+==========+  
+| 0.523167 | 0.371355 | 0.925661 |
++----------+----------+----------+   
+| 0.568765 | 0.765567 | 0.456789 |
++----------+----------+----------+    
+| 0.876545 | 0.768933 | 0.987654 |
++----------+----------+----------+
+| 0.456788 | 0.876543 | 0.876542 |  
++----------+----------+----------+    
+| 0.876543 | 0.786543 | 0.897654 | 
++----------+----------+----------+
+
+. 
+
+
+Options:
+--------
+
+The following clustering types can be chosen:
+    - K-means. This option requires the number of clusters (k) to be set. Different values of k can be tested.
+    - Agglomerative clustering. Different values of k can be set, to cut the resulting dendrogram.
+    - DBSCAN. The DBSCAN method chooses the number of clusters based on parameters that define when a region is to be considered dense. Custom parameters may be used, namely the maximum distance between two samples for one to be considered as in the neighborhood of the other and the number of samples in a neighborhood for a point to be considered as a core point.
+
+The tool generates:
+    - a tab-separated file: reporting the affiliation of each observation to a cluster. In case different numbers of clusters have been tested, the best cluster assignment is reported according to maximum average silhouette score. If desired, the elbow plot is generated, as well as silhouette plot for each k.
+    - a list of items, including: 1) the cluster assignment for each tested number of clusters 2) the dendrogram in case of agglomerative clustering 3) elbow and silhouete plots in case of k-means clustering.
+    - a log file (.txt).
+    
+    
+.. class:: infomark
+
+**TIP**: This tool has been conceived to cluster gene expression data, by using the RAS scores computed by `Ras tool`_.
+
+.. class:: infomark
+
+**TIP**: If your data is not TAB delimited, use `Convert delimiters to TAB`_.
+
+@REFERENCE@
+
+.. _Ras tool: http://bimib.disco.unimib.it:5555/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fbimib%2Fmarea%2FMaREA+RAS+Generator%2F1.0.6&version=1.0.6&__identifer=auulv6gbp76
+.. _Convert delimiters to TAB: http://bimib.disco.unimib.it:5555/?tool_id=Convert+characters1&version=1.0.0&__identifer=76g7trea4j6
+
+]]>
+    </help>
+    <expand macro="citations" />
+</tool>
+	
+	
