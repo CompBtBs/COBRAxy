@@ -114,7 +114,6 @@ def name_dataset(name_data, count):
         return str(name_data) + '_' + str(count)
     else:
         return str(name_data)
-    
 
 ############################ check_methods ####################################
 
