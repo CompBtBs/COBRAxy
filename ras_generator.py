@@ -15,7 +15,7 @@ def process_args(args):
     parser.add_argument('-rs', '--rules_selector', 
                         type = str,
                         default = 'HMRcore',
-                        choices = ['HMRcore', 'Recon', 'Custom'], 
+                        choices = ['HMRcore', 'Recon', 'ENGRO2','Custom'], 
                         help = 'chose which type of dataset you want use')
     parser.add_argument('-cr', '--custom',
                         type = str,
@@ -472,6 +472,9 @@ def data_gene(gene, type_gene, name, gene_custom):
             elif args.rules_selector == 'Recon':
                 gene_in_rule = pk.load(open(args.tool_dir +
                                             '/local/Recon_genes.p', 'rb'))
+            elif args.rules_selector == 'ENGRO2':
+                gene_in_rule = pk.load(open(args.tool_dir +
+                                            '/local/ENGRO2_genes.p', 'rb'))
             gene_in_rule = gene_in_rule.get(type_gene)
         else:
             gene_in_rule = gene_custom
@@ -569,6 +572,8 @@ def main():
         recon = pk.load(open(args.tool_dir + '/local/HMRcore_rules.p', 'rb'))
     elif args.rules_selector == 'Recon':
         recon = pk.load(open(args.tool_dir + '/local/Recon_rules.p', 'rb'))
+    elif args.rules_selector == 'ENGRO2':
+        recon = pk.load(open(args.tool_dir + '/local/ENGRO2_rules.p', 'rb'))
     elif args.rules_selector == 'Custom':
         ids, rules, gene_in_rule = make_recon(args.custom)
         

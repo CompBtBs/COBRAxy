@@ -31,6 +31,8 @@
             </when>
             <when value="Recon">
             </when>
+            <when value="ENGRO2">
+            </when>
             <when value="Custom">
                 <param name="Custom_rules" type="data" format="tabular, csv, tsv, xml" label="Custom rules" />
             </when>

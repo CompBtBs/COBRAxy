@@ -82,6 +82,9 @@ def process_args(args):
                         type = str,
                         nargs = '+', 
                         help = 'input names')
+    parser.add_argument('-mc',  '--choice_map',
+                        type = str,
+                        choices = ['HMRcoremap','ENGRO2map'])
                                     
     args = parser.parse_args()
     return args
@@ -843,18 +846,22 @@ def main():
         except (ET.XMLSyntaxError, ET.XMLSchemaParseError):
             sys.exit('Execution aborted: custom map in wrong format')
     else:
-        core_map = ET.parse(args.tool_dir+'/local/HMRcoreMap.svg')
+
+        if args.choice_map == 'HMRcoremap':
+            core_map = ET.parse(args.tool_dir+'/local/HMRcoreMap.svg')
+        elif args.choice_map == 'ENGRO2map':
+            core_map = ET.parse(args.tool_dir+'/local/ENGRO2map.svg')
         
     class_pat_trim = {}
     
     for key in class_pat.keys():
     	class_pat_trim[key.strip()] = class_pat[key]
- 
         
     maps(core_map, class_pat_trim, ids, args.pValue, args.fChange, create_svg, create_pdf, args.comparison, args.control)
-        
+
+    print('marea alleggerito')
     print('Execution succeded')
-    
+
     return None
 
 

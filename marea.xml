@@ -31,6 +31,8 @@
             	--control '${cond.comparis.controlgroup}'
             #end if
             
+            --choice_map '${cond.cond_choice_map.choice_map}'
+
             #if $cond.advanced.choice == 'true':
 				#if $cond.advanced.cond_map.cond_map_choice == 'true':
 					--custom_rules true
@@ -53,6 +55,9 @@
             #if $cond.comparis.comparison == 'onevsmany'
             	--control '${cond.comparis.controlgroup}'
             #end if
+
+            --choice_map '${cond.cond_choice_map.choice_map}'
+
             #if $cond.advanced.choice == 'true':
 				#if $cond.advanced.cond_map.cond_map_choice == 'true':
 					--custom_rules true
@@ -92,6 +97,12 @@
 						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
 					</when>
 				</conditional>
+				<conditional name="cond_choice_map">
+					<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
+						<option value="HMRcoremap" selected="true">HMRcoremap</option>
+						<option value="ENGRO2map">ENGRO2</option>
+					</param>
+				</conditional>
 				<conditional name="advanced">
 					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
 						<option value="true" selected="true">No</option>
@@ -127,6 +138,12 @@
 					<when value="onevsmany">
 						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
 					</when>
+				</conditional>
+				<conditional name="cond_choice_map">
+					<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
+						<option value="HMRcoremap" selected="true">HMRcoremap</option>
+						<option value="ENGRO2">ENGRO2</option>
+					</param>
 				</conditional>
 				<conditional name="advanced">
 				<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">

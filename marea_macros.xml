@@ -4,6 +4,7 @@
         <param name="rules_selector" argument="--rules_selector" type="select" label="Gene-Protein-Reaction rules:">
             <option value="HMRcore" selected="true">HMRcore rules</option>
             <option value="Recon">Recon 2.2 rules</option>
+            <option value="ENGRO2">ENGRO 2 rules</option>
             <option value="Custom">Custom rules</option>
         </param>
     </xml>
