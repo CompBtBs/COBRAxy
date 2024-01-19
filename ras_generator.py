@@ -520,27 +520,6 @@ def resolve(genes, rules, ids, resolve_none, name):
         return (None, None)
     return (resolve_rules, list(set(not_found)))
 
-############################ split class ######################################
-
-def split_class(classes, resolve_rules):
-    class_pat = {}
-    for i in range(len(classes)):
-        classe = classes.iloc[i, 1]
-        if not pd.isnull(classe):
-            l = []
-            for j in range(i, len(classes)):
-                if classes.iloc[j, 1] == classe:
-                    pat_id = classes.iloc[j, 0]
-                    if tmp != None:
-                        l.append(tmp)
-                    classes.iloc[j, 1] = None
-            if l:
-                class_pat[classe] = list(map(list, zip(*l)))
-            else:
-                warning('Warning: no sample found in class ' + classe +
-                        ', the class has been disregarded\n')
-    return class_pat
-
 ############################ create_ras #######################################
 
 def create_ras (resolve_rules, dataset_name, rules, ids, file):
