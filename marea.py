@@ -11,6 +11,11 @@ import os
 import argparse
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPDF
+import pyvips
+from PIL import Image
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
 
 ########################## argparse ##########################################
 
@@ -219,6 +224,32 @@ def split_class(classes, resolve_rules):
                         ', the class has been disregarded\n')
     return class_pat
 
+############################ conversion ##############################################
+#conversion from svg to png 
+def svg_to_png_with_background(svg_path, png_path, dpi=72, scale=1, size=None):
+    if size:
+        image = pyvips.Image.new_from_file(svg_path, dpi=dpi, scale=1)
+        scale = size / image.width
+        image = image.resize(scale)
+    else:
+        image = pyvips.Image.new_from_file(svg_path, dpi=dpi, scale=scale)
+
+    white_background = pyvips.Image.black(image.width, image.height).new_from_image([255, 255, 255])
+    white_background = white_background.affine([scale, 0, 0, scale])
+
+    if white_background.bands != image.bands:
+        white_background = white_background.extract_band(0)
+
+    composite_image = white_background.composite2(image, 'over')
+    composite_image.write_to_file(png_path)
+
+
+#conversion from png to pdf
+def convert_png_to_pdf(png_file, pdf_file):
+    image = Image.open(png_file)
+    image = image.convert("RGB")
+    image.save(pdf_file, "PDF", resolution=100.0)
+
 ############################ map ##############################################
 
 def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, create_pdf, comparison, control):
@@ -260,7 +291,14 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
                     
                     if create_pdf:
                         file_pdf = 'result/' + i + '_vs_' + j + ' (PDF Map).pdf'
-                        renderPDF.drawToFile(svg2rlg(file_svg), file_pdf)
+                        file_png= 'result/' + i + '_vs_' + j + ' (PNG Map).png'
+                        svg_to_png_with_background(file_svg, file_png)
+                        try:
+                            convert_png_to_pdf(file_png, file_pdf)
+                            print(f'PDF file {file_pdf} successfully generated.')
+                        except Exception as e:
+                            print(f'Error generating PDF file: {e}')
+                        #renderPDF.drawToFile(svg2rlg(file_svg), file_pdf)
                     
                     if not create_svg:
                         os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
@@ -311,7 +349,14 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
                     
                     if create_pdf:
                         file_pdf = 'result/' + single_cluster + '_vs_ rest (PDF Map).pdf'
-                        renderPDF.drawToFile(svg2rlg(file_svg), file_pdf)
+                        file_png= 'result/' + single_cluster + '_vs_ rest (PNG Map).png'
+                        svg_to_png_with_background(file_svg, file_png)
+                        try:
+                            convert_png_to_pdf(file_png, file_pdf)
+                            print(f'PDF file {file_pdf} successfully generated.')
+                        except Exception as e:
+                            print(f'Error generating PDF file: {e}')
+                        #renderPDF.drawToFile(svg2rlg(file_svg), file_pdf)
                     
                     if not create_svg:
                         os.remove('result/' + single_cluster + '_vs_ rest (SVG Map).svg') 
@@ -354,7 +399,14 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
                     
                     if create_pdf:
                         file_pdf = 'result/' + i + '_vs_' + j + ' (PDF Map).pdf'
-                        renderPDF.drawToFile(svg2rlg(file_svg), file_pdf)
+                        file_png= 'result/' + i + '_vs_' + j + ' (PNG Map).png'
+                        svg_to_png_with_background(file_svg, file_png)
+                        try:
+                            convert_png_to_pdf(file_png, file_pdf)
+                            print(f'PDF file {file_pdf} successfully generated.')
+                        except Exception as e:
+                            print(f'Error generating PDF file: {e}')
+                        #renderPDF.drawToFile(svg2rlg(file_svg), file_pdf)                      
                     
                     if not create_svg:
                         os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
