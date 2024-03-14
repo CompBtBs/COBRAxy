@@ -202,7 +202,7 @@ def kmeans (k_min, k_max, dataset, elbow, silhouette, best_cluster):
         
        
         if silhouette:
-            silihouette_draw(dataset, all_labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, all_labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
         
         
     if elbow:
@@ -228,7 +228,7 @@ def elbow_plot (distortions, k_min, k_max):
     
     
 ############################## silhouette plot ###############################
-def silihouette_draw(dataset, labels, n_clusters, path):
+def silhouette_draw(dataset, labels, n_clusters, path):
     if n_clusters == 1:
         return None
         
@@ -354,7 +354,7 @@ def hierachical_agglomerative(dataset, k_min, k_max, best_cluster, silhouette):
         if (i + k_min == best):
             prefix = '_BEST'
         if silhouette == 'true':
-            silihouette_draw(dataset, labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
      
     for i in range(len(labels)):
         if (i + k_min == best):
