@@ -251,7 +251,7 @@ def convert_png_to_pdf(png_file, pdf_file):
     image.save(pdf_file, "PDF", resolution=100.0)
 
 #function called to reduce redundancy in the code
-def convert_pdf(file_svg, file_png, file_pdf):
+def convert_to_pdf(file_svg, file_png, file_pdf):
     svg_to_png_with_background(file_svg, file_png)
     try:
         convert_png_to_pdf(file_png, file_pdf)
@@ -301,7 +301,7 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
                     if create_pdf:
                         file_pdf = 'result/' + i + '_vs_' + j + ' (PDF Map).pdf'
                         file_png= 'result/' + i + '_vs_' + j + ' (PNG Map).png'
-                        create_pdf(file_svg, file_png, file_pdf)    
+                        convert_to_pdf(file_svg, file_png, file_pdf)    
                     
                     if not create_svg:
                         os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
@@ -353,7 +353,7 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
                     if create_pdf:
                         file_pdf = 'result/' + single_cluster + '_vs_ rest (PDF Map).pdf'
                         file_png= 'result/' + single_cluster + '_vs_ rest (PNG Map).png'
-                        create_pdf(file_svg, file_png, file_pdf)    
+                        convert_to_pdf(file_svg, file_png, file_pdf)    
                     
                     if not create_svg:
                         os.remove('result/' + single_cluster + '_vs_ rest (SVG Map).svg') 
@@ -397,7 +397,7 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
                     if create_pdf:
                         file_pdf = 'result/' + i + '_vs_' + j + ' (PDF Map).pdf'
                         file_png= 'result/' + i + '_vs_' + j + ' (PNG Map).png'
-                        create_pdf(file_svg, file_png, file_pdf)                     
+                        convert_to_pdf(file_svg, file_png, file_pdf)                     
                     
                     if not create_svg:
                         os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
