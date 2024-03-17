@@ -18,8 +18,16 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 ########################## argparse ##########################################
-
 def process_args(args):
+    """
+    Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
+
+    Args:
+        args : Always obtained (in file) from sys.argv
+
+    Returns:
+        Namespace : An object containing the parsed arguments
+    """
     parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
                                      description = 'process some value\'s'+
                                      ' genes to create a comparison\'s map.')
@@ -95,15 +103,35 @@ def process_args(args):
     return args
 
 ########################### warning ###########################################
-
 def warning(s):
+    """
+    Gets a logger (.out_log) in the :Namespace object obtained from calling process_args, opens it in append mode and writes the input param (s) to it.
+
+    Args:
+        s : Always starting (in file) with "Warning: "
+
+    Returns:
+        None
+
+    Side Effects:
+        Edits logger file in the :Namespace object
+    """
     args = process_args(sys.argv)
     with open(args.out_log, 'a') as log:
             log.write(s)
             
 ############################ dataset input ####################################
-
 def read_dataset(data, name):
+    """
+    Tries to read the dataset from its path (data) as a tsv and exits (sys.exit) if there's no data (pd.errors.EmptyDataError) or if the dataset has less than 2 columns. The dataset is returned only if all these checks are passed.
+
+    Args:
+        data : filepath of a dataset (from frontend input params or literals upon calling)
+        name : name associated with the dataset (from frontend input params or literals upon calling)
+
+    Returns:
+        pd.DataFrame : dataset in a runtime operable shape
+    """
     try:
         dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python')
     except pd.errors.EmptyDataError:
@@ -113,24 +141,57 @@ def read_dataset(data, name):
     return dataset
 
 ############################ dataset name #####################################
-
 def name_dataset(name_data, count):
+    """
+    Produces a unique name for a dataset based on what was provided by the user. The default name for any dataset is "Dataset", thus if the user didn't change it this function appends f"_{count}" to make it unique.
+
+    Args:
+        name_data : name associated with the dataset (from frontend input params)
+        count : counter from 1 to make these names unique (external)
+
+    Returns:
+        str : the name made unique
+    """
     if str(name_data) == 'Dataset':
         return str(name_data) + '_' + str(count)
     else:
         return str(name_data)
 
 ############################ check_methods ####################################
-
 def check_bool(b):
+    """
+    Converts a string input parameter into a boolean representation.
+
+    Args:
+        b : string to cast to boolean (from frontend input params)
+
+    Returns:
+        bool :
+            True : when b is "true"
+            False : when b is "false"
+
+        None : for any other value of b
+    """
     if b == 'true':
         return True
     elif b == 'false':
         return False
     
 ############################ map_methods ######################################
-
 def fold_change(avg1, avg2):
+    """
+    Calculates the fold change between two gene expression values.
+
+    Args:
+        avg1 : average expression value from one dataset avg2 : average expression value from the other dataset
+
+    Returns:
+        FoldChange :
+            0 : when both input values are 0
+            "-INF" : when avg1 is 0
+            "INF" : when avg2 is 0
+            float : for any other combination of values
+    """
     if avg1 == 0 and avg2 == 0:
         return 0
     elif avg1 == 0:
@@ -141,6 +202,18 @@ def fold_change(avg1, avg2):
         return math.log(avg1 / avg2, 2)
     
 def fix_style(l, col, width, dash):
+    """
+    Produces a "fixed" style string to assign to a reaction arrow in the SVG map, assigning style properties to the corresponding values passed as input params.
+
+    Args:
+        l : current style string of an SVG element
+        col : new value for the "stroke" style property
+        width : new value for the "stroke-width" style property
+        dash : new value for the "stroke-dasharray" style property
+
+    Returns:
+        str : the fixed style string
+    """
     tmp = l.split(';')
     flag_col = False
     flag_width = False
@@ -164,6 +237,22 @@ def fix_style(l, col, width, dash):
     return ';'.join(tmp)
 
 def fix_map(d, core_map, threshold_P_V, threshold_F_C, max_F_C):
+    """
+    Edits the selected SVG map based on the p-value and fold change data (d) and some significance thresholds also passed as inputs.
+
+    Args:
+        d : dictionary mapping a p-value and a fold-change value (values) to each reaction ID as encoded in the SVG map (keys)
+        core_map : SVG map to modify
+        threshold_P_V : threshold for a p-value to be considered significant
+        threshold_F_C : threshold for a fold change value to be considered significant
+        max_F_C : highest fold change (absolute value)
+    
+    Returns:
+        ET.ElementTree : the modified core_map
+
+    Side effects:
+        core_map : mut
+    """
     maxT = 12
     minT = 2
     grey = '#BEBEBE'
@@ -203,8 +292,20 @@ def fix_map(d, core_map, threshold_P_V, threshold_F_C, max_F_C):
 
 
 ############################ split class ######################################
-
 def split_class(classes, resolve_rules):
+    """
+    Generates a :dict that groups together data from a :DataFrame based on classes the data is related to.
+
+    Args:
+        classes : a :DataFrame of only string values, containing class information (rows) and keys to query the resolve_rules :dict
+        resolve_rules : a :dict containing :float data
+
+    Returns:
+        dict : the dict with data grouped by class
+
+    Side effects:
+        classes : mut
+    """
     class_pat = {}
     for i in range(len(classes)):
         classe = classes.iloc[i, 1]
@@ -227,6 +328,19 @@ def split_class(classes, resolve_rules):
 ############################ conversion ##############################################
 #conversion from svg to png 
 def svg_to_png_with_background(svg_path, png_path, dpi=72, scale=1, size=None):
+    """
+    Internal utility to convert an SVG to PNG (forced opaque) to aid in PDF conversion.
+
+    Args:
+        svg_path : path to SVG file
+        png_path : path for new PNG file
+        dpi : dots per inch of the generated PNG
+        scale : scaling factor for the generated PNG, computed internally when a size is provided
+        size : final effective width of the generated PNG
+
+    Returns:
+        None
+    """
     if size:
         image = pyvips.Image.new_from_file(svg_path, dpi=dpi, scale=1)
         scale = size / image.width
@@ -246,12 +360,33 @@ def svg_to_png_with_background(svg_path, png_path, dpi=72, scale=1, size=None):
 #funzione unica, lascio fuori i file e li passo in input
 #conversion from png to pdf
 def convert_png_to_pdf(png_file, pdf_file):
+    """
+    Internal utility to convert a PNG to PDF to aid from SVG conversion.
+
+    Args:
+        png_file : path to PNG file
+        pdf_file : path to new PDF file
+
+    Returns:
+        None
+    """
     image = Image.open(png_file)
     image = image.convert("RGB")
     image.save(pdf_file, "PDF", resolution=100.0)
 
 #function called to reduce redundancy in the code
 def convert_to_pdf(file_svg, file_png, file_pdf):
+    """
+    Converts the SVG map at the provided path to PDF.
+
+    Args:
+        file_svg : path to SVG file
+        file_png : path to PNG file
+        file_pdf : path to new PDF file
+
+    Returns:
+        None
+    """
     svg_to_png_with_background(file_svg, file_png)
     try:
         convert_png_to_pdf(file_png, file_pdf)
@@ -260,8 +395,31 @@ def convert_to_pdf(file_svg, file_png, file_pdf):
         print(f'Error generating PDF file: {e}')
 
 ############################ map ##############################################
-
 def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, create_pdf, comparison, control):
+    """
+    Compares clustered data based on a given comparison mode and generates metabolic maps visualizing the results.
+
+    Args:
+        core_map : SVG map to modify
+        class_pat : the clustered data
+        ids : ids for data association
+        threshold_P_V : threshold for a p-value to be considered significant
+        threshold_F_C : threshold for a fold change value to be considered significant
+        create_svg : does the svg need to be displayed? *
+        create_pdf : does a pdf conversion of the svg map need to be displayed? *
+        comparison : comparison mode between clusters ("manyvsmany", "onevsrest", "onevsmany")
+        control : another frontend-derived input parameter, identifying (I assume) the control sample
+
+        *Based on user input on a switch item in the frontend. The boolean conversion is done with
+        the check_bool function but the frontend should never produce other values outside of
+        "true" and "false" to feed to it, so these two parameters can never (hopefully) be None.
+
+    Returns:
+        None
+
+    Side effects:
+        core_map : mut (passed to fix_map)
+    """
     args = process_args(sys.argv)
     if (not class_pat) or (len(class_pat.keys()) < 2):
         sys.exit('Execution aborted: classes provided for comparisons are ' +
@@ -408,8 +566,13 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
     return None
 
 ############################ MAIN #############################################
-
 def main():
+    """
+    Initializes everything and sets the program in motion based on the fronted input arguments.
+
+    Returns:
+        None
+    """
     args = process_args(sys.argv)
     
     create_svg = check_bool(args.generate_svg)
@@ -488,8 +651,8 @@ def main():
     class_pat_trim = {}
     
     for key in class_pat.keys():
-    	class_pat_trim[key.strip()] = class_pat[key]
-        
+        class_pat_trim[key.strip()] = class_pat[key]    
+    
     maps(core_map, class_pat_trim, ids, args.pValue, args.fChange, create_svg, create_pdf, args.comparison, args.control)
 
     print('Execution succeded')

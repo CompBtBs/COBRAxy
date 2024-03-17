@@ -5,9 +5,9 @@
 	<requirements>
 		<requirement type="package" version="0.25.3">pandas</requirement>
 		<requirement type="package" version="1.6.3">scipy</requirement>
-		<requirement type="package" version="4.6.3">lxml</requirement>
+		<requirement type="package" version="4.9.3">lxml</requirement>
 		<requirement type="package" version="1.1.0">svglib</requirement>
-		<requirement type="package" version="3.5.67">reportlab</requirement>
+		<requirement type="package" version="4.1.0">reportlab</requirement>
 	</requirements>
 	<command detect_errors="exit_code">
 		<![CDATA[
