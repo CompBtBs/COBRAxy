@@ -16,10 +16,10 @@ from PIL import Image
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
-from typing import TypeAlias, Union, Optional, Literal
+from typing import Union, Optional, List, Dict
 
 ########################## argparse ##########################################
-def process_args(args :list[str]) -> argparse.Namespace:
+def process_args(args :List[str]) -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
 
@@ -179,7 +179,7 @@ def check_bool(b :str) -> Optional[bool]:
         return False
     
 ############################ map_methods ######################################
-FoldChange :TypeAlias = Union[float, Literal[0, "-INF", "INF"]]
+FoldChange = Union[float, int, str] # Union[float, Literal[0, "-INF", "INF"]]
 def fold_change(avg1 :float, avg2 :float) -> FoldChange:
     """
     Calculates the fold change between two gene expression values.
@@ -239,7 +239,7 @@ def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
     return ';'.join(tmp)
 
 # The type of d values is collapsed, losing precision, because the dict containst lists instead of tuples, please fix!
-def fix_map(d :dict[str, list[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_F_C :float) -> ET.ElementTree:
+def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_F_C :float) -> ET.ElementTree:
     """
     Edits the selected SVG map based on the p-value and fold change data (d) and some significance thresholds also passed as inputs.
 
@@ -295,7 +295,7 @@ def fix_map(d :dict[str, list[Union[float, FoldChange]]], core_map :ET.ElementTr
 
 
 ############################ split class ######################################
-def split_class(classes :pd.DataFrame[str], resolve_rules :dict[str, list[float]]) -> dict[str, list[list[float]]]:
+def split_class(classes :pd.DataFrame, resolve_rules :Dict[str, List[float]]) -> Dict[str, List[List[float]]]:
     """
     Generates a :dict that groups together data from a :DataFrame based on classes the data is related to.
 
@@ -309,11 +309,11 @@ def split_class(classes :pd.DataFrame[str], resolve_rules :dict[str, list[float]
     Side effects:
         classes : mut
     """
-    class_pat :dict[str, list[list[float]]] = {}
+    class_pat :Dict[str, List[List[float]]] = {}
     for i in range(len(classes)):
         classe :str = classes.iloc[i, 1]
         if not pd.isnull(classe):
-            l :list[list[float]] = []
+            l :List[List[float]] = []
             for j in range(i, len(classes)):
                 if classes.iloc[j, 1] == classe:
                     pat_id :str = classes.iloc[j, 0]
@@ -398,7 +398,7 @@ def convert_to_pdf(file_svg :str, file_png :str, file_pdf :str) -> None:
         print(f'Error generating PDF file: {e}')
 
 ############################ map ##############################################
-def maps(core_map :ET.ElementTree, class_pat :dict[str, list[list[float]]], ids :list[str], threshold_P_V :float, threshold_F_C :float, create_svg :bool, create_pdf :bool, comparison :str, control :str) -> None:
+def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], threshold_P_V :float, threshold_F_C :float, create_svg :bool, create_pdf :bool, comparison :str, control :str) -> None:
     """
     Compares clustered data based on a given comparison mode and generates metabolic maps visualizing the results.
 
@@ -430,7 +430,7 @@ def maps(core_map :ET.ElementTree, class_pat :dict[str, list[list[float]]], ids 
 
     if comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            tmp :dict[str, list[list[Union[float, FoldChange]]]] = {}
+            tmp :Dict[str, List[List[Union[float, FoldChange]]]] = {}
             count = 0
             max_F_C = 0
             for l1, l2 in zip(class_pat.get(i), class_pat.get(j)):
@@ -468,11 +468,11 @@ def maps(core_map :ET.ElementTree, class_pat :dict[str, list[list[float]]], ids 
                         os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
     elif comparison == "onevsrest":
         for single_cluster in class_pat.keys():
-            t :list[list[list[float]]] = []
+            t :List[List[List[float]]] = []
             for k in class_pat.keys():
                 if k != single_cluster:
                    t.append(class_pat.get(k))
-            rest :list[list[float]] = []
+            rest :List[List[float]] = []
             for i in t:
                 rest = rest + i
             
@@ -584,7 +584,7 @@ def main():
     if os.path.isdir('result') == False:
         os.makedirs('result')
 
-    class_pat :dict[str, list[list[float]]] = {}
+    class_pat :Dict[str, List[List[float]]] = {}
     
     if args.option == 'datasets':
         num = 1
@@ -603,7 +603,7 @@ def main():
             #Converto i valori da str a float
             to_float = lambda x: float(x) if (x != None) else None
             
-            resolve_rules_float :dict[str, list[list[float]]] = {}
+            resolve_rules_float :Dict[str, List[List[float]]] = {}
            
             for k in resolve_rules:
                 resolve_rules_float[k] = list(map(to_float, resolve_rules[k])); resolve_rules_float
@@ -651,7 +651,7 @@ def main():
         elif args.choice_map == 'ENGRO2map':
             core_map = ET.parse(args.tool_dir+'/local/ENGRO2map.svg')
         
-    class_pat_trim :dict[str, list[list[float]]] = {}
+    class_pat_trim :Dict[str, List[List[float]]] = {}
     
     for key in class_pat.keys():
         class_pat_trim[key.strip()] = class_pat[key]    
