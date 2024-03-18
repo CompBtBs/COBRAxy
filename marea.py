@@ -16,9 +16,10 @@ from PIL import Image
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
+from typing import TypeAlias, Union, Optional, Literal
 
 ########################## argparse ##########################################
-def process_args(args):
+def process_args(args :list[str]) -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
 
@@ -99,11 +100,11 @@ def process_args(args):
                         type = str,
                         choices = ['HMRcoremap','ENGRO2map'])
                                     
-    args = parser.parse_args()
+    args :argparse.Namespace = parser.parse_args()
     return args
 
 ########################### warning ###########################################
-def warning(s):
+def warning(s :str) -> None:
     """
     Gets a logger (.out_log) in the :Namespace object obtained from calling process_args, opens it in append mode and writes the input param (s) to it.
 
@@ -121,7 +122,7 @@ def warning(s):
             log.write(s)
             
 ############################ dataset input ####################################
-def read_dataset(data, name):
+def read_dataset(data :str, name :str) -> pd.DataFrame:
     """
     Tries to read the dataset from its path (data) as a tsv and exits (sys.exit) if there's no data (pd.errors.EmptyDataError) or if the dataset has less than 2 columns. The dataset is returned only if all these checks are passed.
 
@@ -141,7 +142,7 @@ def read_dataset(data, name):
     return dataset
 
 ############################ dataset name #####################################
-def name_dataset(name_data, count):
+def name_dataset(name_data :str, count :int) -> str:
     """
     Produces a unique name for a dataset based on what was provided by the user. The default name for any dataset is "Dataset", thus if the user didn't change it this function appends f"_{count}" to make it unique.
 
@@ -158,7 +159,7 @@ def name_dataset(name_data, count):
         return str(name_data)
 
 ############################ check_methods ####################################
-def check_bool(b):
+def check_bool(b :str) -> Optional[bool]:
     """
     Converts a string input parameter into a boolean representation.
 
@@ -178,7 +179,8 @@ def check_bool(b):
         return False
     
 ############################ map_methods ######################################
-def fold_change(avg1, avg2):
+FoldChange :TypeAlias = Union[float, Literal[0, "-INF", "INF"]]
+def fold_change(avg1 :float, avg2 :float) -> FoldChange:
     """
     Calculates the fold change between two gene expression values.
 
@@ -201,7 +203,7 @@ def fold_change(avg1, avg2):
     else:
         return math.log(avg1 / avg2, 2)
     
-def fix_style(l, col, width, dash):
+def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
     """
     Produces a "fixed" style string to assign to a reaction arrow in the SVG map, assigning style properties to the corresponding values passed as input params.
 
@@ -236,7 +238,8 @@ def fix_style(l, col, width, dash):
         tmp.append('stroke-dasharray:' + dash)
     return ';'.join(tmp)
 
-def fix_map(d, core_map, threshold_P_V, threshold_F_C, max_F_C):
+# The type of d values is collapsed, losing precision, because the dict containst lists instead of tuples, please fix!
+def fix_map(d :dict[str, list[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_F_C :float) -> ET.ElementTree:
     """
     Edits the selected SVG map based on the p-value and fold change data (d) and some significance thresholds also passed as inputs.
 
@@ -263,7 +266,7 @@ def fix_map(d, core_map, threshold_P_V, threshold_F_C, max_F_C):
         if el_id.startswith('R_'):
             tmp = d.get(el_id[2:])
             if tmp != None:
-                p_val = tmp[0]
+                p_val :float = tmp[0]
                 f_c = tmp[1]
                 if p_val < threshold_P_V:
                     if not isinstance(f_c, str):
@@ -292,7 +295,7 @@ def fix_map(d, core_map, threshold_P_V, threshold_F_C, max_F_C):
 
 
 ############################ split class ######################################
-def split_class(classes, resolve_rules):
+def split_class(classes :pd.DataFrame[str], resolve_rules :dict[str, list[float]]) -> dict[str, list[list[float]]]:
     """
     Generates a :dict that groups together data from a :DataFrame based on classes the data is related to.
 
@@ -306,14 +309,14 @@ def split_class(classes, resolve_rules):
     Side effects:
         classes : mut
     """
-    class_pat = {}
+    class_pat :dict[str, list[list[float]]] = {}
     for i in range(len(classes)):
-        classe = classes.iloc[i, 1]
+        classe :str = classes.iloc[i, 1]
         if not pd.isnull(classe):
-            l = []
+            l :list[list[float]] = []
             for j in range(i, len(classes)):
                 if classes.iloc[j, 1] == classe:
-                    pat_id = classes.iloc[j, 0]
+                    pat_id :str = classes.iloc[j, 0]
                     tmp = resolve_rules.get(pat_id, None)
                     if tmp != None:
                         l.append(tmp)
@@ -327,7 +330,7 @@ def split_class(classes, resolve_rules):
 
 ############################ conversion ##############################################
 #conversion from svg to png 
-def svg_to_png_with_background(svg_path, png_path, dpi=72, scale=1, size=None):
+def svg_to_png_with_background(svg_path :str, png_path :str, dpi :int = 72, scale :int = 1, size :Optional[float] = None) -> None:
     """
     Internal utility to convert an SVG to PNG (forced opaque) to aid in PDF conversion.
 
@@ -359,7 +362,7 @@ def svg_to_png_with_background(svg_path, png_path, dpi=72, scale=1, size=None):
 
 #funzione unica, lascio fuori i file e li passo in input
 #conversion from png to pdf
-def convert_png_to_pdf(png_file, pdf_file):
+def convert_png_to_pdf(png_file :str, pdf_file :str) -> None:
     """
     Internal utility to convert a PNG to PDF to aid from SVG conversion.
 
@@ -375,7 +378,7 @@ def convert_png_to_pdf(png_file, pdf_file):
     image.save(pdf_file, "PDF", resolution=100.0)
 
 #function called to reduce redundancy in the code
-def convert_to_pdf(file_svg, file_png, file_pdf):
+def convert_to_pdf(file_svg :str, file_png :str, file_pdf :str) -> None:
     """
     Converts the SVG map at the provided path to PDF.
 
@@ -395,7 +398,7 @@ def convert_to_pdf(file_svg, file_png, file_pdf):
         print(f'Error generating PDF file: {e}')
 
 ############################ map ##############################################
-def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, create_pdf, comparison, control):
+def maps(core_map :ET.ElementTree, class_pat :dict[str, list[list[float]]], ids :list[str], threshold_P_V :float, threshold_F_C :float, create_svg :bool, create_pdf :bool, comparison :str, control :str) -> None:
     """
     Compares clustered data based on a given comparison mode and generates metabolic maps visualizing the results.
 
@@ -427,7 +430,7 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
 
     if comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            tmp = {}
+            tmp :dict[str, list[list[Union[float, FoldChange]]]] = {}
             count = 0
             max_F_C = 0
             for l1, l2 in zip(class_pat.get(i), class_pat.get(j)):
@@ -465,11 +468,11 @@ def maps(core_map, class_pat, ids, threshold_P_V, threshold_F_C, create_svg, cre
                         os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
     elif comparison == "onevsrest":
         for single_cluster in class_pat.keys():
-            t = []
+            t :list[list[list[float]]] = []
             for k in class_pat.keys():
                 if k != single_cluster:
                    t.append(class_pat.get(k))
-            rest = []
+            rest :list[list[float]] = []
             for i in t:
                 rest = rest + i
             
@@ -581,7 +584,7 @@ def main():
     if os.path.isdir('result') == False:
         os.makedirs('result')
 
-    class_pat = {}
+    class_pat :dict[str, list[list[float]]] = {}
     
     if args.option == 'datasets':
         num = 1
@@ -600,7 +603,7 @@ def main():
             #Converto i valori da str a float
             to_float = lambda x: float(x) if (x != None) else None
             
-            resolve_rules_float = {}
+            resolve_rules_float :dict[str, list[list[float]]] = {}
            
             for k in resolve_rules:
                 resolve_rules_float[k] = list(map(to_float, resolve_rules[k])); resolve_rules_float
@@ -638,7 +641,7 @@ def main():
        
     if args.custom_rules == 'true':
         try:
-            core_map = ET.parse(args.custom_map)
+            core_map :ET.ElementTree = ET.parse(args.custom_map)
         except (ET.XMLSyntaxError, ET.XMLSchemaParseError):
             sys.exit('Execution aborted: custom map in wrong format')
     else:
@@ -648,7 +651,7 @@ def main():
         elif args.choice_map == 'ENGRO2map':
             core_map = ET.parse(args.tool_dir+'/local/ENGRO2map.svg')
         
-    class_pat_trim = {}
+    class_pat_trim :dict[str, list[list[float]]] = {}
     
     for key in class_pat.keys():
         class_pat_trim[key.strip()] = class_pat[key]    
