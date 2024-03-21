@@ -17,7 +17,7 @@ import scipy.cluster.hierarchy as shc
 import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
-from typing import Union, Optional, Literal, Tuple, Dict, List
+from typing import Optional, Dict, List
 
 ################################# process args ###############################
 def process_args(args :List[str]) -> argparse.Namespace:

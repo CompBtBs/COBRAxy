@@ -5,7 +5,7 @@ import collections
 import pickle as pk
 import math
 import argparse
-from typing import TypeAlias, Union, Optional, List, Dict, Literal, Tuple, TypeVar
+from typing import Union, Optional, List, Dict, Tuple, TypeVar
 
 ########################## argparse ##########################################
 def process_args(args :List[str]) -> argparse.Namespace:
@@ -323,7 +323,8 @@ def computes(val1 :T, op :str, val2 :T, cn :bool) -> T:
         else:
             return None
 
-def control(ris :Literal[None], l :List[Union[int, float, list]], cn :bool) -> Union[Literal[False], int, float]:
+# ris should be Literal[None] but Literal is not supported in Python 3.7
+def control(ris, l :List[Union[int, float, list]], cn :bool) -> Union[bool, int, float]: #Union[Literal[False], int, float]:
     """
     Control the format of the expression.
 
@@ -347,7 +348,7 @@ def control(ris :Literal[None], l :List[Union[int, float, list]], cn :bool) -> U
     else:
         return False
 
-def control_list(ris :Literal[None], l :List[Optional[Union[float, int, list]]], cn :bool) -> Optional[Literal[False]]:
+def control_list(ris, l :List[Optional[Union[float, int, list]]], cn :bool) -> Optional[bool]: #Optional[Literal[False]]:
     """
     Control the format of a list of expressions.
 
@@ -409,7 +410,7 @@ def control_list(ris :Literal[None], l :List[Optional[Union[float, int, list]]],
     return ris
 
 ############################ make recon #######################################
-def check_and_doWord(l :List[str]) -> Union[Literal[False], tuple]:
+def check_and_doWord(l :List[str]) -> Union[bool, tuple]: #Union[Literal[False], tuple]:
     """
     Check and parse intems in the input list, removing spaces and checking brackets.
 
@@ -743,7 +744,7 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
     return (gene.set_index(gene.columns[0])).to_dict()
 
 ############################ resolve ##########################################
-ResolvedRules :TypeAlias = Dict[str, List[Optional[Union[float, int]]]]
+ResolvedRules = Dict[str, List[Optional[Union[float, int]]]]
 def resolve(genes: Dict[str, str], rules: List[str], ids: List[str], resolve_none: bool, name: str) -> Tuple[Optional[ResolvedRules], Optional[list]]:
     """
     Resolve rules using gene data to compute scores for each rule.
