@@ -5,10 +5,19 @@ import collections
 import pickle as pk
 import math
 import argparse
+from typing import TypeAlias, Union, Optional, List, Dict, Literal, Tuple, TypeVar
 
 ########################## argparse ##########################################
+def process_args(args :List[str]) -> argparse.Namespace:
+    """
+    Processes command-line arguments.
 
-def process_args(args):
+    Args:
+        args (list): List of command-line arguments.
+
+    Returns:
+        Namespace: An object containing parsed arguments.
+    """
     parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
                                      description = 'process some value\'s'+
                                      ' genes to create a comparison\'s map.')
@@ -43,15 +52,36 @@ def process_args(args):
     return args
 
 ########################### warning ###########################################
+def warning(s :str) -> None:
+    """
+    Log a warning message to an output log file and print it to the console.
 
-def warning(s):
+    Args:
+        s (str): The warning message to be logged and printed.
+    
+    Returns:
+        None
+    """
     args = process_args(sys.argv)
     with open(args.out_log, 'a') as log:
             log.write(s)
             
 ############################ dataset input ####################################
+def read_dataset(data :str, name :str) -> pd.DataFrame:
+    """
+    Read a dataset from a CSV file and return it as a pandas DataFrame.
 
-def read_dataset(data, name):
+    Args:
+        data (str): Path to the CSV file containing the dataset.
+        name (str): Name of the dataset, used in error messages.
+
+    Returns:
+        pandas.DataFrame: DataFrame containing the dataset.
+
+    Raises:
+        pd.errors.EmptyDataError: If the CSV file is empty.
+        sys.exit: If the CSV file has the wrong format, the execution is aborted.
+    """
     try:
         dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python')
     except pd.errors.EmptyDataError:
@@ -61,16 +91,33 @@ def read_dataset(data, name):
     return dataset
 
 ############################ dataset name #####################################
+def name_dataset(name_data :str, count :int) -> str:
+    """
+    Produces a unique name for a dataset based on what was provided by the user. The default name for any dataset is "Dataset", thus if the user didn't change it this function appends f"_{count}" to make it unique.
 
-def name_dataset(name_data, count):
+    Args:
+        name_data : name associated with the dataset (from frontend input params)
+        count : counter from 1 to make these names unique (external)
+
+    Returns:
+        str : the name made unique
+    """
     if str(name_data) == 'Dataset':
         return str(name_data) + '_' + str(count)
     else:
         return str(name_data)
     
 ############################ load id e rules ##################################
+def load_id_rules(reactions :Dict[str, Dict[str, List[str]]]) -> Tuple[str, Dict[str, List[str]]]:
+    """
+    Load IDs and rules from a dictionary of reactions.
 
-def load_id_rules(reactions):
+    Args:
+        reactions (dict): A dictionary where keys are IDs and values are rules.
+
+    Returns:
+        tuple: A tuple containing two lists, the first list containing IDs and the second list containing rules.
+    """
     ids, rules = [], []
     for key, value in reactions.items():
             ids.append(key)
@@ -78,8 +125,20 @@ def load_id_rules(reactions):
     return (ids, rules)
 
 ############################ check_methods ####################################
+def gene_type(l :str, name :str) -> str:
+    """
+    Determine the type of gene ID.
 
-def gene_type(l, name):
+    Args:
+        l (str): The gene identifier to check.
+        name (str): The name of the dataset, used in error messages.
+
+    Returns:
+        str: The type of gene ID ('hugo_id', 'ensembl_gene_id', 'symbol', or 'entrez_id').
+
+    Raises:
+        sys.exit: If the gene ID type is not supported, the execution is aborted.
+    """
     if check_hgnc(l):
         return 'hugo_id'
     elif check_ensembl(l):
@@ -93,7 +152,16 @@ def gene_type(l, name):
                  'gene ID type in ' + name + ' not supported. Supported ID'+
                  'types are: HUGO ID, Ensemble ID, HUGO symbol, Entrez ID\n')
 
-def check_hgnc(l):
+def check_hgnc(l :str) -> bool:
+    """
+    Check if a gene identifier follows the HGNC format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the HGNC format, False otherwise.
+    """
     if len(l) > 5:
         if (l.upper()).startswith('HGNC:'):
             return l[5:].isdigit()
@@ -102,7 +170,16 @@ def check_hgnc(l):
     else:
         return False
 
-def check_ensembl(l): 
+def check_ensembl(l :str) -> bool:
+    """
+    Check if a gene identifier follows the Ensembl format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the Ensembl format, False otherwise.
+    """
     if len(l) == 15:
         if (l.upper()).startswith('ENS'):
             return l[4:].isdigit()
@@ -111,7 +188,16 @@ def check_ensembl(l):
     else: 
         return False 
 
-def check_symbol(l):
+def check_symbol(l :str) -> bool:
+    """
+    Check if a gene identifier follows the symbol format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the symbol format, False otherwise.
+    """
     if len(l) > 0:
         if l[0].isalpha() and l[1:].isalnum():
             return True
@@ -120,21 +206,49 @@ def check_symbol(l):
     else:
         return False
 
-def check_entrez(l): 
+def check_entrez(l :str) -> bool:
+    """
+    Check if a gene identifier follows the Entrez ID format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the Entrez ID format, False otherwise.
+    """ 
     if len(l) > 0:
         return l.isdigit()
     else: 
         return False
 
-def check_bool(b):
+def check_bool(b :str) -> Optional[bool]:
+    """
+    Check if a string represents a boolean value.
+
+    Args:
+        b (str): The string to check.
+
+    Returns:
+        bool: True if the string represents True, False if the string represents False.
+        None: if the input string is anything other than "true" or "false"
+    """
     if b == 'true':
         return True
     elif b == 'false':
         return False
     
 ############################ resolve_methods ##################################
+def replace_gene_value(l :str, d :str) -> Tuple[Union[int, float], list]:
+    """
+    Replace gene identifiers with corresponding values from a dictionary.
 
-def replace_gene_value(l, d):
+    Args:
+        l (list): List of gene identifiers.
+        d (Any): Dictionary containing gene identifiers as keys and their corresponding values.
+
+    Returns:
+        tuple: A tuple containing two lists: the first list contains replaced values, and the second list contains any errors encountered during replacement.
+    """
     tmp = []
     err = []
     while l:
@@ -150,8 +264,20 @@ def replace_gene_value(l, d):
         l = l[1:]
     return (tmp, err)
 
+def replace_gene(l :str, d :str) -> Union[int, float]:
+    """
+    Replace a single gene identifier with its corresponding value from a dictionary.
 
-def replace_gene(l, d):
+    Args:
+        l (str): Gene identifier to replace.
+        d (Any): Dictionary containing gene identifiers as keys and their corresponding values.
+
+    Returns:
+        float/int: Corresponding value from the dictionary if found, None otherwise.
+
+    Raises:
+        sys.exit: If the value associated with the gene identifier is not valid.
+    """
     if l =='and' or l == 'or':
         return l
     else:
@@ -160,7 +286,20 @@ def replace_gene(l, d):
             sys.exit('Execution aborted: ' + value + ' value not valid\n')
         return value
 
-def computes(val1, op, val2, cn):
+T = TypeVar("T", bound = Optional[Union[int, float]])
+def computes(val1 :T, op :str, val2 :T, cn :bool) -> T:
+    """
+    Compute the RAS value between two value and an operator ('and' or 'or').
+
+    Args:
+        val1(Optional(Union[float, int])): First value.
+        op (str): Operator ('and' or 'or').
+        val2(Optional(Union[float, int])): Second value.
+        cn (bool): Control boolean value.
+
+    Returns:
+        Optional(Union[float, int]): Result of the computation.
+    """
     if val1 != None and val2 != None:
         if op == 'and':
             return min(val1, val2)
@@ -184,7 +323,18 @@ def computes(val1, op, val2, cn):
         else:
             return None
 
-def control(ris, l, cn):
+def control(ris :Literal[None], l :List[Union[int, float, list]], cn :bool) -> Union[Literal[False], int, float]:
+    """
+    Control the format of the expression.
+
+    Args:
+        ris: Intermediate result.
+        l (list): Expression to control.
+        cn (bool): Control boolean value.
+
+    Returns:
+        Union[Literal[False], int, float]: Result of the control.
+    """
     if len(l) == 1:
         if isinstance(l[0], (float, int)) or l[0] == None:
             return l[0]
@@ -197,7 +347,18 @@ def control(ris, l, cn):
     else:
         return False
 
-def control_list(ris, l, cn):
+def control_list(ris :Literal[None], l :List[Optional[Union[float, int, list]]], cn :bool) -> Optional[Literal[False]]:
+    """
+    Control the format of a list of expressions.
+
+    Args:
+        ris: Intermediate result.
+        l (list): List of expressions to control.
+        cn (bool): Control boolean value.
+
+    Returns:
+        Optional[Literal[False]]: Result of the control.
+    """
     while l:
         if len(l) == 1:
             return False
@@ -248,8 +409,17 @@ def control_list(ris, l, cn):
     return ris
 
 ############################ make recon #######################################
+def check_and_doWord(l :List[str]) -> Union[Literal[False], tuple]:
+    """
+    Check and parse intems in the input list, removing spaces and checking brackets.
 
-def check_and_doWord(l):
+    Args:
+        l (list): List of characters representing words.
+
+    Returns:
+        tuple: A tuple containing two lists: the first list contains the parsed words and operators, the second list contains only the gene identifiers.
+        False: if the brackets are not balanced.
+    """
     tmp = []
     tmp_genes = []
     count = 0
@@ -284,7 +454,16 @@ def check_and_doWord(l):
     else:
         return False
 
-def brackets_to_list(l):
+def brackets_to_list(l :List[str]) -> List[str]:
+    """
+    Convert expression inside brackets to the correct list format.
+
+    Args:
+        l (list): List representing an expression containing brackets.
+
+    Returns:
+        list: List representing the expression without brackets.
+    """
     tmp = []
     while l:
         if l[0] == '(':
@@ -295,7 +474,16 @@ def brackets_to_list(l):
             l.pop(0)
     return tmp
 
-def resolve_brackets(l):
+def resolve_brackets(l :List[str]) -> List[str]:
+    """
+    Resolve expression inside brackets.
+
+    Args:
+        l (list): List representing an expression containing brackets.
+
+    Returns:
+        list: List representing the resolved expression.
+    """
     tmp = []
     while l[0] != ')':
         if l[0] == '(':
@@ -307,7 +495,17 @@ def resolve_brackets(l):
     l.pop(0)
     return tmp
 
-def priorityAND(l):
+def priorityAND(l :List[str]) -> List[str]:
+    """
+    Prioritize the 'and' operator over 'or'. It creates a boolean expression assigning priority to 'and' operator
+    over the 'or'. It returns a modified list in which 'and' operators are run before the 'or' ones.
+
+    Args:
+        l (list): List representing an expression.
+
+    Returns:
+        list: List with 'and' operations having higher priority over 'or'.
+    """
     tmp = []
     flag = True
     while l:
@@ -358,7 +556,16 @@ def priorityAND(l):
                 tmp.append(tmpAnd)
     return tmp
 
-def checkRule(l):
+def checkRule(l :List[str]) -> bool:
+    """
+    Check if the expression follows the rule format.
+
+    Args:
+        l (list): List representing an expression.
+
+    Returns:
+        bool: True if the expression follows the rule format, False otherwise.
+    """
     if len(l) == 1:
         if isinstance(l[0], list):
             if checkRule(l[0]) is False:
@@ -370,7 +577,16 @@ def checkRule(l):
         return False
     return True
 
-def checkRule2(l):
+def checkRule2(l :List[str]) -> bool:
+    """
+    Check if the expression follows the rule format.
+
+    Args:
+        l (list): List representing an expression.
+
+    Returns:
+        bool: True if the expression follows the rule format, False otherwise.
+    """
     while l:
         if len(l) == 1:
             return False
@@ -395,7 +611,18 @@ def checkRule2(l):
             return False
     return True
 
-def do_rules(rules):
+def do_rules(rules :List[str]) -> Tuple[List[str], List[str]]:
+    """
+    Process a list of rules.
+
+    Args:
+        rules (list): List of strings representing rules.
+
+    Returns:
+        tuple: A tuple containing:
+              split_rules (list): List of structured rules.
+              gene_in_rule (list): List containing genes found in the rules.
+    """
     split_rules = []
     err_rules = []
     tmp_gene_in_rule = []
@@ -420,7 +647,20 @@ def do_rules(rules):
         warning('Warning: wrong format rule in ' + str(err_rules) + '\n')
     return (split_rules, list(set(tmp_gene_in_rule)))
 
-def make_recon(data):
+def make_recon(data) -> Tuple[List[str], List[str], Dict[str, str]]:
+    """
+    Read reaction rules from a given dataset, process them using the `do_rules` function,
+    and return the IDs of reactions, structured rules, and a dictionary of genes found in the rules.
+
+    Args:
+        data (str): Path to the dataset file.
+
+    Returns:
+        tuple: A tuple containing:
+            - ids (list): List of reaction IDs.
+            - split_rules (list): List of structured rules.
+            - gene_in_rule (dict): Dictionary containing genes found in the rules.
+    """
     try:
         import cobra as cb
         import warnings
@@ -452,8 +692,19 @@ def make_recon(data):
     return (ids, split_rules, gene_in_rule)
 
 ############################ gene #############################################
+def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Optional[Dict[str, str]]) -> Dict[str, str]:
+    """
+    Process gene data to ensure correct formatting and handle duplicates.
 
-def data_gene(gene, type_gene, name, gene_custom):
+    Args:
+        gene (DataFrame): DataFrame containing gene data.
+        type_gene (str): Type of gene data (e.g., 'hugo_id', 'ensembl_gene_id', 'symbol', 'entrez_id').
+        name (str): Name of the dataset.
+        gene_custom (dict or None): Custom gene data dictionary if provided.
+
+    Returns:
+        dict: A dictionary containing gene data with gene IDs as keys and corresponding values.
+    """
     args = process_args(sys.argv)    
     for i in range(len(gene)):
         tmp = gene.iloc[i, 0]
@@ -492,8 +743,21 @@ def data_gene(gene, type_gene, name, gene_custom):
     return (gene.set_index(gene.columns[0])).to_dict()
 
 ############################ resolve ##########################################
+ResolvedRules :TypeAlias = Dict[str, List[Optional[Union[float, int]]]]
+def resolve(genes: Dict[str, str], rules: List[str], ids: List[str], resolve_none: bool, name: str) -> Tuple[Optional[ResolvedRules], Optional[list]]:
+    """
+    Resolve rules using gene data to compute scores for each rule.
 
-def resolve(genes, rules, ids, resolve_none, name):
+    Args:
+        genes (dict): Dictionary containing gene data with gene IDs as keys and corresponding values.
+        rules (list): List of rules to resolve.
+        ids (list): List of IDs corresponding to the rules.
+        resolve_none (bool): Flag indicating whether to resolve None values in the rules.
+        name (str): Name of the dataset.
+
+    Returns:
+        tuple: A tuple containing resolved rules as a dictionary and a list of gene IDs not found in the data.
+    """
     resolve_rules = {}
     not_found = []
     flag = False
@@ -521,9 +785,20 @@ def resolve(genes, rules, ids, resolve_none, name):
     return (resolve_rules, list(set(not_found)))
 
 ############################ create_ras #######################################
+def create_ras (resolve_rules: Optional[ResolvedRules], dataset_name: str, rules: List[str], ids: List[str], file: str) -> None:
+    """
+    Create a RAS (Reaction Activity Score) file from resolved rules.
 
-def create_ras (resolve_rules, dataset_name, rules, ids, file):
+    Args:
+        resolve_rules (dict): Dictionary containing resolved rules.
+        dataset_name (str): Name of the dataset.
+        rules (list): List of rules.
+        ids (list): List of IDs corresponding to the rules.
+        file (str): Path to the output RAS file.
 
+    Returns:
+        None
+    """
     if resolve_rules == None:
         warning("Couldn't generate RAS for current dataset: " + dataset_name)
 
@@ -543,8 +818,13 @@ def create_ras (resolve_rules, dataset_name, rules, ids, file):
     text_file.close()
 
 ############################ MAIN #############################################
+def main() -> None:
+    """
+    Initializes everything and sets the program in motion based on the fronted input arguments.
 
-def main():
+    Returns:
+        None
+    """
     args = process_args(sys.argv)
 
     if args.rules_selector == 'HMRcore':        
@@ -587,6 +867,5 @@ def main():
     return None
 
 ###############################################################################
-
 if __name__ == "__main__":
     main()

@@ -124,7 +124,7 @@ def warning(s :str) -> None:
 ############################ dataset input ####################################
 def read_dataset(data :str, name :str) -> pd.DataFrame:
     """
-    Tries to read the dataset from its path (data) as a tsv and exits (sys.exit) if there's no data (pd.errors.EmptyDataError) or if the dataset has less than 2 columns. The dataset is returned only if all these checks are passed.
+    Tries to read the dataset from its path (data) as a tsv and turns it into a DataFrame.
 
     Args:
         data : filepath of a dataset (from frontend input params or literals upon calling)
@@ -132,6 +132,9 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
 
     Returns:
         pd.DataFrame : dataset in a runtime operable shape
+    
+    Raises:
+        sys.exit : if there's no data (pd.errors.EmptyDataError) or if the dataset has less than 2 columns
     """
     try:
         dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python')
@@ -420,6 +423,9 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
     Returns:
         None
 
+    Raises:
+        sys.exit : if there are less than 2 classes for comparison
+    
     Side effects:
         core_map : mut (passed to fix_map)
     """
@@ -569,12 +575,15 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
     return None
 
 ############################ MAIN #############################################
-def main():
+def main() -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
     Returns:
         None
+    
+    Raises:
+        sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
     """
     args = process_args(sys.argv)
     
