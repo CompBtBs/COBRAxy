@@ -3,6 +3,48 @@ import pandas as pd
 from typing import Optional, List, Dict, Tuple
 import sys
 import math
+import argparse
+import pickle as pk
+
+########################## argparse ##########################################
+def process_args(args :List[str]) -> argparse.Namespace:
+    """
+    Processes command-line arguments.
+
+    Args:
+        args (list): List of command-line arguments.
+
+    Returns:
+        Namespace: An object containing parsed arguments.
+    """
+    parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
+                                     description = 'process some value\'s'+
+                                     ' abundances and reactions to create RPS scores.')
+    parser.add_argument('-rc', '--reaction_choice', 
+                        type = str,
+                        default = 'default',
+                        choices = ['default','custom'], 
+                        help = 'chose which type of reaction dataset you want use')
+    parser.add_argument('-cm', '--custom',
+                        type = str,
+                        help='your dataset if you want custom reactions')
+    parser.add_argument('-td', '--tool_dir',
+                        type = str,
+                        required = True,
+                        help = 'your tool directory')
+    parser.add_argument('-ol', '--out_log', 
+                        help = "Output log")    
+    parser.add_argument('-id', '--input',
+                        type = str,
+                        help = 'input dataset')
+    parser.add_argument('-rp', '--rps_output',
+                        type = str,
+                        required = True,
+                        help = 'ras output')
+    
+    args = parser.parse_args()
+    return args
+
 
 
 ############################ read_dataset ####################################
@@ -29,6 +71,24 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
     return dataset
 
 
+############################ dataset name #####################################
+def name_dataset(name_data :str, count :int) -> str:
+    """
+    Produces a unique name for a dataset based on what was provided by the user. The default name for any dataset is "Dataset", thus if the user didn't change it this function appends f"_{count}" to make it unique.
+
+    Args:
+        name_data : name associated with the dataset (from frontend input params)
+        count : counter from 1 to make these names unique (external)
+
+    Returns:
+        str : the name made unique
+    """
+    if str(name_data) == 'Dataset':
+        return str(name_data) + '_' + str(count)
+    else:
+        return str(name_data)
+    
+
 ############################ get_abund_data ####################################
 def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Series]:
     """
@@ -41,7 +101,6 @@ def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Se
     Returns:
         pd.Series or None: A series containing abundance values for the specified cell line.
                            The name of the series is the name of the cell line.
-                           Non-numeric or missing (NaN) values are converted to zero.
                            Returns None if the cell index is invalid.
     """
     if cell_line_index < 0 or cell_line_index >= len(dataset.index):
@@ -94,6 +153,9 @@ def check_missing_metab(reactions: Dict[str, Dict[str, int]], updated_abundances
         tuple[dict, list]: A tuple containing:
             - A dictionary representing updated abundances where metabolite names have been added or set to 1 if missing in the original abundances dictionary.
             - A list of metabolite names that were missing in the original abundances dictionary and thus their aboundances were set to 1.
+
+    Side effects:
+        The input updated_abundances is modified in place      
     """
     missing_list=[]
     for reaction in reactions.values():
@@ -130,7 +192,7 @@ def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, fl
             temp = 1 if math.isnan(abundances[metabolite]) else abundances[metabolite]
             if metabolite not in black_list and metabolite not in missing_list:
               metab_significant = True
-            total_contribution += temp * stoichiometry
+            total_contribution *= temp ** stoichiometry
         
         rps_scores[reaction_name] = total_contribution if metab_significant else math.nan
     
@@ -138,26 +200,73 @@ def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, fl
 
 
 ############################ rps_for_cell_lines ####################################
-def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, dict[str, int]], black_list: List[str], syn_dict: Dict[str, List[str]]) -> List[Dict[str, float]]:
+def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, int]], black_list: List[str], syn_dict: Dict[str, List[str]], file: str, flag: bool) -> None:
     """
-    Calculate Reaction Propensity Scores (RPS) for each cell line represented in the dataframe.
+    Calculate Reaction Propensity Scores (RPS) for each cell line represented in the dataframe and creates an output file.
 
     Parameters:
         dataframe (pandas.DataFrame): A DataFrame containing metabolite abundances for different cell lines.
         reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and stoichiometric coefficients as values.
         black_list (list): A list containing metabolite names that should be excluded from the RPS calculation.
         syn_dict (dict): A dictionary where keys are general metabolite names and values are lists of possible synonyms.
+        file (str): Path to the output RPS file.
+        flag(bool): True if default reaction dict is being used, False otherwise.
 
     Returns:
-        list[dict]: A list of dictionaries containing Reaction Propensity Scores (RPS) for each cell line. Each dictionary contains reaction names as keys and their corresponding RPS scores as values.
-    
+        None
     """
     rps_scores=[]
-    for series in dataframe.rows():
-     updated_abundances = update_metabolite_names(series.to_dict(), syn_dict)
-     abundances, missing_list = check_missing_metab(reactions, updated_abundances)
-     rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))
-    return rps_scores
+    
+    for series in dataframe.iterrows():
+        updated_abundances = update_metabolite_names(series.to_dict(), syn_dict) if flag else series.to_dict()
+        abundances, missing_list = check_missing_metab(reactions, updated_abundances)
+        rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))
+     
+
+    text_file = open(file, "w")
+    text_file.write(rps_scores)
+    text_file.close()
 
 
 ############################ main ####################################
+def main() -> None:
+    """
+    Initializes everything and sets the program in motion based on the fronted input arguments.
+
+    Returns:
+        None
+    """
+
+#TODO: sistemare i nomi dei path in modo che corrispondano a dei file esistenti
+
+    args = process_args(sys.argv)
+
+    with open(args.tool_dir + '/local/black_list.p', 'rb') as bl:
+        black_list = pk.load(bl)
+
+    with open(args.tool_dir + '/local/syn_dict.p', 'rb') as sd:
+        syn_dict = pk.load(sd)
+
+
+    flag = True
+    if args.reactions_selector == 'default':        
+        reactions = pk.load(open(args.tool_dir + '/local/default_reactions.p', 'rb'))
+    elif args.rules_selector == 'Custom':
+        #custom_reactions = parse_custom_rules(args.custom)   
+        flag = False
+    
+    name = "RPS Dataset"
+    dataset = read_dataset(args.input, "dataset")
+        
+    if args.rules_selector != 'custom':
+        rps_for_cell_lines(dataset, reactions, black_list, syn_dict, name, flag)
+    #elif args.rules_selector == 'Custom':
+        #rps_for_cell_lines(dataset, custom_reactions, black_list, syn_dict, name, flag)
+ 
+    print('Execution succeded')
+    return None
+
+
+##############################################################################
+if __name__ == "__main__":
+    main()

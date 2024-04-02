@@ -1,0 +1,111 @@
+<tool id="MaREA RPS Generator" name="Expression2RPS" version="1.0.0">
+    <description>- Reaction Propensity Scores computation</description>
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="0.25.3">pandas</requirement>
+        <requirement type="package" version="4.6.3">lxml</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+      	python $__tool_directory__/rps_generator.py
+        --input $input
+      	--reaction_choice $cond_reactions.reaction_choice	
+        --tool_dir $__tool_directory__
+        --out_log $log	
+        --rps_output $rps_output
+        #if $cond_reactions.reaction_choice == 'custom'
+        	--custom $cond_reactions.custom
+        #end if
+        ]]>
+    </command>
+    <inputs>
+        <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Abundance dataset:" />
+        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+        
+        <conditional name="cond_reactions">
+			<param name="reaction_choice" argument="--reaction_choice" type="select" label="Choose reaction dataset:">
+                	<option value="default" selected="true">Default reaction dataset</option>
+                	<option value="custom">Custom reaction dataset</option>
+        	</param>
+            <when value="custom">
+                <param name="Custom_react" type="data" format="tabular, csv, tsv, xml, txt" label="Custom reactions" />
+            </when>
+        </conditional>  
+    </inputs>
+
+    <outputs>
+        <data format="txt" name="log" label="Expression2RPS - $name - Log" />
+        <data format="tabular" name="rps_output" label="$name RPS"/>
+    </outputs>
+
+    <help>
+<![CDATA[
+
+What it does
+-------------
+
+This tool computes Reaction Propensity Scores from metabolite abundances and reaction datasets.
+ 
+Accepted files:
+    - An abundance dataset
+    - A reaction dataset
+
+//TODO: SISTEMARE QUESTA PARTE 
+ 
+Format:
+Tab-separated text file reporting the normalized expression level (e.g., TPM, RPKM, ...) of each gene (row) for a given sample (column).
+Column header: sample ID.
+Row header: gene ID.
+ 
+ 
+Optional files:
+    - custom GPR (Gene-Protein-Reaction) rules. Two accepted formats:
+
+	* (Cobra Toolbox and CobraPy compliant) xml of metabolic model;
+	* .csv file specifyig for each reaction ID (column 1) the corresponding GPR rule (column 2).
+ 
+Computation option ‘(A and NaN) solved as (A)’:
+In case of missing expression value, referred to as NaN (Not a Number), for a gene joined with an AND operator in a given GPR rule, the rule ‘A and NaN’
+ 
+If YES is selected: the GPR will be solved as A.
+ 
+If NO is selected: the GPR will be disregarded tout-court (i.e., treated as NaN).
+
+Example input
+-------------
+
+Custom GPR rules:
+
++------------+--------------------------------------+   
+| id         |         rule (with entrez-id         |   
++============+======================================+   
+| r1642      |             155060 or 10357          |   
++------------+--------------------------------------+    
+| r1643      |        155060 or 100134869           |    
++------------+--------------------------------------+    
+| r1640      |     155060 and 100134869 or 10357    |   
++------------+--------------------------------------+
+
+RNA-seq dataset:
+
++------------+----------------+----------------+----------------+ 
+| Hugo_ID    |   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| HGNC:24086 |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| HGNC:24086 |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| HGNC:9876  |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| HGNC:9     |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| HGNC:23    |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+]]>
+    </help>
+<expand macro="citations" />
+</tool>
+	
