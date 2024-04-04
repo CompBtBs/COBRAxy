@@ -115,6 +115,37 @@ def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Se
 
 
 ############################ update_metabolite_names ####################################
+def clean_metabolite_name(name :str) -> str:
+    """
+    Removes some characters from a metabolite's name, provided as input, and makes it lowercase in order to simplify
+    the search of a match in the dictionary of synonyms.
+
+    Args:
+        name : the metabolite's name, as given in the dataset.
+    
+    Returns:
+        str : a new string with the cleaned name.
+    """
+    return "".join(ch for ch in name if ch not in ",;-_'([{ }])").lower()
+
+def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
+    """
+    Looks through a dictionary of synonyms to find a match for a given metabolite's name.
+
+    Args:
+        name : the metabolite's name, as given in the dataset.
+        syn_dict : the dictionary of synonyms, using unique identifiers as keys and lists of clean synonyms as values.
+    
+    Returns:
+        str : the internal :str unique identifier of that metabolite, used in all other parts of the model in use.
+        An empty string is returned if a match isn't found.
+    """
+    name = clean_metabolite_name(name)
+    for id, synonyms in syn_dict.items():
+        if name in synonyms: return id
+    
+    return ""
+
 def update_metabolite_names(abundances_dict: Dict[str, float], syn_dict: Dict[str, List[str]]) -> Dict[str, float]:
     """
     Update metabolite names in the abundance series based on synonyms provided in the synonym dictionary.
@@ -128,17 +159,22 @@ def update_metabolite_names(abundances_dict: Dict[str, float], syn_dict: Dict[st
               according to the synonym dictionary. If a metabolite name doesn't have a synonym it is deleted, whereas 
               if it has already the general name, it remains unchanged.
     """
-    updated_abundances = abundances_dict.copy()
-    for metabolite, abundance in list(abundances_dict.items()):
-        for key, synonyms in syn_dict.items():
-            if metabolite in synonyms or metabolite in key:
-                updated_abundances[key] = updated_abundances.pop(metabolite)
-                break
-        else:
-            del updated_abundances[metabolite]
+    # Old code:
+    #updated_abundances = abundances_dict.copy()
+    #for metabolite, abundance in list(abundances_dict.items()):
+    #    for key, synonyms in syn_dict.items():
+    #        if metabolite in synonyms or metabolite in key:
+    #            updated_abundances[key] = updated_abundances.pop(metabolite)
+    #            break
+    #    else:
+    #       del updated_abundances[metabolite]
+
+    updated_abundances = {}
+    for name, abundance in abundances_dict.items():
+        id = get_metabolite_id(name, syn_dict)
+        if id: updated_abundances[id] = abundance
 
     return updated_abundances
-
 
 ############################ check_missing_metab ####################################
 def check_missing_metab(reactions: Dict[str, Dict[str, int]], updated_abundances: Dict[str, float]) -> Tuple[Dict[str, float], List[str]]:
@@ -186,7 +222,7 @@ def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, fl
     rps_scores = {}
  
     for reaction_name, substrates in reactions.items():
-        total_contribution = 0
+        total_contribution = 1
         metab_significant = False
         for metabolite, stoichiometry in substrates.items():
             temp = 1 if math.isnan(abundances[metabolite]) else abundances[metabolite]
@@ -217,7 +253,7 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
     """
     rps_scores=[]
     
-    for series in dataframe.iterrows():
+    for (_, series) in dataframe.iterrows():
         updated_abundances = update_metabolite_names(series.to_dict(), syn_dict) if flag else series.to_dict()
         abundances, missing_list = check_missing_metab(reactions, updated_abundances)
         rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))
@@ -237,14 +273,14 @@ def main() -> None:
         None
     """
 
-#TODO: sistemare i nomi dei path in modo che corrispondano a dei file esistenti
+#TODO: sistemare i nomi dei path in modo che corrispondano a dei file esistenti (synonyms dict is fine)
 
     args = process_args(sys.argv)
 
     with open(args.tool_dir + '/local/black_list.p', 'rb') as bl:
         black_list = pk.load(bl)
 
-    with open(args.tool_dir + '/local/syn_dict.p', 'rb') as sd:
+    with open(args.tool_dir + '/local/synonyms.pickle', 'rb') as sd:
         syn_dict = pk.load(sd)
 
 
