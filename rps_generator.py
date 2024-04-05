@@ -63,7 +63,7 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
         sys.exit : if there's no data (pd.errors.EmptyDataError) or if the dataset has less than 2 columns
     """
     try:
-        dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python')
+        dataset = pd.read_csv(data, sep = ',', header = 0, engine='python')
     except pd.errors.EmptyDataError:
         sys.exit('Execution aborted: wrong format of ' + name + '\n')
     if len(dataset.columns) < 2:
@@ -253,11 +253,20 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
         updated_abundances = update_metabolite_names(series.to_dict(), syn_dict) if flag else series.to_dict()
         abundances, missing_list = check_missing_metab(reactions, updated_abundances)
         rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))
-     
-
+    
+    output_ras = pd.DataFrame.from_dict(resolve_rules)
+    
+    output_ras.insert(0, 'Reactions', ids)
+    output_to_csv = pd.DataFrame.to_csv(output_ras, sep = '\t', index = False)
+    
     text_file = open(file, "w")
-    text_file.write(rps_scores)
+    
+    text_file.write(output_to_csv)
     text_file.close()
+
+    with open(file, "w") as file:
+        file.write(rps_scores)
+
 
 
 ############################ parse_custom_reactions ####################################
@@ -392,9 +401,6 @@ def main() -> None:
     Returns:
         None
     """
-
-#TODO: sistemare i nomi dei path in modo che corrispondano a dei file esistenti (synonyms dict is fine)
-
     args = process_args(sys.argv)
 
     with open(args.tool_dir + '/local/black_list.pickle', 'rb') as bl:
@@ -403,27 +409,25 @@ def main() -> None:
     with open(args.tool_dir + '/local/synonyms.pickle', 'rb') as sd:
         syn_dict = pk.load(sd)
 
+    name = "RPS Dataset"
+    dataset = read_dataset(args.input, "dataset")
 
     flag = True
-    if args.reactions_selector == 'default':        
+    if args.reaction_choice == 'default':        
         reactions = pk.load(open(args.tool_dir + '/local/reactions.pickle', 'rb'))
-    elif args.rules_selector == 'Custom':
-        custom_reactions = parse_custom_reactions(args.custom)   
+    elif args.reaction_choice == 'Custom':
+        reactions = parse_custom_reactions(args.custom)   
         count_reaction_number(args.custom)
-        sorted_dict = get_sorted_dict(custom_reactions)
+        sorted_dict = get_sorted_dict(reactions)
         percentages = get_percentages_list(sorted_dict, count_reaction_number(args.custom))
         custom_black_list = get_black_list(percentages, sorted_dict)
         black_list = custom_black_list
         flag = False
+      
+    rps_for_cell_lines(dataset, reactions, black_list, syn_dict, name, flag)
     
-    name = "RPS Dataset"
-    dataset = read_dataset(args.input, "dataset")
-        
-    if args.rules_selector != 'custom':
-        rps_for_cell_lines(dataset, reactions, black_list, syn_dict, name, flag)
-    elif args.rules_selector == 'Custom':
-        rps_for_cell_lines(dataset, custom_reactions, black_list, syn_dict, name, flag)
- 
+    
+
     print('Execution succeded')
     return None
 
