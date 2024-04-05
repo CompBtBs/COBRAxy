@@ -261,7 +261,7 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
 
 
 ############################ parse_custom_reactions ####################################
-def parse_custom_reactions(reactions_csv_path: str) -> dict[str, list[str]]:
+def parse_custom_reactions(reactions_csv_path: str) -> Dict[str, List[str]]:
     """
     Parses custom reactions from a CSV file and generates a dictionary representing the reactions as keys while the values are lists of metabolite
     that take part in those reactions as substrates.
@@ -317,7 +317,7 @@ def count_reaction_number(reactions_csv_path: str) -> int:
 
 
 ############################ get_sorted_dict ####################################
-def get_sorted_dict(reaction_dict: dict[str, list[str]]) -> dict[str, int]:
+def get_sorted_dict(reaction_dict: Dict[str, List[str]]) -> Dict[str, int]:
     """
     Generates a sorted dictionary based on the count of metabolites in a reaction dictionary.
 
@@ -340,7 +340,7 @@ def get_sorted_dict(reaction_dict: dict[str, list[str]]) -> dict[str, int]:
 
 
 ############################ get_top_metabolites ####################################
-def get_percentages_list(sorted_dict: dict[str, int], total_reactions_num: int) -> list[float]:
+def get_percentages_list(sorted_dict: Dict[str, int], total_reactions_num: int) -> List[float]:
     """
     Calculates the percentages of occurrence for each metabolite based on their counts in a sorted dictionary and the total amount of reactions in the model.
 
@@ -359,7 +359,7 @@ def get_percentages_list(sorted_dict: dict[str, int], total_reactions_num: int) 
 
 
 ############################ main ####################################
-def get_black_list(percentages: list[float], sorted_dict: dict[str, int]) -> list[str]:
+def get_black_list(percentages: List[float], sorted_dict: Dict[str, int]) -> List[str]:
     """
     Generates a black list of metabolites based on the percentage occurrences and sorted metabolite counts.
 
