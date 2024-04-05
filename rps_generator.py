@@ -114,7 +114,7 @@ def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Se
     return abundances_series 
 
 
-############################ update_metabolite_names ####################################
+############################ clean_metabolite_name ####################################
 def clean_metabolite_name(name :str) -> str:
     """
     Removes some characters from a metabolite's name, provided as input, and makes it lowercase in order to simplify
@@ -128,6 +128,9 @@ def clean_metabolite_name(name :str) -> str:
     """
     return "".join(ch for ch in name if ch not in ",;-_'([{ }])").lower()
 
+
+
+############################ get_metabolite_id ####################################
 def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
     """
     Looks through a dictionary of synonyms to find a match for a given metabolite's name.
@@ -146,6 +149,9 @@ def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
     
     return ""
 
+
+
+############################ update_metabolite_names ####################################
 def update_metabolite_names(abundances_dict: Dict[str, float], syn_dict: Dict[str, List[str]]) -> Dict[str, float]:
     """
     Update metabolite names in the abundance series based on synonyms provided in the synonym dictionary.
@@ -159,16 +165,6 @@ def update_metabolite_names(abundances_dict: Dict[str, float], syn_dict: Dict[st
               according to the synonym dictionary. If a metabolite name doesn't have a synonym it is deleted, whereas 
               if it has already the general name, it remains unchanged.
     """
-    # Old code:
-    #updated_abundances = abundances_dict.copy()
-    #for metabolite, abundance in list(abundances_dict.items()):
-    #    for key, synonyms in syn_dict.items():
-    #        if metabolite in synonyms or metabolite in key:
-    #            updated_abundances[key] = updated_abundances.pop(metabolite)
-    #            break
-    #    else:
-    #       del updated_abundances[metabolite]
-
     updated_abundances = {}
     for name, abundance in abundances_dict.items():
         id = get_metabolite_id(name, syn_dict)
@@ -264,6 +260,130 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
     text_file.close()
 
 
+############################ parse_custom_reactions ####################################
+def parse_custom_reactions(reactions_csv_path: str) -> dict[str, list[str]]:
+    """
+    Parses custom reactions from a CSV file and generates a dictionary representing the reactions as keys while the values are lists of metabolite
+    that take part in those reactions as substrates.
+
+    Parameters:
+        reactions_csv_path (str): The file path to the CSV file containing reaction data.
+
+    Returns:
+        dict: A dictionary representing the parsed reactions. Keys are reaction IDs and values are lists of metabolites involved in each reaction.
+    """
+    reaction_dict = {}
+    ban_list = ['+', '-->', '<--', '<=>']
+    with open(reactions_csv_path, newline='') as csvfile:
+      reader = csv.reader(csvfile)
+      next(reader, None)
+
+      for row in reader:
+          reaction_id = row[1]
+          reaction_column = row[2].strip()
+          metabolites = row[2].strip()
+
+          if '-->' in reaction_column:
+            arrow_index = metabolites.index('-->') if '-->' in metabolites else None
+            if arrow_index is not None:
+                  left_metabolites = metabolites[:arrow_index]
+                  reaction_dict[reaction_id] = [m for m in left_metabolites.split() if m not in ban_list and not m.replace('.', '').isdigit()]
+
+          elif '<---' in reaction_column:
+              arrow_index = metabolites.index('<---') if '<---' in metabolites else None
+              if arrow_index is not None:
+                  right_metabolites = metabolites[arrow_index + 1:]
+                  reaction_dict[reaction_id] = [m for m in right_metabolites.split() if m not in ban_list and not m.replace('.', '').isdigit()]
+          elif '<=>' in reaction_column:
+              reaction_dict[reaction_id] = [m for m in metabolites.split() if m not in ban_list and not m.replace('.', '').isdigit()]
+  
+    return reaction_dict
+
+
+############################ count_reaction_number ####################################
+def count_reaction_number(reactions_csv_path: str) -> int:
+    """
+    Counts the total number of reactions from a CSV file. It is assumed that the first row has to be omitted as it does not contain any data
+
+    Parameters:
+        reactions_csv_path (str): The file path to the CSV file containing reaction data.
+
+    Returns:
+        int: The total number of reactions in the CSV file.
+    """
+    df = pd.read_csv(reactions_csv_path, skiprows=1) 
+    total_reactions_num = len(df)
+    return total_reactions_num
+
+
+############################ get_sorted_dict ####################################
+def get_sorted_dict(reaction_dict: dict[str, list[str]]) -> dict[str, int]:
+    """
+    Generates a sorted dictionary based on the count of metabolites in a reaction dictionary.
+
+    Parameters:
+        reaction_dict (dict): A dictionary representing reactions, where keys are reaction IDs and values are lists of metabolites involved in each reaction.
+
+    Returns:
+        dict: A sorted dictionary where keys are metabolites and values are their counts across all reactions.
+    """
+    count_dict = {}
+    for metabolite_list in reaction_dict.values():
+        for metabolite in metabolite_list:
+            if metabolite not in count_dict:
+                count_dict[metabolite] = 1
+            else:
+                count_dict[metabolite] += 1
+
+    sorted_dict = dict(sorted(count_dict.items(), key=lambda x: x[1], reverse=True))
+    return sorted_dict
+
+
+############################ get_top_metabolites ####################################
+def get_percentages_list(sorted_dict: dict[str, int], total_reactions_num: int) -> list[float]:
+    """
+    Calculates the percentages of occurrence for each metabolite based on their counts in a sorted dictionary and the total amount of reactions in the model.
+
+    Parameters:
+        sorted_dict (dict): A dictionary representing sorted metabolite counts, where keys are metabolites and values are their counts.
+        total_reactions_num (int): The total number of reactions.
+
+    Returns:
+        list: A list containing the percentages of occurrence for each metabolite.
+    """
+    for key in sorted_dict:
+        sorted_dict[key] /= total_reactions_num
+
+    percentages = list(sorted_dict.values())
+    return percentages 
+
+
+############################ main ####################################
+def get_black_list(percentages: list[float], sorted_dict: dict[str, int]) -> list[str]:
+    """
+    Generates a black list of metabolites based on the percentage occurrences and sorted metabolite counts.
+
+    Parameters:
+        percentages (list): A list containing the percentages of occurrence for each metabolite.
+        sorted_dict (dict): A dictionary representing sorted metabolite counts, where keys are metabolites and values are their counts.
+
+    Returns:
+        list: A black list containing metabolites identified as outliers based on log-scaled percentages.
+    """
+    log_scale_percentages = np.log(percentages)
+
+    data = np.array(log_scale_percentages)
+    q1 = np.percentile(data, 25)
+    q3 = np.percentile(data, 75)
+    iqr = q3 - q1
+    threshold = 1.5 * iqr
+    outliers = np.where((data < q1 - threshold) | (data > q3 + threshold))
+
+    black_list = []
+    black_list =[list(sorted_dict.keys())[outlier] for outlier in outliers[0]] 
+    return black_list
+
+
 ############################ main ####################################
 def main() -> None:
     """
@@ -277,7 +397,7 @@ def main() -> None:
 
     args = process_args(sys.argv)
 
-    with open(args.tool_dir + '/local/black_list.p', 'rb') as bl:
+    with open(args.tool_dir + '/local/black_list.pickle', 'rb') as bl:
         black_list = pk.load(bl)
 
     with open(args.tool_dir + '/local/synonyms.pickle', 'rb') as sd:
@@ -286,9 +406,14 @@ def main() -> None:
 
     flag = True
     if args.reactions_selector == 'default':        
-        reactions = pk.load(open(args.tool_dir + '/local/default_reactions.p', 'rb'))
+        reactions = pk.load(open(args.tool_dir + '/local/reactions.pickle', 'rb'))
     elif args.rules_selector == 'Custom':
-        #custom_reactions = parse_custom_rules(args.custom)   
+        custom_reactions = parse_custom_reactions(args.custom)   
+        count_reaction_number(args.custom)
+        sorted_dict = get_sorted_dict(custom_reactions)
+        percentages = get_percentages_list(sorted_dict, count_reaction_number(args.custom))
+        custom_black_list = get_black_list(percentages, sorted_dict)
+        black_list = custom_black_list
         flag = False
     
     name = "RPS Dataset"
@@ -296,8 +421,8 @@ def main() -> None:
         
     if args.rules_selector != 'custom':
         rps_for_cell_lines(dataset, reactions, black_list, syn_dict, name, flag)
-    #elif args.rules_selector == 'Custom':
-        #rps_for_cell_lines(dataset, custom_reactions, black_list, syn_dict, name, flag)
+    elif args.rules_selector == 'Custom':
+        rps_for_cell_lines(dataset, custom_reactions, black_list, syn_dict, name, flag)
  
     print('Execution succeded')
     return None
