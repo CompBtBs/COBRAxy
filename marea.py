@@ -656,9 +656,9 @@ def main() -> None:
     else:
 
         if args.choice_map == 'HMRcoremap':
-            core_map = ET.parse(args.tool_dir+'/local/HMRcoreMap.svg')
+            core_map = ET.parse(args.tool_dir+'/local/svg metabolic maps/HMRcoreMap.svg')
         elif args.choice_map == 'ENGRO2map':
-            core_map = ET.parse(args.tool_dir+'/local/ENGRO2map.svg')
+            core_map = ET.parse(args.tool_dir+'/local/svg metabolic maps/ENGRO2map.svg')
         
     class_pat_trim :Dict[str, List[List[float]]] = {}
     

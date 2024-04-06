@@ -529,7 +529,7 @@ def unit_rps_generator() -> None:
         "atp"    : 7.05,
     }
 
-    with open('/home/vboxuser/galaxy/tools/marea/local/synonyms.pickle', 'rb') as sd:
+    with open('/home/vboxuser/galaxy/tools/marea/local/pickle files/synonyms.pickle', 'rb') as sd:
         synsDict = pk.load(sd)
 
     reactionsDict = {
@@ -605,6 +605,11 @@ def unit_rps_generator() -> None:
         UnitTest(rps.clean_metabolite_name, ["4,4'-diphenylmethane diisocyanate"], ExactValue("44diphenylmethanediisocyanate")),
 
         UnitTest(rps.get_metabolite_id, ["tryptophan", synsDict], ExactValue("trp__L")),
+
+        UnitTest(rps.ReactionDir.fromReaction, ["atp <=> adp + pi"], ExactValue(rps.ReactionDir.REVERSIBLE)),
+        UnitTest(rps.ReactionDir.fromReaction, ["atp --> adp + pi"], ExactValue(rps.ReactionDir.FORWARD)),
+        UnitTest(rps.ReactionDir.fromReaction, ["atp <-- adp + pi"], ExactValue(rps.ReactionDir.BACKWARD)),
+        UnitTest(rps.ReactionDir.fromReaction, ["atp ??? adp + pi"], Exists(False)), # should panic
 
         UnitTest(rps.calculate_rps, [reactionsDict, abundancesNormalEdited, blackList, missingInDataset], normalRpsShape),
 

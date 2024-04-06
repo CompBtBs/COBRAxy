@@ -1,10 +1,15 @@
-import numpy as np
-import pandas as pd
-from typing import Optional, List, Dict, Tuple
+import re
 import sys
+import csv
 import math
 import argparse
+
+import numpy  as np
 import pickle as pk
+import pandas as pd
+
+from enum   import Enum
+from typing import Optional, List, Dict, Tuple
 
 ########################## argparse ##########################################
 def process_args(args :List[str]) -> argparse.Namespace:
@@ -270,7 +275,111 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
 
 
 ############################ parse_custom_reactions ####################################
-def parse_custom_reactions(reactions_csv_path: str) -> Dict[str, List[str]]:
+# Reaction direction encoding:
+class ReactionDir(Enum):
+  """
+  A reaction can go forwards, backwards or be reversible (able to proceed in both directions).
+  Models created / managed with cobrapy encode this information within the reaction's
+  formula using the arrows this enum keeps as values.
+  """
+  FORWARD    = "-->"
+  BACKWARD   = "<--"
+  REVERSIBLE = "<=>"
+
+  @classmethod
+  def fromReaction(cls, reaction :str) -> 'ReactionDir':
+    """
+    Takes a whole reaction formula string and looks for one of the arrows, returning the
+    corresponding reaction direction.
+
+    Args:
+      reaction : the reaction's formula.
+    
+    Raises:
+      ValueError : if no valid arrow is found.
+    
+    Returns:
+      ReactionDir : the corresponding reaction direction.
+    """
+    for member in cls:
+      if member.value in reaction: return member
+
+    raise ValueError("No valid arrow found within reaction string.")
+
+ReactionsDict = Dict[str, Dict[str, float]]
+def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -> None:
+  """
+  Adds an entry to the given reactionsDict. Each entry consists of a given unique reaction id
+  (key) and a :dict (value) matching each substrate in the reaction to its stoichiometric coefficient.
+  Keys and values are both obtained from the reaction's formula: if a substrate (custom metabolite id)
+  appears without an explicit coeff, the value 1.0 will be used instead.
+
+  Args:
+    reactionsDict : dictionary encoding custom reactions information.
+    rId : unique reaction id.
+    reaction : the reaction's formula.
+  
+  Returns:
+    None
+
+  Side effects:
+    reactionsDict : mut
+  """
+  reaction = reaction.strip()
+  if not reaction: return
+
+  reactionsDict[rId] = {}
+  # We assume the '+' separating consecutive metabs in a reaction is spaced from them,
+  # to avoid confusing it for electrical charge:
+  for word in reaction.split(" + "):
+    metabId, stoichCoeff = word, 1.0
+    # Implicit stoichiometric coeff is equal to 1, some coeffs are floats.
+
+    # Accepted coeffs can be integer or floats with a dot (.) decimal separator
+    # and must be separated from the metab with a space:
+    foundCoeff = re.search(r"\d+(\.\d+)? ", word)
+    if foundCoeff:
+      wholeMatch  = foundCoeff.group(0)
+      metabId     = word[len(wholeMatch) + 1:].strip()
+      stoichCoeff = float(wholeMatch.strip())
+
+    reactionsDict[rId][metabId] = stoichCoeff
+
+  if not reactionsDict[rId]: del reactionsDict[rId] # Empty reactions are removed.
+
+def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
+  """
+  Creates a custom dictionary encoding reactions information from a csv file containing
+  data about these reactions, the path of which is given as input.
+
+  Args:
+    customReactionsPath : path to the reactions information file.
+  
+  Returns:
+    ReactionsDict : dictionary encoding custom reactions information.
+  """
+  reactionsData :Dict[str, str]
+  with open(customReactionsPath, "r") as fd:
+    # We expect 2 columns: the first containing reaction ids and another with the actual reactions.
+    reactionsData = { row[0] : row[1] for row in csv.reader(fd) }
+
+  reactionsDict :ReactionsDict = {}
+  for rId, reaction in reactionsData.items():
+    reactionDir = ReactionDir.fromReaction(reaction)
+    left, right = reaction.split(f" {reactionDir.value} ")
+
+    # Reversible reactions are split into distinct reactions, one for each direction.
+    # In general we only care about substrates, the product information is lost.
+    reactionIsReversible = reactionDir is ReactionDir.REVERSIBLE
+    if reactionDir is not ReactionDir.BACKWARD:
+      add_custom_reaction(reactionsDict, rId + "_F" * reactionIsReversible, left)
+    
+    if reactionDir is not ReactionDir.FORWARD:
+      add_custom_reaction(reactionsDict, rId + "_B" * reactionIsReversible, right)
+
+  return reactionsDict
+
+def parse_custom_reactions_old(reactions_csv_path: str) -> Dict[str, List[str]]:
     """
     Parses custom reactions from a CSV file and generates a dictionary representing the reactions as keys while the values are lists of metabolite
     that take part in those reactions as substrates.
@@ -403,10 +512,10 @@ def main() -> None:
     """
     args = process_args(sys.argv)
 
-    with open(args.tool_dir + '/local/black_list.pickle', 'rb') as bl:
+    with open(args.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
         black_list = pk.load(bl)
 
-    with open(args.tool_dir + '/local/synonyms.pickle', 'rb') as sd:
+    with open(args.tool_dir + '/local/pickle files/synonyms.pickle', 'rb') as sd:
         syn_dict = pk.load(sd)
 
     name = "RPS Dataset"
@@ -414,7 +523,7 @@ def main() -> None:
 
     flag = True
     if args.reaction_choice == 'default':        
-        reactions = pk.load(open(args.tool_dir + '/local/reactions.pickle', 'rb'))
+        reactions = pk.load(open(args.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
     elif args.reaction_choice == 'Custom':
         reactions = parse_custom_reactions(args.custom)   
         count_reaction_number(args.custom)

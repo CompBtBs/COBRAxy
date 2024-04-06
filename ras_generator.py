@@ -719,15 +719,16 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
     if gene_dup:
         if gene_custom == None:
             if args.rules_selector == 'HMRcore':
-                gene_in_rule = pk.load(open(args.tool_dir +
-                                            '/local/HMRcore_genes.p', 'rb'))
+                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_genes.p', 'rb'))
+            
             elif args.rules_selector == 'Recon':
-                gene_in_rule = pk.load(open(args.tool_dir +
-                                            '/local/Recon_genes.p', 'rb'))
+                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/Recon_genes.p', 'rb'))
+            
             elif args.rules_selector == 'ENGRO2':
-                gene_in_rule = pk.load(open(args.tool_dir +
-                                            '/local/ENGRO2_genes.p', 'rb'))
+                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
+            
             gene_in_rule = gene_in_rule.get(type_gene)
+        
         else:
             gene_in_rule = gene_custom
         tmp = []
@@ -829,11 +830,11 @@ def main() -> None:
     args = process_args(sys.argv)
 
     if args.rules_selector == 'HMRcore':        
-        recon = pk.load(open(args.tool_dir + '/local/HMRcore_rules.p', 'rb'))
+        recon = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_rules.p', 'rb'))
     elif args.rules_selector == 'Recon':
-        recon = pk.load(open(args.tool_dir + '/local/Recon_rules.p', 'rb'))
+        recon = pk.load(open(args.tool_dir + '/local/pickle files/Recon_rules.p', 'rb'))
     elif args.rules_selector == 'ENGRO2':
-        recon = pk.load(open(args.tool_dir + '/local/ENGRO2_rules.p', 'rb'))
+        recon = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_rules.p', 'rb'))
     elif args.rules_selector == 'Custom':
         ids, rules, gene_in_rule = make_recon(args.custom)
         
