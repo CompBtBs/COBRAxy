@@ -12,6 +12,7 @@ import argparse
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPDF
 import pyvips
+import cairosvg as cairo
 from PIL import Image
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
@@ -293,7 +294,7 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                     dash = '5,5'
                     col = grey
                     width = str(minT)
-                el.set('style', fix_style(el.get('style'), col, width, dash))
+                el.set('style', fix_style(el.get('style', ""), col, width, dash))
     return core_map
 
 
