@@ -259,22 +259,15 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
         abundances, missing_list = check_missing_metab(reactions, updated_abundances)
         rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))
     
-    output_ras = pd.DataFrame.from_dict(resolve_rules)
-    
-    output_ras.insert(0, 'Reactions', ids)
-    output_to_csv = pd.DataFrame.to_csv(output_ras, sep = '\t', index = False)
-    
-    text_file = open(file, "w")
-    
-    text_file.write(output_to_csv)
-    text_file.close()
+    output_rps = pd.DataFrame.from_dict(rps_scores)
+    output_to_csv = pd.DataFrame.to_csv(output_rps, sep = '\t', index = False)
 
     with open(file, "w") as file:
-        file.write(rps_scores)
+        file.write(output_to_csv)
 
 
 
-############################ parse_custom_reactions ####################################
+############################ ReactionDir ####################################
 # Reaction direction encoding:
 class ReactionDir(Enum):
   """
@@ -286,6 +279,8 @@ class ReactionDir(Enum):
   BACKWARD   = "<--"
   REVERSIBLE = "<=>"
 
+
+############################ fromReaction ####################################
   @classmethod
   def fromReaction(cls, reaction :str) -> 'ReactionDir':
     """
@@ -307,6 +302,10 @@ class ReactionDir(Enum):
     raise ValueError("No valid arrow found within reaction string.")
 
 ReactionsDict = Dict[str, Dict[str, float]]
+
+
+
+############################ add_custom_reaction ####################################
 def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -> None:
   """
   Adds an entry to the given reactionsDict. Each entry consists of a given unique reaction id
@@ -347,6 +346,8 @@ def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -
 
   if not reactionsDict[rId]: del reactionsDict[rId] # Empty reactions are removed.
 
+
+############################ parse_custom_reactions ####################################
 def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
   """
   Creates a custom dictionary encoding reactions information from a csv file containing
@@ -378,44 +379,6 @@ def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
       add_custom_reaction(reactionsDict, rId + "_B" * reactionIsReversible, right)
 
   return reactionsDict
-
-def parse_custom_reactions_old(reactions_csv_path: str) -> Dict[str, List[str]]:
-    """
-    Parses custom reactions from a CSV file and generates a dictionary representing the reactions as keys while the values are lists of metabolite
-    that take part in those reactions as substrates.
-
-    Parameters:
-        reactions_csv_path (str): The file path to the CSV file containing reaction data.
-
-    Returns:
-        dict: A dictionary representing the parsed reactions. Keys are reaction IDs and values are lists of metabolites involved in each reaction.
-    """
-    reaction_dict = {}
-    ban_list = ['+', '-->', '<--', '<=>']
-    with open(reactions_csv_path, newline='') as csvfile:
-      reader = csv.reader(csvfile)
-      next(reader, None)
-
-      for row in reader:
-          reaction_id = row[1]
-          reaction_column = row[2].strip()
-          metabolites = row[2].strip()
-
-          if '-->' in reaction_column:
-            arrow_index = metabolites.index('-->') if '-->' in metabolites else None
-            if arrow_index is not None:
-                  left_metabolites = metabolites[:arrow_index]
-                  reaction_dict[reaction_id] = [m for m in left_metabolites.split() if m not in ban_list and not m.replace('.', '').isdigit()]
-
-          elif '<---' in reaction_column:
-              arrow_index = metabolites.index('<---') if '<---' in metabolites else None
-              if arrow_index is not None:
-                  right_metabolites = metabolites[arrow_index + 1:]
-                  reaction_dict[reaction_id] = [m for m in right_metabolites.split() if m not in ban_list and not m.replace('.', '').isdigit()]
-          elif '<=>' in reaction_column:
-              reaction_dict[reaction_id] = [m for m in metabolites.split() if m not in ban_list and not m.replace('.', '').isdigit()]
-  
-    return reaction_dict
 
 
 ############################ count_reaction_number ####################################
@@ -518,7 +481,6 @@ def main() -> None:
     with open(args.tool_dir + '/local/pickle files/synonyms.pickle', 'rb') as sd:
         syn_dict = pk.load(sd)
 
-    name = "RPS Dataset"
     dataset = read_dataset(args.input, "dataset")
 
     flag = True
@@ -533,7 +495,7 @@ def main() -> None:
         black_list = custom_black_list
         flag = False
       
-    rps_for_cell_lines(dataset, reactions, black_list, syn_dict, name, flag)
+    rps_for_cell_lines(dataset, reactions, black_list, syn_dict, args.rps_output, flag)
     
     
 
