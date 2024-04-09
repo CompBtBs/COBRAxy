@@ -20,7 +20,9 @@
         --out_log $log	
         --ras_output $ras_output
         #if $cond_rule.rules_selector == 'Custom'
-        	--custom $cond_rule.Custom_rules
+            --id $Reaction_IDs
+            --rule_list $Rule_list
+            --gene_in_rule $Gene_in_rule
         #end if
         ]]>
     </command>
@@ -34,7 +36,9 @@
             <when value="ENGRO2">
             </when>
             <when value="Custom">
-                <param name="Custom_rules" type="data" format="tabular, csv, tsv, xml" label="Custom rules" />
+                <param name="Reaction_IDs" argument="--id" type="data" format="txt" label="Reaction IDs" />
+                <param name="Rule_list" argument="--rule_list" type="data" format="txt" label="Custom rules" />
+                <param name="Gene_in_rule" argument="--gene_in_rule" type="data" format="json" label="File with genes found in the rules" />
             </when>
         </conditional>
         <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Gene Expression dataset:" />

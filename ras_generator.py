@@ -5,6 +5,7 @@ import collections
 import pickle as pk
 import math
 import argparse
+import json
 from typing import Union, Optional, List, Dict, Tuple, TypeVar
 
 ########################## argparse ##########################################
@@ -26,9 +27,15 @@ def process_args(args :List[str]) -> argparse.Namespace:
                         default = 'HMRcore',
                         choices = ['HMRcore', 'Recon', 'ENGRO2','Custom'], 
                         help = 'chose which type of dataset you want use')
-    parser.add_argument('-cr', '--custom',
+    parser.add_argument('-id', '--id',
                         type = str,
-                        help='your dataset if you want custom rules')
+                        help='your reaction ids if you want custom rules')
+    parser.add_argument('-rl', '--rule_list"',
+                        type = str,
+                        help='your list of rules if you want custom rules')
+    parser.add_argument('-gr', '--gene_in_rule',
+                        type = str,
+                        help='your file with genes found in the rules if you want custom rules')
     parser.add_argument('-n', '--none',
                         type = str,
                         default = 'true',
@@ -40,7 +47,7 @@ def process_args(args :List[str]) -> argparse.Namespace:
                         help = 'your tool directory')
     parser.add_argument('-ol', '--out_log', 
                         help = "Output log")    
-    parser.add_argument('-id', '--input',
+    parser.add_argument('-in', '--input', #id è diventato in
                         type = str,
                         help = 'input dataset')
     parser.add_argument('-ra', '--ras_output',
@@ -834,7 +841,20 @@ def main() -> None:
     elif args.rules_selector == 'ENGRO2':
         recon = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_rules.p', 'rb'))
     elif args.rules_selector == 'Custom':
-        ids, rules, gene_in_rule = make_recon(args.custom)
+        ids = []
+        with open(args.id, 'r') as file:
+            ids = file.readlines()
+
+        rules = []
+        with open(args.rule_list, 'r') as file:
+            rules = file.readlines()
+        gene_in_rule = {}
+        with open(args.gene_in_rule, 'r') as file:
+            gene_in_rule = json.load(file)
+    
+    #TODO: TESTARE LA PARTE DI CODICE RELATIVA AI TRE FILE SOPRA
+    #TODO: IMPLEMENTARE TOOL CHE PERMETTE ALL'UTENTE DI USARE I SUOI DATI CUSTOM COME INPUT POI PER RAS E RPS 
+    #ids, rules, gene_in_rule = make_recon(args.custom)
         
     resolve_none = check_bool(args.none)
     
