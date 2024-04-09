@@ -677,7 +677,7 @@ def make_recon(data) -> Tuple[List[str], List[str], Dict[str, str]]:
             if len(data.columns) < 2:
                 sys.exit('Execution aborted: wrong format of '+
                          'custom datarules\n')
-            if not len(data.columns) == 2:
+            if len(data.columns) > 2:
                 warning('Warning: more than 2 columns in custom datarules.\n' +
                         'Extra columns have been disregarded\n')
             ids = list(data.iloc[:, 0])
@@ -687,9 +687,7 @@ def make_recon(data) -> Tuple[List[str], List[str], Dict[str, str]]:
         except pd.errors.ParserError:
             sys.exit('Execution aborted: wrong format of custom datarules\n')            
     split_rules, tmp_genes = do_rules(rules)
-    gene_in_rule = {}
-    for i in tmp_genes:
-        gene_in_rule[i] = 'ok'
+    gene_in_rule = { gene : "ok" for gene in tmp_genes }
     return (ids, split_rules, gene_in_rule)
 
 ############################ gene #############################################
