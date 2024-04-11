@@ -115,7 +115,7 @@ def name_dataset(name_data :str, count :int) -> str:
         return str(name_data)
     
 ############################ load id e rules ##################################
-def load_id_rules(reactions :Dict[str, Dict[str, List[str]]]) -> Tuple[str, Dict[str, List[str]]]:
+def load_id_rules(reactions :Dict[str, Dict[str, List[str]]]) -> Tuple[List[str], List[Dict[str, List[str]]]]:
     """
     Load IDs and rules from a dictionary of reactions.
 
@@ -250,8 +250,8 @@ def replace_gene_value(l :str, d :str) -> Tuple[Union[int, float], list]:
     Replace gene identifiers with corresponding values from a dictionary.
 
     Args:
-        l (list): List of gene identifiers.
-        d (Any): Dictionary containing gene identifiers as keys and their corresponding values.
+        l (str): String of gene identifier.
+        d (str): String corresponding to its value.
 
     Returns:
         tuple: A tuple containing two lists: the first list contains replaced values, and the second list contains any errors encountered during replacement.
@@ -277,7 +277,7 @@ def replace_gene(l :str, d :str) -> Union[int, float]:
 
     Args:
         l (str): Gene identifier to replace.
-        d (Any): Dictionary containing gene identifiers as keys and their corresponding values.
+        d (str): String corresponding to its value.
 
     Returns:
         float/int: Corresponding value from the dictionary if found, None otherwise.
@@ -417,7 +417,7 @@ def control_list(ris, l :List[Optional[Union[float, int, list]]], cn :bool) -> O
     return ris
 
 ############################ make recon #######################################
-def check_and_doWord(l :List[str]) -> Union[bool, tuple]: #Union[Literal[False], tuple]:
+def check_and_doWord(l :List[str]) -> Union[bool, tuple]: 
     """
     Check and parse intems in the input list, removing spaces and checking brackets.
 
@@ -851,13 +851,8 @@ def main() -> None:
         gene_in_rule = {}
         with open(args.gene_in_rule, 'r') as file:
             gene_in_rule = json.load(file)
-    
-    #TODO: TESTARE LA PARTE DI CODICE RELATIVA AI TRE FILE SOPRA
-    #TODO: IMPLEMENTARE TOOL CHE PERMETTE ALL'UTENTE DI USARE I SUOI DATI CUSTOM COME INPUT POI PER RAS E RPS 
-    #ids, rules, gene_in_rule = make_recon(args.custom)
         
-    resolve_none = check_bool(args.none)
-    
+    resolve_none = check_bool(args.none)   
     
     name = "RAS Dataset"
     dataset = read_dataset(args.input, "dataset")
