@@ -10,6 +10,6 @@ as estimated from cross-sectional RNA-seq data. The tool is available as plug-in
 ## Documentation:
 - marea : https://colab.research.google.com/drive/1E77uGwqimuTioP7Ss_2yyXZ82XTGnA4i
 - ras_generator : https://colab.research.google.com/drive/1J3jQxe4DveDC59ZHTgt6n1BpX_g3FLLB
-- rps_generator : ...
+- rps_generator : https://colab.research.google.com/drive/1MTLXhqceZNvis0El3Wh2vjRbWL6vpOW7
 - marea_cluster : https://colab.research.google.com/drive/15tLssgX9UHsbptNaBMwhAkfuyPdenxQX
 - testing : https://colab.research.google.com/drive/1QQZNwClUT8gvDMg8F9HIhS-Nmq6FvSzE
