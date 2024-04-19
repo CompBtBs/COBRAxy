@@ -623,5 +623,33 @@ def unit_rps_generator() -> None:
         #UnitTest(rps.main, [], ExactValue(None)) # Complains about sys argvs
     ).testModule()
 
+def unit_custom_data_generator() -> None:
+    import custom_data_generator as cdg
+    UnitTester("custom_data_generator", LogMode.Pedantic, True,
+        UnitTest(cdg.CustomErr, ["myMsg", "more details"], MatchingShape({
+            "details" : ExactValue("more details"),
+            "msg"     : ExactValue("myMsg"),
+            "id"      : ExactValue(0)
+        })),
+
+        UnitTest(cdg.CustomErr, ["myMsg", "more details", 42], MatchingShape({
+            "details" : ExactValue("more details"),
+            "msg"     : ExactValue("myMsg"),
+            "id"      : ExactValue(42)
+        })),
+
+        UnitTest(cdg.load_custom_model, [""], MatchingShape({
+            "value" : IsOfType(cdg.DataErr)
+        })),
+
+        UnitTest(
+            cdg.parseRuleToNestedList, ["A or B and C or (D and E)"],
+            Many(
+                ExactValue("A"), 
+                Many(ExactValue("B"), ExactValue("C")),
+                Many(ExactValue("D"), ExactValue("E"))
+            )),
+    ).testModule()
+
 if __name__ == "__main__":
-   pass
+   unit_custom_data_generator()

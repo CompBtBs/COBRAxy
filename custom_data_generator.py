@@ -154,7 +154,7 @@ class Result(Generic[T, E]):
         Returns:
             Result: A new Result instance with a successful operation.
         """
-        Result(value, isOk = True)
+        return Result(value, isOk = True)
     
     @classmethod
     def Err(cls, value :E) -> "Result": 
@@ -167,7 +167,7 @@ class Result(Generic[T, E]):
         Returns:
             Result: A new Result instance with a failed operation.
         """
-        Result(value, isOk = False)
+        return Result(value, isOk = False)
 
     def unwrap(self) -> T:
         """
@@ -220,14 +220,13 @@ def logWarning(msg :str) -> None:
 
 ################################- INPUT DATA LOADING -################################
 def load_custom_model(file_path :str) -> Result[cobra.Model, DataErr]:
-    model :cobra.Model
     try:
-        if file_path.lower().endswith(".json"): model = cobra.io.load_json_model(file_path)
-        if file_path.lower().endswith(".xml"):  model = cobra.io.read_sbml_model(file_path)
+        if file_path.lower().endswith(".json"): return Result.Ok(cobra.io.load_json_model(file_path))
+        if file_path.lower().endswith(".xml"):  return Result.Ok(cobra.io.read_sbml_model(file_path))
 
     except Exception as e: return Result.Err(DataErr(file_path, e.__str__()))
-    return Result.Ok(model) if model else Result(DataErr(file_path,
-        f"Formato \"{file_path.split(".")[-1]}\" non riconosciuto, sono supportati solo file JSON e XML"))
+    return Result.Err(DataErr(file_path,
+        f"Formato \"{file_path.split('.')[-1]}\" non riconosciuto, sono supportati solo file JSON e XML"))
 
 ################################- RULE PARSING -################################
 class OpList(List[Union[str, "OpList"]]):
