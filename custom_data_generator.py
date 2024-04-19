@@ -1,5 +1,4 @@
 import sys
-import csv
 import cobra
 import pickle
 import argparse
@@ -183,27 +182,58 @@ class Result(Generic[T, E]):
         raise ValueError(f"Unwrapped Result.Err : {self.value}")
 
     def unwrapOr(self, default :T) -> T:
-        """_summary_
+        """
+        Unwraps the value of the Result instance, if the operation was successful, otherwise it returns a default value.
 
         Args:
-            default (T): _description_
+            default (T): The default value to be returned if the operation was not successful.
 
         Returns:
-            T: _description_
+            T: The value of the Result instance, if the operation was successful, otherwise the default value.
         """
         return self.value if self.isOk else default
     
     def expect(self, err :Exception) -> T:
+        """
+        Expects that the value of the Result instance is successful, otherwise it raises an error.
+
+        Args:
+            err (Exception): The error to be raised if the operation was not successful.
+
+        Raises:
+            err: The error raised if the operation was not successful
+
+        Returns:
+            T: The value of the Result instance, if the operation was successful.
+        """
         if self.isOk: return self.value
         raise err
 
     U = TypeVar("U")
     def map(self, mapper: Callable[[T], U]) -> "Result[U, E]":
+        """
+        Pipes the Result value into the mapper operation if successful and it returns the Result of that operation.
+
+        Args:
+            mapper (Callable[[T], U]): The mapper operation to be applied to the Result value.
+
+        Returns:
+            Result[U, E]: The result of the mapper operation applied to the Result value.
+        """
         if self.isErr: return self
         try: return Result.Ok(mapper(self.value))
         except Exception as e: return Result.Err(e)
 
 def terminate(msg :str) -> None:
+    """
+    Terminate the execution of the script with an error message.
+    
+    Args:
+        msg (str): The error message to be displayed.
+    
+    Returns:
+        None
+    """
     sys.exit(f"Execution aborted: {msg}\n")
 
 def logWarning(msg :str) -> None:
@@ -220,6 +250,15 @@ def logWarning(msg :str) -> None:
 
 ################################- INPUT DATA LOADING -################################
 def load_custom_model(file_path :str) -> Result[cobra.Model, DataErr]:
+    """
+    Loads a custom model from a file, either in JSON or XML format.
+
+    Args:
+        file_path (str): The path to the file containing the custom model.
+
+    Returns:
+        Result[cobra.Model, DataErr]: A Result instance containing the custom model if the operation was successful, otherwise a DataErr instance.
+    """
     try:
         if file_path.lower().endswith(".json"): return Result.Ok(cobra.io.load_json_model(file_path))
         if file_path.lower().endswith(".xml"):  return Result.Ok(cobra.io.read_sbml_model(file_path))
@@ -230,13 +269,43 @@ def load_custom_model(file_path :str) -> Result[cobra.Model, DataErr]:
 
 ################################- RULE PARSING -################################
 class OpList(List[Union[str, "OpList"]]):
-    def __init__(self, op = ""):
+    """
+    Class to handle a list of operations, with a possible operator assigned to the list itself if it's missing.
+    """
+    def __init__(self, op = "") -> None:
+        """
+        (Private) Initializes an instance of OpList.
+
+        Args:
+            op (str): Operator to be assigned to the OpList. Defaults to "".
+        
+        Returns:
+            None : practically, an OpList instance.
+        """
         self.op = op
 
     def setOpIfMissing(self, op :str) -> None:
+        """
+        Sets the operator of the OpList if it's missing.
+
+        Args:
+            op (str): Operator to be assigned to the OpList.
+        
+        Returns:
+            None
+        """
         if not self.op: self.op = op
 
-    def __repr__(self, indent = ""):
+    def __repr__(self, indent = "") -> str:
+        """
+        (Private) Returns a string representation of the current OpList instance.
+
+        Args:
+            indent (str): Indentation level . Defaults to "".
+
+        Returns:
+            str: A string representation of the current OpList instance.
+        """
         nextIndent = indent + "  "
         return f"<{self.op}>[\n" + ",\n".join([
             f"{nextIndent}{item.__repr__(nextIndent) if isinstance(item, OpList) else item}"
@@ -317,7 +386,7 @@ class RuleStack:
 
     def obtain(self, err :Optional[CustomErr] = None) -> Optional[OpList]:
         """
-        TODO
+        Obtains the first OpList on the stack, only if it's the only element.
 
         Args:
             err : The error to raise if obtaining the result is not possible.
@@ -337,6 +406,12 @@ class RuleStack:
         return None
 
     def __updateCurrent(self) -> None:
+        """
+        Updates the current OpList to the one on top of the stack.
+
+        Returns:
+            None
+        """
         self.current = self.__stack[-1]
 
 def parseRuleToNestedList(rule :str) -> OpList:
