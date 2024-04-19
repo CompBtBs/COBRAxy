@@ -6,7 +6,6 @@ from enum import Enum, auto
 from collections.abc import Iterable
 
 # Imports needed by the modules I'm testing:
-import pandas as pd
 import pickle as pk
 import math
 
@@ -474,8 +473,9 @@ class UnitTester:
         self.log(f"Testing {testStatusMsg}: {fails} problem{'s' * (fails > 1)} found.", LogMode.Minimal)
 
 ## Unit testing all the modules:
-import marea as m
 def unit_marea() -> None:
+    import marea as m
+    import pandas as pd
     processArgsNamespaceCheck = MatchingShape({
         "custom_rules" : ExactValue("false"),
         "custom_rule"  : Exists(), #IsOfType(str), # None
@@ -505,8 +505,8 @@ def unit_marea() -> None:
     ).testModule()
     #TODO: finish
 
-import rps_generator as rps
 def unit_rps_generator() -> None:
+    import rps_generator as rps
     import pandas as pd
     dataset = pd.DataFrame({
         "cell lines" : ["normal", "cancer"],
@@ -624,4 +624,4 @@ def unit_rps_generator() -> None:
     ).testModule()
 
 if __name__ == "__main__":
-    unit_rps_generator()
+   pass
