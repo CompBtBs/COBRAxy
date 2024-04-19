@@ -31,55 +31,166 @@ def process_args() -> argparse.Namespace:
 
 ################################- ERROR HANDLING -################################
 class CustomErr(Exception):
+    """
+    Custom error class to handle exceptions in a structured way, with a unique identifier and a message.
+    """
     __idGenerator = count()
     errName = "Custom Error"
-    def __init__(self, msg :str, details = "", explicitErrCode = -1):
+    def __init__(self, msg :str, details = "", explicitErrCode = -1) -> None:
+        """
+        (Private) Initializes an instance of CustomErr.
+
+        Args:
+            msg (str): Error message to be displayed.
+            details (str): Informs the user more about the error encountered. Defaults to "".
+            explicitErrCode (int): Explicit error code to be used. Defaults to -1.
+        
+        Returns:
+            None : practically, a CustomErr instance.
+        """
         self.msg     = msg
         self.details = details
 
         self.id = max(explicitErrCode, next(CustomErr.__idGenerator))
 
     def throw(self) -> None:
+        """
+        Raises the current CustomErr instance, logging a warning message before doing so.
+
+        Raises:
+            self: The current CustomErr instance.
+        
+        Returns:
+            None
+        """
         logWarning(str(self))
         raise self
 
     def abort(self) -> None:
+        """
+        Aborts the execution of the script.
+        
+        Returns:
+            None
+        """
         terminate(str(self))
 
     def __str__(self) -> str:
+        """
+        Returns a string representing the current CustomErr instance.
+
+        Returns:
+            str: A string representing the current CustomErr instance.
+        """
         return f"{CustomErr.errName} #{self.id}: {self.msg}, {self.details}."
 
 class RuleErr(CustomErr):
+    """
+    Class to handle rule syntax errors in a structured way, with a unique message displaying the error encountered.
+    """
     errName = "Rule Syntax Error"
-    def __init__(self, rule :str, msg = "no further details provided"):
+    def __init__(self, rule :str, msg = "no further details provided") -> None:
+        """
+        (Private) Initializes an instance of RuleErr.
+
+        Args:
+            rule (str): The rule that caused the error.
+            msg (str): Additional message proving further information on the error. Defaults to "no further details provided".
+
+        Returns:   
+            None : practically, a RuleErr instance.
+        """
         super().__init__(
             f"rule \"{rule}\" is malformed, {msg}",
             "please verify your input follows the validity guidelines")
 
 class DataErr(CustomErr):
+    """
+    Class to handle data format errors in a structured way, with a unique message displaying the error encountered.
+    """
     errName = "Data Format Error"
-    def __init__(self, fileName :str, msg = "no further details provided"):
+    def __init__(self, fileName :str, msg = "no further details provided") -> None:
+        """
+        (Private) Initializes an instance of DataErr.
+
+        Args:
+            fileName (str): The name of the file that caused the error.
+            msg (str): Additional message proving further information on the error. Defaults to "no further details provided".
+
+        Returns:
+            None : practically, a DataErr instance.
+        """
         super().__init__(f"file \"{fileName}\" contains malformed data", msg)
 
 T = TypeVar('T')
 E = TypeVar('E', bound = Exception)
 class Result(Generic[T, E]):
+    """
+    Class to handle the result of an operation, with a value and a boolean flag to indicate whether the operation was successful or not.
+    """
     def __init__(self, value :Union[T, E], isOk :bool) -> None:
+        """
+        (Private) Initializes an instance of Result.
+
+        Args:
+            value (Union[T, E]): The value to be stored in the Result instance.
+            isOk (bool): A boolean flag to indicate whether the operation was successful or not.
+        
+            Returns:
+                None : practically, a Result instance.
+        """
         self.isOk  = isOk
         self.isErr = not isOk
         self.value = value
 
     @classmethod
-    def Ok(cls,  value :T) -> "Result": Result(value, isOk = True)
+    def Ok(cls,  value :T) -> "Result":
+        """
+        Constructs a new Result instance with a successful operation.
+
+        Args:
+            value (T): The value to be stored in the Result instance, set as successful.
+
+        Returns:
+            Result: A new Result instance with a successful operation.
+        """
+        Result(value, isOk = True)
     
     @classmethod
-    def Err(cls, value :E) -> "Result": Result(value, isOk = False)
+    def Err(cls, value :E) -> "Result": 
+        """
+        Constructs a new Result instance with a failed operation.
+
+        Args:
+            value (E): The value to be stored in the Result instance, set as failed.
+
+        Returns:
+            Result: A new Result instance with a failed operation.
+        """
+        Result(value, isOk = False)
 
     def unwrap(self) -> T:
+        """
+        Unwraps the value of the Result instance, if the operation was successful.
+
+        Raises:
+            ValueError: If the operation was not successful.
+
+        Returns:
+            T: The value of the Result instance, if the operation was successful.
+        """
         if self.isOk: return self.value
         raise ValueError(f"Unwrapped Result.Err : {self.value}")
 
     def unwrapOr(self, default :T) -> T:
+        """_summary_
+
+        Args:
+            default (T): _description_
+
+        Returns:
+            T: _description_
+        """
         return self.value if self.isOk else default
     
     def expect(self, err :Exception) -> T:
