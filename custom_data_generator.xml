@@ -1,0 +1,34 @@
+<tool id="MaREA Custom Data Generator" name="CustomDataGenerator" version="1.0.0">
+    <description>- Custom Data Generator for RAS and RPS modules</description>
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
+    <requirements>
+        
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+      	python $__tool_directory__/custom_data_generator.py
+        --input $input
+        --out_log $log
+        --ras_output $rps_output
+        --rps_output $rps_output
+        ]]>
+    </command>
+    <inputs>
+        <param name="input" argument="--input" type="data" format="xml, json" label="Custom model:" /> 
+    </inputs>
+
+    <outputs>
+        <data format="txt" name="log" label="CustomDataGenerator - $name - Log" />
+        <data format="pickle" name="ras_output" label="$name RAS"/>
+        <data format="pickle" name="rps_output" label="$name RPS"/>
+    </outputs>
+
+    <help>
+<![CDATA[
+
+]]>
+    </help>
+    <expand macro="citations" />
+</tool>

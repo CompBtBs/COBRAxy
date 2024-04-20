@@ -638,9 +638,7 @@ def unit_custom_data_generator() -> None:
             "id"      : ExactValue(42)
         })),
 
-        UnitTest(cdg.load_custom_model, [""], MatchingShape({
-            "value" : IsOfType(cdg.DataErr)
-        })),
+        UnitTest(cdg.load_custom_model, [""], Exists(False)), # should panic
 
         UnitTest(
             cdg.parseRuleToNestedList, ["A or B and C or (D and E)"],
@@ -652,4 +650,36 @@ def unit_custom_data_generator() -> None:
     ).testModule()
 
 if __name__ == "__main__":
-   unit_custom_data_generator()
+    import ras_generator as ras
+    import pickle
+
+    with open("./local/pickle files/gene_dict_ENGRO2.pickle", "rb") as fd:
+        geneTranslatorENGRO2 = pickle.load(fd)
+    
+    with open("./local/pickle files/gene_dict_HMR_core.pickle", "rb") as fd:
+        geneTranslatorHMRcore = pickle.load(fd)
+    
+    with open("./local/pickle files/gene_dict_RECON.pickle", "rb") as fd:
+        geneTranslatorRECON = pickle.load(fd)
+
+    UnitTester("ras generator", LogMode.Pedantic, False,
+        UnitTest(ras.translateGene, ["foo", "ensembl_gene_id", geneTranslatorENGRO2], Exists(False)),
+        UnitTest(ras.translateGene, ["foo", "ensembl_gene_id", geneTranslatorHMRcore], Exists(False)),
+        UnitTest(ras.translateGene, ["foo", "ensembl_gene_id", geneTranslatorRECON], Exists(False)),
+        # ^^^ these should panic
+
+        UnitTest(
+            ras.translateGene,
+            ["ENSG00000017483", "ensembl_gene_id", geneTranslatorENGRO2],
+            ExactValue("HGNC:18070")),
+        
+        UnitTest(
+            ras.translateGene,
+            ["ENSG00000017483", "ensembl_gene_id", geneTranslatorHMRcore],
+            ExactValue("HGNC:18070")),
+        
+        UnitTest(
+            ras.translateGene,
+            ["ENSG00000017483", "ensembl_gene_id", geneTranslatorRECON],
+            ExactValue("HGNC:18070")),
+    ).testModule()

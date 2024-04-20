@@ -8,7 +8,8 @@ from typing import Union, Optional, List, Dict, TypeVar, Generic, Callable
 ARGS : argparse.Namespace
 def process_args() -> argparse.Namespace:
     """
-    Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
+    Interfaces the script of a module with its frontend, making the user's choices for
+    various parameters available as values in code.
 
     Args:
         args : Always obtained (in file) from sys.argv
@@ -18,13 +19,12 @@ def process_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(
         usage = "%(prog)s [options]",
-        description = "process some value\'s" +
-        " genes to create a comparison\'s map.")
+        description = "generate custom data from a given model")
     
     parser.add_argument("-ra", "--ras_output", type = str, required = True, help = "RAS output")
     parser.add_argument("-rp", "--rps_output", type = str, required = True, help = "RPS output")
     parser.add_argument("-ol", "--out_log",    type = str, required = True, help = "Output log")
-    parser.add_argument("-id", "--input_data", type = str, required = True, help = "Input dataset")
+    parser.add_argument("-id", "--input",      type = str, required = True, help = "Input model")
 
     return parser.parse_args()
 
@@ -85,47 +85,28 @@ class CustomErr(Exception):
 
 class RuleErr(CustomErr):
     """
-    Class to handle rule syntax errors in a structured way, with a unique message displaying the error encountered.
+    CustomErr subclass for rule syntax errors.
     """
     errName = "Rule Syntax Error"
     def __init__(self, rule :str, msg = "no further details provided") -> None:
-        """
-        (Private) Initializes an instance of RuleErr.
-
-        Args:
-            rule (str): The rule that caused the error.
-            msg (str): Additional message proving further information on the error. Defaults to "no further details provided".
-
-        Returns:   
-            None : practically, a RuleErr instance.
-        """
         super().__init__(
             f"rule \"{rule}\" is malformed, {msg}",
             "please verify your input follows the validity guidelines")
 
 class DataErr(CustomErr):
     """
-    Class to handle data format errors in a structured way, with a unique message displaying the error encountered.
+    CustomErr subclass for data formatting errors.
     """
     errName = "Data Format Error"
     def __init__(self, fileName :str, msg = "no further details provided") -> None:
-        """
-        (Private) Initializes an instance of DataErr.
-
-        Args:
-            fileName (str): The name of the file that caused the error.
-            msg (str): Additional message proving further information on the error. Defaults to "no further details provided".
-
-        Returns:
-            None : practically, a DataErr instance.
-        """
         super().__init__(f"file \"{fileName}\" contains malformed data", msg)
 
 T = TypeVar('T')
 E = TypeVar('E', bound = Exception)
 class Result(Generic[T, E]):
     """
-    Class to handle the result of an operation, with a value and a boolean flag to indicate whether the operation was successful or not.
+    Class to handle the result of an operation, with a value and a boolean flag to indicate
+    whether the operation was successful or not.
     """
     def __init__(self, value :Union[T, E], isOk :bool) -> None:
         """
@@ -183,13 +164,15 @@ class Result(Generic[T, E]):
 
     def unwrapOr(self, default :T) -> T:
         """
-        Unwraps the value of the Result instance, if the operation was successful, otherwise it returns a default value.
+        Unwraps the value of the Result instance, if the operation was successful, otherwise
+        it returns a default value.
 
         Args:
             default (T): The default value to be returned if the operation was not successful.
 
         Returns:
-            T: The value of the Result instance, if the operation was successful, otherwise the default value.
+            T: The value of the Result instance, if the operation was successful,
+            otherwise the default value.
         """
         return self.value if self.isOk else default
     
@@ -212,7 +195,8 @@ class Result(Generic[T, E]):
     U = TypeVar("U")
     def map(self, mapper: Callable[[T], U]) -> "Result[U, E]":
         """
-        Pipes the Result value into the mapper operation if successful and it returns the Result of that operation.
+        Pipes the Result value into the mapper operation if successful and it returns
+        the Result of that operation.
 
         Args:
             mapper (Callable[[T], U]): The mapper operation to be applied to the Result value.
@@ -249,28 +233,32 @@ def logWarning(msg :str) -> None:
     with open(ARGS.out_log, 'a') as log: log.write(f"{msg}\n")
 
 ################################- INPUT DATA LOADING -################################
-def load_custom_model(file_path :str) -> Result[cobra.Model, DataErr]:
+def load_custom_model(file_path :str) -> cobra.Model:
     """
     Loads a custom model from a file, either in JSON or XML format.
 
     Args:
         file_path (str): The path to the file containing the custom model.
 
+    Raises:
+        DataErr : if the file is in an invalid format or cannot be opened for whatever reason.    
+    
     Returns:
-        Result[cobra.Model, DataErr]: A Result instance containing the custom model if the operation was successful, otherwise a DataErr instance.
+        Result[cobra.Model, DataErr]: A Result instance containing the custom model if the
+        operation was successful, otherwise a DataErr instance.
     """
     try:
-        if file_path.lower().endswith(".json"): return Result.Ok(cobra.io.load_json_model(file_path))
-        if file_path.lower().endswith(".xml"):  return Result.Ok(cobra.io.read_sbml_model(file_path))
+        if file_path.lower().endswith(".json"): return cobra.io.load_json_model(file_path)
+        if file_path.lower().endswith(".xml"):  return cobra.io.read_sbml_model(file_path)
 
-    except Exception as e: return Result.Err(DataErr(file_path, e.__str__()))
-    return Result.Err(DataErr(file_path,
-        f"Formato \"{file_path.split('.')[-1]}\" non riconosciuto, sono supportati solo file JSON e XML"))
+    except Exception as e: raise DataErr(file_path, e.__str__())
+    raise DataErr(file_path,
+        f"Formato \"{file_path.split('.')[-1]}\" non riconosciuto, sono supportati solo file JSON e XML")
 
 ################################- RULE PARSING -################################
 class OpList(List[Union[str, "OpList"]]):
     """
-    Class to handle a list of operations, with a possible operator assigned to the list itself if it's missing.
+    Represents a parsed rule and each of its nesting levels, including the operator that level uses.
     """
     def __init__(self, op = "") -> None:
         """
@@ -360,7 +348,8 @@ class RuleStack:
 
     def popForward(self) -> None:
         """
-        Moves the last "actual" item from the 2nd list to the beginning of the top list, as per the example below:
+        Moves the last "actual" item from the 2nd list to the beginning of the top list, as per
+        the example below:
         stack  : [list_a, list_b]
         list_a : [item1, item2, list_b] --> [item1, list_b]
         list_b : [item3, item4]         --> [item2, item3, item4]
@@ -409,6 +398,9 @@ class RuleStack:
         """
         Updates the current OpList to the one on top of the stack.
 
+        Side Effects:
+            self : mut
+        
         Returns:
             None
         """
@@ -416,7 +408,19 @@ class RuleStack:
 
 def parseRuleToNestedList(rule :str) -> OpList:
     """
-    Rules about rules:
+    Parse a single rule from its string representation to an OpList, making all priority explicit
+    through nesting levels.
+
+    Args:
+        rule : the string representation of a rule to be parsed.
+    
+    Raises:
+        RuleErr : whenever something goes wrong during parsing.
+    
+    Returns:
+        OpList : the parsed rule.
+
+    TODO: move in xml: Rules about rules:
     "and" and "or" rigorously in lowercase
     exactly 1 space (" ") between all words
     NO space between opening parentheses ("(") and the following word
@@ -471,24 +475,62 @@ def parseRuleToNestedList(rule :str) -> OpList:
 
 ReactionId = str
 def generate_rules(model :cobra.Model) -> Dict[ReactionId, OpList]:
+    """
+    Generates a dictionary mapping reaction ids to parsed rules from the model.
+
+    Args:
+        model : the model to derive data from.
+
+    Returns:
+        Dict[ReactionId, OpList] : the generated dictionary.
+    """
     return {
         reaction.id : parseRuleToNestedList(reaction.gene_reaction_rule)
         for reaction in model.reactions
         if reaction.gene_reaction_rule }
 
 def generate_reactions(model :cobra.Model) -> Dict[ReactionId, str]:
+    """
+    Generates a dictionary mapping reaction ids to reaction formulas from the model.
+
+    Args:
+        model : the model to derive data from.
+
+    Returns:
+        Dict[ReactionId, str] : the generated dictionary.
+    """
     return {
         reaction.id : reaction.reaction
         for reaction in model.reactions
         if reaction.reaction }
 
 def save_as_pickle(data :dict, file_path :str) -> None:
-    with open(f"./{file_path}", "wb") as fd: pickle.dump(data, fd)
+    """
+    Saves any dictionary-shaped data in a .pickle file created at the given file_path, taken absolutely
+    (the path isn't parsed or modified in any way).
+
+    Args:
+        data : the data to be written to the file.
+        file_path : the path to the .pickle file.
+    
+    Returns:
+        None
+    """
+    with open(file_path, "wb") as fd: pickle.dump(data, fd)
 
 def main() -> None:
+    """
+    Initializes everything and sets the program in motion based on the fronted input arguments.
+    
+    Returns:
+        None
+    """
     global ARGS
     ARGS = process_args()
     
-    model = load_custom_model(ARGS.input_data).unwrap()
+    model = load_custom_model(ARGS.input)
     save_as_pickle(generate_rules(model), ARGS.ras_output)
     save_as_pickle(generate_reactions(model), ARGS.rps_output)
+
+if __name__ == '__main__':
+    main()

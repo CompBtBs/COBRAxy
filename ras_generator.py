@@ -825,6 +825,26 @@ def create_ras (resolve_rules: Optional[ResolvedRules], dataset_name: str, rules
     text_file.close()
 
 ############################ MAIN #############################################
+def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[str, str]]) -> str:
+    """
+    Translate gene from any supported encoding to HugoID.
+
+    Args:
+        geneName (str): the name of the gene in its current encoding.
+        encoding (str): the encoding.
+        geneTranslator (Dict[str, Dict[str, str]]): the dict containing all supported gene names
+        and encodings in the current model, mapping each to the corresponding HugoID encoding.
+
+    Raises:
+        ValueError: When the gene isn't supported in the model.
+
+    Returns:
+        str: the gene in HugoID encoding.
+    """
+    supportedGenesInEncoding = geneTranslator[encoding]
+    if geneName in supportedGenesInEncoding: return supportedGenesInEncoding[geneName]
+    raise ValueError(f"Gene \"{geneName}\" non trovato, verifica di star utilizzando il modello corretto!")
+
 def main() -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
