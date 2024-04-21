@@ -1,9 +1,24 @@
+import csv
 import sys
 import cobra
 import pickle
 import argparse
+from enum import Enum
 from itertools import count
 from typing import Union, Optional, List, Dict, TypeVar, Generic, Callable
+
+class FileFormat(Enum):
+    """
+    Encodes possible file extensions to conditionally save data in a different format.
+    """
+    CSV    = "csv"
+    PICKLE = "pickle"
+
+    def __str__(self) -> str:
+        """
+        (Private) converts to str representation. Good practice for usage with argparse.
+        """
+        return self.value
 
 ARGS : argparse.Namespace
 def process_args() -> argparse.Namespace:
@@ -25,7 +40,15 @@ def process_args() -> argparse.Namespace:
     parser.add_argument("-rp", "--rps_output", type = str, required = True, help = "RPS output")
     parser.add_argument("-ol", "--out_log",    type = str, required = True, help = "Output log")
     parser.add_argument("-id", "--input",      type = str, required = True, help = "Input model")
+    parser.add_argument("-mn", "--name",       type = str, required = True, help = "Input model name")
+    # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
 
+    parser.add_argument(
+        "-of", "--output_format",
+        type = FileFormat, default = FileFormat.PICKLE, choices = list(FileFormat),
+        required = True,
+        help = "Extension of all output files")
+    
     return parser.parse_args()
 
 ################################- ERROR HANDLING -################################
@@ -233,12 +256,13 @@ def logWarning(msg :str) -> None:
     with open(ARGS.out_log, 'a') as log: log.write(f"{msg}\n")
 
 ################################- INPUT DATA LOADING -################################
-def load_custom_model(file_path :str) -> cobra.Model:
+def load_custom_model(file_path :str, ext = "") -> cobra.Model:
     """
     Loads a custom model from a file, either in JSON or XML format.
 
     Args:
-        file_path (str): The path to the file containing the custom model.
+        file_path : The path to the file containing the custom model.
+        ext : explicit file extension. Necessary for standard use in galaxy because of its weird behaviour.
 
     Raises:
         DataErr : if the file is in an invalid format or cannot be opened for whatever reason.    
@@ -248,8 +272,8 @@ def load_custom_model(file_path :str) -> cobra.Model:
         operation was successful, otherwise a DataErr instance.
     """
     try:
-        if file_path.lower().endswith(".json"): return cobra.io.load_json_model(file_path)
-        if file_path.lower().endswith(".xml"):  return cobra.io.read_sbml_model(file_path)
+        if ext.lower() == "xml"  or file_path.lower().endswith(".xml"):  return cobra.io.read_sbml_model(file_path)
+        if ext.lower() == "json" or file_path.lower().endswith(".json"): return cobra.io.load_json_model(file_path)
 
     except Exception as e: raise DataErr(file_path, e.__str__())
     raise DataErr(file_path,
@@ -419,12 +443,6 @@ def parseRuleToNestedList(rule :str) -> OpList:
     
     Returns:
         OpList : the parsed rule.
-
-    TODO: move in xml: Rules about rules:
-    "and" and "or" rigorously in lowercase
-    exactly 1 space (" ") between all words
-    NO space between opening parentheses ("(") and the following word
-    NO space between closing parentheses (")") and the preceding word
     """
     source = iter(rule
         .replace("(", "( ").replace(")", " )") # Single out parens as words
@@ -473,19 +491,28 @@ def parseRuleToNestedList(rule :str) -> OpList:
     parsedRule = stack.obtain(nestingErr)
     return parsedRule[0] if len(parsedRule) == 1 and isinstance(parsedRule[0], list) else parsedRule
 
+################################- DATA GENERATION -################################
 ReactionId = str
-def generate_rules(model :cobra.Model) -> Dict[ReactionId, OpList]:
+def generate_rules(model: cobra.Model, asParsed = True) -> Union[Dict[ReactionId, OpList], Dict[ReactionId, str]]:
     """
-    Generates a dictionary mapping reaction ids to parsed rules from the model.
+    Generates a dictionary mapping reaction ids to rules from the model.
 
     Args:
         model : the model to derive data from.
+        asParsed : if True parses the rules to an optimized runtime format, otherwise leaves them as strings.
 
     Returns:
-        Dict[ReactionId, OpList] : the generated dictionary.
+        Dict[ReactionId, OpList] : the generated dictionary of parsed rules.
+        Dict[ReactionId, str] : the generated dictionary of raw rules.
     """
+    # Is the below approach convoluted? yes
+    # Ok but is it inefficient? probably
+    # Ok but at least I don't have to repeat the check at every rule (I'm clinically insane)
+    _ruleGetter   = lambda reaction : reaction.gene_reaction_rule
+    ruleExtractor = (lambda reaction : parseRuleToNestedList(_ruleGetter(reaction))) if asParsed else _ruleGetter
+
     return {
-        reaction.id : parseRuleToNestedList(reaction.gene_reaction_rule)
+        reaction.id : ruleExtractor(reaction)
         for reaction in model.reactions
         if reaction.gene_reaction_rule }
 
@@ -503,6 +530,29 @@ def generate_reactions(model :cobra.Model) -> Dict[ReactionId, str]:
         reaction.id : reaction.reaction
         for reaction in model.reactions
         if reaction.reaction }
+
+###############################- FILE SAVING -################################
+def save_as_csv(data :dict, file_path :str) -> None:
+    """
+    Saves any dictionary-shaped data in a .csv file created at the given file_path, taken absolutely
+    (the path isn't parsed or modified in any way).
+
+    Args:
+        data : the data to be written to the file.
+        file_path : the path to the .csv file.
+    
+    Returns:
+        None
+    """
+    with open(file_path, 'w', newline='') as csvfile:
+        fieldnames = ['ID', 'Formula']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for reactionId, reaction in data.items():
+            row = {'ID': reactionId}
+            row['Formula'] = reaction
+            writer.writerow(row)
 
 def save_as_pickle(data :dict, file_path :str) -> None:
     """
@@ -525,12 +575,27 @@ def main() -> None:
     Returns:
         None
     """
+    # get args from frontend (related xml)
     global ARGS
     ARGS = process_args()
+
+    # load custom model
+    model = load_custom_model(ARGS.input, ARGS.name.split('.')[-1])
     
-    model = load_custom_model(ARGS.input)
-    save_as_pickle(generate_rules(model), ARGS.ras_output)
-    save_as_pickle(generate_reactions(model), ARGS.rps_output)
+    # save generated data in desired format and in locations galaxy understands
+    # (should show up as a collection in the history)
+    reactions = generate_reactions(model)
+    if ARGS.output_format is FileFormat.PICKLE:
+        rules = generate_rules(model, asParsed = True)
+        save_as_pickle(rules,     ARGS.ras_output)
+        save_as_pickle(reactions, ARGS.rps_output)
+    
+    elif ARGS.output_format is FileFormat.CSV:
+        rules = generate_rules(model, asParsed = False)
+        save_as_csv(rules,     ARGS.ras_output)
+        save_as_csv(reactions, ARGS.rps_output)
+
+    # ^ Please if anyone works on this after updating python to 3.12 change the if/elif into a match statement!!
 
 if __name__ == '__main__':
     main()

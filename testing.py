@@ -625,7 +625,7 @@ def unit_rps_generator() -> None:
 
 def unit_custom_data_generator() -> None:
     import custom_data_generator as cdg
-    UnitTester("custom_data_generator", LogMode.Pedantic, True,
+    UnitTester("custom_data_generator", LogMode.Pedantic, False,
         UnitTest(cdg.CustomErr, ["myMsg", "more details"], MatchingShape({
             "details" : ExactValue("more details"),
             "msg"     : ExactValue("myMsg"),
@@ -649,7 +649,7 @@ def unit_custom_data_generator() -> None:
             )),
     ).testModule()
 
-if __name__ == "__main__":
+def unit_ras_generator() -> None:
     import ras_generator as ras
     import pickle
 
@@ -683,3 +683,6 @@ if __name__ == "__main__":
             ["ENSG00000017483", "ensembl_gene_id", geneTranslatorRECON],
             ExactValue("HGNC:18070")),
     ).testModule()
+
+if __name__ == "__main__":
+    unit_custom_data_generator()
