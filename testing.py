@@ -624,7 +624,7 @@ def unit_rps_generator() -> None:
     ).testModule()
 
 def unit_custom_data_generator() -> None:
-    import custom_data_generator as cdg
+    import custom_data_generator as cdg 
     UnitTester("custom_data_generator", LogMode.Pedantic, False,
         UnitTest(cdg.CustomErr, ["myMsg", "more details"], MatchingShape({
             "details" : ExactValue("more details"),
@@ -646,7 +646,7 @@ def unit_custom_data_generator() -> None:
                 ExactValue("A"), 
                 Many(ExactValue("B"), ExactValue("C")),
                 Many(ExactValue("D"), ExactValue("E"))
-            )),
+        )),       
     ).testModule()
 
 def unit_ras_generator() -> None:

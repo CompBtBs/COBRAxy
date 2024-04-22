@@ -1,11 +1,12 @@
+import os
 import csv
 import sys
 import cobra
 import pickle
 import argparse
-from enum import Enum
+from enum import Enum, auto
 from itertools import count
-from typing import Union, Optional, List, Dict, TypeVar, Generic, Callable
+from typing import Tuple, Union, Optional, List, Dict, TypeVar, Generic, Callable
 
 class FileFormat(Enum):
     """
@@ -36,8 +37,6 @@ def process_args() -> argparse.Namespace:
         usage = "%(prog)s [options]",
         description = "generate custom data from a given model")
     
-    parser.add_argument("-ra", "--ras_output", type = str, required = True, help = "RAS output")
-    parser.add_argument("-rp", "--rps_output", type = str, required = True, help = "RPS output")
     parser.add_argument("-ol", "--out_log",    type = str, required = True, help = "Output log")
     parser.add_argument("-id", "--input",      type = str, required = True, help = "Input model")
     parser.add_argument("-mn", "--name",       type = str, required = True, help = "Input model name")
@@ -49,7 +48,11 @@ def process_args() -> argparse.Namespace:
         required = True,
         help = "Extension of all output files")
     
-    return parser.parse_args()
+    argsNamespace = parser.parse_args()
+    argsNamespace.out_dir = "result"
+    # ^ can't get this one to work from xml, there doesn't seem to be a way to get the directory attribute from the collection
+
+    return argsNamespace
 
 ################################- ERROR HANDLING -################################
 class CustomErr(Exception):
@@ -532,42 +535,98 @@ def generate_reactions(model :cobra.Model) -> Dict[ReactionId, str]:
         if reaction.reaction }
 
 ###############################- FILE SAVING -################################
-def save_as_csv(data :dict, file_path :str) -> None:
+class FilePath():
     """
-    Saves any dictionary-shaped data in a .csv file created at the given file_path, taken absolutely
-    (the path isn't parsed or modified in any way).
+    Represents a file path. View this as an attempt to standardize file-related operations by expecting values of this type
+    in any process requesting a file path.
+    """
+    def __init__(self, path :str, ext :FileFormat, prefix = "") -> None:
+        """
+        (Private) Initializes an instance of FilePath.
+
+        Args:
+            path : the end of the path, containing the file name.
+            ext : the file's extension.
+            prefix : anything before path, already parsed (ending in '/')
+        
+        Returns:
+            None : practically, a FilePath instance.
+        """
+        self.path = f"{prefix}{path}.{ext}"
+    
+    @classmethod
+    def Absolute(cls, path :str, ext :FileFormat) -> "FilePath":
+        """
+        Factory method for an absolute FilePath instance, where the given path is already complete.
+
+        Args:
+            path : the file path.
+            ext : the file's extension.
+        
+        Returns:
+            FilePath : the created instance.
+        """
+        return cls(path, ext)
+
+    @classmethod
+    def Output(cls, path :str, ext :FileFormat) -> "FilePath":
+        """
+        Factory method for an output file's FilePath instance, where the given path is prefixed with the designed output
+        folder path in this tool contained in ARGS.out_dir.
+
+        Args:
+            path : the file path.
+            ext : the file's extension.
+        
+        Returns:
+            FilePath : the created instance.
+        """
+        return cls(path, ext, prefix = f"{ARGS.out_dir}/")
+    
+    def show(self) -> str:
+        """
+        Shows the path as a string.
+
+        Returns:
+            str : the path.
+        """
+        return str(self)
+    
+    def __str__(self) -> str: return self.path
+
+def save_as_csv(data :dict, file_path :FilePath, fieldNames :Tuple[str, str]) -> None:
+    """
+    Saves any dictionary-shaped data in a .csv file created at the given file_path.
 
     Args:
         data : the data to be written to the file.
         file_path : the path to the .csv file.
+        fieldNames : the names of the fields (columns) in the .csv file.
     
     Returns:
         None
     """
-    with open(file_path, 'w', newline='') as csvfile:
-        fieldnames = ['ID', 'Formula']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    with open(file_path.show(), 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames = fieldNames)
         writer.writeheader()
 
-        for reactionId, reaction in data.items():
-            row = {'ID': reactionId}
-            row['Formula'] = reaction
-            writer.writerow(row)
+        for key, value in data.items():
+            writer.writerow({ fieldNames[0] : key, fieldNames[1] : value })
 
-def save_as_pickle(data :dict, file_path :str) -> None:
+def save_as_pickle(data :dict, file_path :FilePath) -> None:
     """
-    Saves any dictionary-shaped data in a .pickle file created at the given file_path, taken absolutely
-    (the path isn't parsed or modified in any way).
+    Saves any dictionary-shaped data in a .pickle file created at the given file_path.
 
     Args:
         data : the data to be written to the file.
-        file_path : the path to the .pickle file.
+        file_path : the path to the .pickle file
     
     Returns:
         None
     """
-    with open(file_path, "wb") as fd: pickle.dump(data, fd)
+    with open(file_path.show(), "wb") as fd: pickle.dump(data, fd)
 
+###############################- ENTRY POINT -################################
 def main() -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
@@ -579,21 +638,27 @@ def main() -> None:
     global ARGS
     ARGS = process_args()
 
+    # this is the worst thing I've seen so far, congrats to the former MaREA devs for suggesting this!
+    if os.path.isdir(ARGS.out_dir) == False: os.makedirs(ARGS.out_dir)
+
     # load custom model
     model = load_custom_model(ARGS.input, ARGS.name.split('.')[-1])
     
-    # save generated data in desired format and in locations galaxy understands
-    # (should show up as a collection in the history)
-    reactions = generate_reactions(model)
+    # generate data and save it in the desired format and in a location galaxy understands
+    # (it should show up as a collection in the history)
+    reactions     = generate_reactions(model)
+    rulesPath     = FilePath.Output("rules",     ARGS.output_format)
+    reactionsPath = FilePath.Output("reactions", ARGS.output_format)
+
     if ARGS.output_format is FileFormat.PICKLE:
         rules = generate_rules(model, asParsed = True)
-        save_as_pickle(rules,     ARGS.ras_output)
-        save_as_pickle(reactions, ARGS.rps_output)
+        save_as_pickle(rules,     rulesPath)
+        save_as_pickle(reactions, reactionsPath)
     
     elif ARGS.output_format is FileFormat.CSV:
         rules = generate_rules(model, asParsed = False)
-        save_as_csv(rules,     ARGS.ras_output)
-        save_as_csv(reactions, ARGS.rps_output)
+        save_as_csv(rules,     rulesPath,     ("ReactionID", "Rule"))
+        save_as_csv(reactions, reactionsPath, ("ReactionID", "Reaction"))
 
     # ^ Please if anyone works on this after updating python to 3.12 change the if/elif into a match statement!!
 

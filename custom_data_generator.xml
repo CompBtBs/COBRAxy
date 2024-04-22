@@ -13,14 +13,6 @@
         --name $input.element_identifier
         --output_format $output_format
         --out_log $log
-        
-        #if $output_format == 'pickle':
-            --ras_output $results_pk.ras_output_pk
-            --rps_output $results_pk.rps_output_pk
-        #else
-            --ras_output $results_csv.ras_output_csv
-            --rps_output $results_csv.rps_output_csv
-        #end if
         ]]>
     </command>
     <inputs>
@@ -36,35 +28,19 @@
     <outputs>
         <data format="txt" name="log" label="CustomDataGenerator - $name - Log" />
         
-        <collection name="results_pk" type="list" label="Custom Data Results">
-            <data format="pickle" name="ras_output_pk" label="$name RAS (pickle)">
-                <filter>format == "pickle"</filter>
-            </data>
-
-            <data format="pickle" name="rps_output_pk" label="$name RPS (pickle)">
-                <filter>format == "pickle"</filter>
-            </data>
-        </collection>
-
-        <collection name="results_csv" type="list" label="Custom Data Results">
-            <data format="csv" name="ras_output_csv" label="$name RAS (csv)"/>
-                <filter>format == "csv"</filter>
-            </data>
-
-            <data format="csv" name="rps_output_csv" label="$name RPS (csv)"/>
-                <filter>format == "csv"</filter>
-            </data>
+        <collection name="results" type="list" label="Custom Data Results ($output_format)">
+            <discover_datasets name = "collection" pattern="__name_and_ext__" directory="result"/>
         </collection>
     </outputs>
 
     <help>
-<![CDATA[
+    <![CDATA[
 Rules about rules:
-    "and" and "or" rigorously in lowercase
-    exactly 1 space (" ") between all words
-    NO space between opening parentheses ("(") and the following word
-    NO space between closing parentheses (")") and the preceding word
-]]>
+"and" and "or" rigorously in lowercase
+exactly 1 space (" ") between all words
+NO space between opening parentheses ("(") and the following word
+NO space between closing parentheses (")") and the preceding word
+    ]]>
     </help>
     <expand macro="citations" />
 </tool>
