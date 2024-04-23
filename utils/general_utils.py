@@ -1,14 +1,12 @@
-from io import BufferedReader
 import pickle
 import re
 import sys
 from enum import Enum
 from itertools import count
 from argparse import Namespace
-from typing import Any, Callable, Generic, Tuple, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, Tuple, TypeVar, Union
 
-ARGS :Namespace
-
+# RESULT
 T = TypeVar('T')
 E = TypeVar('E', bound = Exception)
 class Result(Generic[T, E]):
@@ -116,6 +114,111 @@ class Result(Generic[T, E]):
         try: return Result.Ok(mapper(self.value))
         except Exception as e: return Result.Err(e)
 
+# FILES
+class FileFormat(Enum):
+    """
+    Encodes possible file extensions to conditionally save data in a different format.
+    """
+    DAT    = "dat" # this is how galaxy treats all your files!
+    CSV    = "csv"
+    XML    = "xml"
+    JSON   = "json"
+    PICKLE = "p"#"pickle"
+
+    @classmethod
+    def fromExt(cls, ext :str) -> "FileFormat":
+        """
+        Converts a file extension string to a FileFormat instance.
+
+        Args:
+            ext : The file extension as a string.
+
+        Returns:
+            FileFormat: The FileFormat instance corresponding to the file extension.
+        """
+        variantName = ext.upper()
+        if variantName not in FileFormat.__members__:
+            raise PathErr(ext, f"\"{ext}\" is not a valid file extension")
+        
+        return FileFormat[variantName]
+
+    def __str__(self) -> str:
+        """
+        (Private) converts to str representation. Good practice for usage with argparse.
+
+        Returns:
+            str : the string representation of the file extension.
+        """
+        return self.value
+
+class FilePath():
+    """
+    Represents a file path. View this as an attempt to standardize file-related operations by expecting values of this type
+    in any process requesting a file path.
+    """
+    def __init__(self, filePath :str, ext :FileFormat, *, prefix = "") -> None:
+        """
+        (Private) Initializes an instance of FilePath.
+
+        Args:
+            path : the end of the path, containing the file name.
+            ext : the file's extension.
+            prefix : anything before path, already parsed (ending in '/')
+        
+        Returns:
+            None : practically, a FilePath instance.
+        """
+        self.ext      = ext
+        self.prefix   = prefix
+        self.filePath = filePath
+    
+    @classmethod
+    def fromStrPath(cls, path :str) -> "FilePath":
+        result = re.search(r"^(?:(?P<prefix>.*)\/)?(?P<name>.*)\.(?P<ext>[^.]*)$", path)
+        if not result or not result["name"] or not result["ext"]:
+            raise PathErr(path, f"cannot recognize folder structure or extension in path \"{path}\"")
+
+        prefix = result["prefix"] if result["prefix"] else ""
+        return cls(result["name"], FileFormat.fromExt(result["ext"]), prefix = prefix)
+    
+    def show(self) -> str:
+        """
+        Shows the path as a string.
+
+        Returns:
+            str : the path.
+        """
+        return str(self)
+    
+    def __str__(self) -> str: return f"{self.prefix}/{self.filePath}.{self.ext}"
+
+# ERRORS
+def terminate(msg :str) -> None:
+    """
+    Terminate the execution of the script with an error message.
+    
+    Args:
+        msg (str): The error message to be displayed.
+    
+    Returns:
+        None
+    """
+    sys.exit(f"Execution aborted: {msg}\n")
+
+def logWarning(msg :str, loggerPath :FilePath) -> None:
+    """
+    Log a warning message to an output log file and print it to the console. The final period and a
+    newline is added by the function.
+
+    Args:
+        s (str): The warning message to be logged and printed.
+        loggerPath : The file path of the output log file.
+
+    Returns:
+        None
+    """
+    with open(loggerPath.show(), 'a') as log: log.write(f"{msg}.\n")
+
 class CustomErr(Exception):
     """
     Custom error class to handle exceptions in a structured way, with a unique identifier and a message.
@@ -139,7 +242,7 @@ class CustomErr(Exception):
 
         self.id = max(explicitErrCode, next(CustomErr.__idGenerator))
 
-    def throw(self) -> None:
+    def throw(self, loggerPath :Optional[FilePath] = None) -> None:
         """
         Raises the current CustomErr instance, logging a warning message before doing so.
 
@@ -149,7 +252,7 @@ class CustomErr(Exception):
         Returns:
             None
         """
-        logWarning(str(self))
+        if loggerPath: logWarning(str(self), loggerPath)
         raise self
 
     def abort(self) -> None:
@@ -178,86 +281,15 @@ class DataErr(CustomErr):
     def __init__(self, fileName :str, msg = "no further details provided") -> None:
         super().__init__(f"file \"{fileName}\" contains malformed data", msg)
 
-def terminate(msg :str) -> None:
+class PathErr(CustomErr):
     """
-    Terminate the execution of the script with an error message.
-    
-    Args:
-        msg (str): The error message to be displayed.
-    
-    Returns:
-        None
+    utils.CustomErr subclass for path, filename and extension formatting errors.
     """
-    sys.exit(f"Execution aborted: {msg}\n")
+    errName = "Path Error"
+    def __init__(self, path :str, msg = "no further details provided") -> None:
+        super().__init__(f"path \"{path}\" is invalid", msg)
 
-def logWarning(msg :str) -> None:
-    """
-    Log a warning message to an output log file and print it to the console. The final period and a
-    newline is added by the function.
-
-    Args:
-        s (str): The warning message to be logged and printed.
-
-    Returns:
-        None
-    """
-    with open(ARGS.out_log, 'a') as log: log.write(f"{msg}.\n")
-
-class FileFormat(Enum):
-    """
-    Encodes possible file extensions to conditionally save data in a different format.
-    """
-    CSV    = "csv"
-    XML    = "xml"
-    JSON   = "json"
-    PICKLE = "pickle"
-
-    def __str__(self) -> str:
-        """
-        (Private) converts to str representation. Good practice for usage with argparse.
-
-        Returns:
-            str : the string representation of the file extension.
-        """
-        return self.value
-
-def splitAtExtension(filePath :str) -> Tuple[str, str]:
-    result = re.search(r"^(?P<name>.*)\.(?P<ext>[^.]*)$", filePath)
-    if not result: raise DataErr(filePath, f"\"{filePath}\" is an invalid file format")
-    return result["name"], result["ext"]
-
-class FilePath():
-    """
-    Represents a file path. View this as an attempt to standardize file-related operations by expecting values of this type
-    in any process requesting a file path.
-    """
-    def __init__(self, filePath :str, ext :FileFormat, *, prefix = "") -> None:
-        """
-        (Private) Initializes an instance of FilePath.
-
-        Args:
-            path : the end of the path, containing the file name.
-            ext : the file's extension.
-            prefix : anything before path, already parsed (ending in '/')
-        
-        Returns:
-            None : practically, a FilePath instance.
-        """
-        self.ext      = ext
-        self.prefix   = prefix
-        self.filePath = filePath
-    
-    def show(self) -> str:
-        """
-        Shows the path as a string.
-
-        Returns:
-            str : the path.
-        """
-        return str(self)
-    
-    def __str__(self) -> str: return f"{self.prefix}/{self.path}.{self.ext}"
-
+# PICKLE FILES
 def readPickle(path :FilePath) -> Any:
     with open(path.show(), "rb") as fd: return pickle.load(fd)
 

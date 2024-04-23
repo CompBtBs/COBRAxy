@@ -5,7 +5,7 @@ import pickle
 import argparse
 import utils.general_utils as utils
 import utils.rule_parsing  as rulesUtils
-from typing import Tuple, Union, Dict
+from typing import Optional, Tuple, Union, Dict
 
 ARGS : argparse.Namespace
 def process_args() -> argparse.Namespace:
@@ -44,8 +44,7 @@ def process_args() -> argparse.Namespace:
     return argsNamespace
 
 ################################- INPUT DATA LOADING -################################
-#TODO: fix with paths and extensions from utils n shit
-def load_custom_model(file_path :utils.FilePath) -> cobra.Model:
+def load_custom_model(file_path :utils.FilePath, ext :Optional[utils.FileFormat] = None) -> cobra.Model:
     """
     Loads a custom model from a file, either in JSON or XML format.
 
@@ -59,9 +58,13 @@ def load_custom_model(file_path :utils.FilePath) -> cobra.Model:
     Returns:
         cobra.Model : the model, if successfully opened.
     """
+    ext = ext if ext else file_path.ext
     try:
-        if file_path.ext is utils.FileFormat.XML : return cobra.io.read_sbml_model(file_path)
-        if file_path.ext is utils.FileFormat.JSON: return cobra.io.load_json_model(file_path)
+        if ext is utils.FileFormat.XML:
+            return cobra.io.read_sbml_model(file_path.show())
+        
+        if ext is utils.FileFormat.JSON:
+            return cobra.io.load_json_model(file_path.show())
 
     except Exception as e: raise utils.DataErr(file_path, e.__str__())
     raise utils.DataErr(file_path,
@@ -158,7 +161,7 @@ def main() -> None:
 
     # load custom model
     model = load_custom_model(
-        utils.FilePath(utils.splitAtExtension(ARGS.input)[0], utils.splitAtExtension(ARGS.name)[1]))
+        utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.name).ext)
     
     # generate data and save it in the desired format and in a location galaxy understands
     # (it should show up as a collection in the history)

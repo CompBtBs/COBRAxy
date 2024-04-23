@@ -9,7 +9,7 @@ import json
 from typing import Union, Optional, List, Dict, Tuple, TypeVar
 
 ########################## argparse ##########################################
-def process_args(args :List[str]) -> argparse.Namespace:
+def process_args() -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -23,11 +23,12 @@ def process_args(args :List[str]) -> argparse.Namespace:
                                      description = 'process some value\'s'+
                                      ' genes to create a comparison\'s map.')
     
-    parser.add_argument('-rs', '--rules_selector', 
-                        type = Model,
-                        default = Model.HMRcore,
-                        choices = list(Model),
-                        help = 'chose which type of dataset you want use')
+    parser.add_argument(
+        '-rs', '--rules_selector', 
+        type = Model,
+        default = Model.HMRcore,
+        choices = list(Model),
+        help = 'chose which type of dataset you want use')
     
     parser.add_argument('-id', '--id',
                         type = str,
@@ -70,7 +71,7 @@ def warning(s :str) -> None:
     Returns:
         None
     """
-    args = process_args(sys.argv)
+    args = process_args()
     with open(args.out_log, 'a') as log:
             log.write(s)
             
@@ -712,7 +713,7 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
     Returns:
         dict: A dictionary containing gene data with gene IDs as keys and corresponding values.
     """
-    args = process_args(sys.argv)    
+    args = process_args()    
     for i in range(len(gene)):
         tmp = gene.iloc[i, 0]
         if tmp.startswith(' ') or tmp.endswith(' '):
@@ -852,30 +853,34 @@ import utils.rule_parsing as ruleUtils
 
 OldRule = List[Union[str, "OldRule"]]
 class Model(Enum):
-    # The names are standardized and could be computed from a simple "model name" tag, but the
-    # following approach allows for more flexibility in case these names change in the future.
-    class __ModelSpecs:
-        def __init__(self, rulesFilename :str, geneTranslatorFilename :str) -> None:
-            self.rulesPath = utils.FilePath(
-                rulesFilename, utils.FileFormat.PICKLE, prefix = "./local/pickle files")
-            
-            self.geneTranslatorPath = utils.FilePath(
-                geneTranslatorFilename, utils.FileFormat.PICKLE, prefix = "./local/pickle files")
-    
-    Recon   = __ModelSpecs("Recon_rules.p",   "gene_dict_RECON.pickle")
-    ENGRO2  = __ModelSpecs("ENGRO2_rules.p",  "gene_dict_ENGRO2.pickle")
-    HMRcore = __ModelSpecs("HMRcore_rules.p", "gene_dict_HMR_core.pickle")
-    Custom  = __ModelSpecs("", "")
+    Recon   = "Recon"
+    ENGRO2  = "ENGRO2"
+    HMRcore = "HMRcore"
+    Custom  = "Custom"
+
+    @property
+    def rulesPath(self) -> utils.FilePath:
+        return utils.FilePath(
+            f"{self.name}_rules",
+            utils.FileFormat.PICKLE,
+            prefix = f"{ARGS.tool_dir}/local/pickle files")
+
+    @property
+    def genesPath(self) -> utils.FilePath:
+        return utils.FilePath(
+            f"{self.name}_genes",
+            utils.FileFormat.PICKLE,
+            prefix = f"{ARGS.tool_dir}/local/pickle files")
 
     def getRules(self) -> Union[Dict[str, Dict[str, OldRule]], Dict[str, ruleUtils.OpList]]:
-        return utils.readPickle(self.value.rulesPath)
+        return utils.readPickle(self.rulesPath)
     
     def getTranslator(self) -> Dict[str, Dict[str, str]]:
-        return utils.readPickle(self.value.geneTranslatorPath)
+        return utils.readPickle(self.genesPath)
 
-ARGS :argparse.Namespace
+    def __str__(self) -> str: return self.value
+
 def main_new() -> None:
-    global ARGS
     ARGS = process_args()
 
     model :Model = ARGS.rules_selector
@@ -909,7 +914,8 @@ def main_new() -> None:
     
     if err: utils.logWarning(
         f"Warning: gene(s) {err} not found in class \"{name}\", " +
-        "the expression level for this gene will be considered NaN")
+        "the expression level for this gene will be considered NaN",
+        utils.FilePath.fromStrPath(ARGS.out_log))
     
     print("Execution succeded")
 
@@ -920,7 +926,7 @@ def main() -> None:
     Returns:
         None
     """
-    args = process_args(sys.argv)
+    args = process_args()
 
     if args.rules_selector == 'HMRcore':        
         recon = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_rules.p', 'rb'))
@@ -971,4 +977,4 @@ def main() -> None:
 
 ###############################################################################
 if __name__ == "__main__":
-    main()
+    main_new()

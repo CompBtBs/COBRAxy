@@ -13,11 +13,11 @@
     <command detect_errors="exit_code">
         <![CDATA[
       	python $__tool_directory__/ras_generator.py
-      	--rules_selector $cond_rule.rules_selector	
+      	--rules_selector $cond_rule.rules_selector
         --input $input
         --none $none
         --tool_dir $__tool_directory__
-        --out_log $log	
+        --out_log $log
         --ras_output $ras_output
         #if $cond_rule.rules_selector == 'Custom'
             --id $Reaction_IDs
