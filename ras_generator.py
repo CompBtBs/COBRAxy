@@ -22,11 +22,13 @@ def process_args(args :List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
                                      description = 'process some value\'s'+
                                      ' genes to create a comparison\'s map.')
+    
     parser.add_argument('-rs', '--rules_selector', 
-                        type = str,
-                        default = 'HMRcore',
-                        choices = ['HMRcore', 'Recon', 'ENGRO2','Custom'], 
+                        type = Model,
+                        default = Model.HMRcore,
+                        choices = list(Model),
                         help = 'chose which type of dataset you want use')
+    
     parser.add_argument('-id', '--id',
                         type = str,
                         help='your reaction ids if you want custom rules')
@@ -37,9 +39,9 @@ def process_args(args :List[str]) -> argparse.Namespace:
                         type = str,
                         help='your file with genes found in the rules if you want custom rules')
     parser.add_argument('-n', '--none',
-                        type = str,
-                        default = 'true',
-                        choices = ['true', 'false'], 
+                        type = bool,
+                        default = True,
+                        choices = [True, False],
                         help = 'compute Nan values')
     parser.add_argument('-td', '--tool_dir',
                         type = str,
@@ -55,8 +57,7 @@ def process_args(args :List[str]) -> argparse.Namespace:
                         required = True,
                         help = 'ras output')
     
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 ########################### warning ###########################################
 def warning(s :str) -> None:
@@ -844,6 +845,73 @@ def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[s
     supportedGenesInEncoding = geneTranslator[encoding]
     if geneName in supportedGenesInEncoding: return supportedGenesInEncoding[geneName]
     raise ValueError(f"Gene \"{geneName}\" non trovato, verifica di star utilizzando il modello corretto!")
+
+from enum import Enum
+import utils.general_utils as utils
+import utils.rule_parsing as ruleUtils
+
+OldRule = List[Union[str, "OldRule"]]
+class Model(Enum):
+    # The names are standardized and could be computed from a simple "model name" tag, but the
+    # following approach allows for more flexibility in case these names change in the future.
+    class __ModelSpecs:
+        def __init__(self, rulesFilename :str, geneTranslatorFilename :str) -> None:
+            self.rulesPath = utils.FilePath(
+                rulesFilename, utils.FileFormat.PICKLE, prefix = "./local/pickle files")
+            
+            self.geneTranslatorPath = utils.FilePath(
+                geneTranslatorFilename, utils.FileFormat.PICKLE, prefix = "./local/pickle files")
+    
+    Recon   = __ModelSpecs("Recon_rules.p",   "gene_dict_RECON.pickle")
+    ENGRO2  = __ModelSpecs("ENGRO2_rules.p",  "gene_dict_ENGRO2.pickle")
+    HMRcore = __ModelSpecs("HMRcore_rules.p", "gene_dict_HMR_core.pickle")
+    Custom  = __ModelSpecs("", "")
+
+    def getRules(self) -> Union[Dict[str, Dict[str, OldRule]], Dict[str, ruleUtils.OpList]]:
+        return utils.readPickle(self.value.rulesPath)
+    
+    def getTranslator(self) -> Dict[str, Dict[str, str]]:
+        return utils.readPickle(self.value.geneTranslatorPath)
+
+ARGS :argparse.Namespace
+def main_new() -> None:
+    global ARGS
+    ARGS = process_args()
+
+    model :Model = ARGS.rules_selector
+
+    # open rules & translator for current model:
+    rules = model.getRules()
+    translator = model.getTranslator()
+
+    #TODO: fix
+    resolve_none = check_bool(ARGS.none)
+
+    dataset = read_dataset(ARGS.input, "dataset")
+
+    #what?
+    dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
+
+    name = "RAS Dataset"
+    type_gene = gene_type(dataset.iloc[0, 0], name)
+        
+    if ARGS.rules_selector is Model.Custom:
+        
+        return
+    
+    # This is the standard flow of the ras_generator program, for non-custom models.
+    genes      = data_gene(dataset, type_gene, name, None)
+    ids, rules = load_id_rules(rules.get(type_gene))
+    
+    resolve_rules, err = resolve(genes, rules, ids, resolve_none, name)
+
+    create_ras(resolve_rules, name, rules, ids, ARGS.ras_output)
+    
+    if err: utils.logWarning(
+        f"Warning: gene(s) {err} not found in class \"{name}\", " +
+        "the expression level for this gene will be considered NaN")
+    
+    print("Execution succeded")
 
 def main() -> None:
     """
