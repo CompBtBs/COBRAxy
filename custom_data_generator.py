@@ -131,18 +131,7 @@ def save_as_csv(data :dict, file_path :utils.FilePath, fieldNames :Tuple[str, st
         for key, value in data.items():
             writer.writerow({ fieldNames[0] : key, fieldNames[1] : value })
 
-def save_as_pickle(data :dict, file_path :utils.FilePath) -> None:
-    """
-    Saves any dictionary-shaped data in a .pickle file created at the given file_path.
 
-    Args:
-        data : the data to be written to the file.
-        file_path : the path to the .pickle file
-    
-    Returns:
-        None
-    """
-    with open(file_path.show(), "wb") as fd: pickle.dump(data, fd)
 
 ###############################- ENTRY POINT -################################
 def main() -> None:
@@ -171,8 +160,8 @@ def main() -> None:
 
     if ARGS.output_format is utils.FileFormat.PICKLE:
         rules = generate_rules(model, asParsed = True)
-        save_as_pickle(rules,     rulesPath)
-        save_as_pickle(reactions, reactionsPath)
+        utils.writePickle(rulesPath,     rules)
+        utils.writePickle(reactionsPath, reactions)
     
     elif ARGS.output_format is utils.FileFormat.CSV:
         rules = generate_rules(model, asParsed = False)

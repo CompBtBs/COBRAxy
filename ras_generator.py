@@ -1,14 +1,18 @@
 from __future__ import division
+# galaxy complains this ^^^ needs to be at the very beginning of the file, for some reason.
 import sys
-import pandas as pd
-import collections
-import pickle as pk
-import math
-import argparse
 import json
+import argparse
+import collections
+import pandas as pd
+import pickle as pk
+from enum import Enum
+import utils.general_utils as utils
+import utils.rule_parsing as ruleUtils
 from typing import Union, Optional, List, Dict, Tuple, TypeVar
 
 ########################## argparse ##########################################
+ARGS :argparse.Namespace
 def process_args() -> argparse.Namespace:
     """
     Processes command-line arguments.
@@ -228,22 +232,6 @@ def check_entrez(l :str) -> bool:
     if len(l) > 0:
         return l.isdigit()
     else: 
-        return False
-
-def check_bool(b :str) -> Optional[bool]:
-    """
-    Check if a string represents a boolean value.
-
-    Args:
-        b (str): The string to check.
-
-    Returns:
-        bool: True if the string represents True, False if the string represents False.
-        None: if the input string is anything other than "true" or "false"
-    """
-    if b == 'true':
-        return True
-    elif b == 'false':
         return False
     
 ############################ resolve_methods ##################################
@@ -847,10 +835,6 @@ def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[s
     if geneName in supportedGenesInEncoding: return supportedGenesInEncoding[geneName]
     raise ValueError(f"Gene \"{geneName}\" non trovato, verifica di star utilizzando il modello corretto!")
 
-from enum import Enum
-import utils.general_utils as utils
-import utils.rule_parsing as ruleUtils
-
 OldRule = List[Union[str, "OldRule"]]
 class Model(Enum):
     Recon   = "Recon"
@@ -881,20 +865,23 @@ class Model(Enum):
     def __str__(self) -> str: return self.value
 
 def main_new() -> None:
+    """
+    Initializes everything and sets the program in motion based on the fronted input arguments.
+    
+    Returns:
+        None
+    """
+    # get args from frontend (related xml)
+    global ARGS
     ARGS = process_args()
 
+    # load custom model
     model :Model = ARGS.rules_selector
-
-    # open rules & translator for current model:
-    rules = model.getRules()
-    translator = model.getTranslator()
-
-    #TODO: fix
-    resolve_none = check_bool(ARGS.none)
-
+    
+    
+    
+    # read dataset
     dataset = read_dataset(ARGS.input, "dataset")
-
-    #what?
     dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
 
     name = "RAS Dataset"
@@ -904,12 +891,16 @@ def main_new() -> None:
         
         return
     
+    # open rules & translator for current model
+    rules        = model.getRules()
+    translator   = model.getTranslator()
+    # ^^^ TODO: inutile ovunque, perchè i modelli custom non traducono e gli altri aprono i gene_in_rule altrove.
+    
     # This is the standard flow of the ras_generator program, for non-custom models.
     genes      = data_gene(dataset, type_gene, name, None)
     ids, rules = load_id_rules(rules.get(type_gene))
     
-    resolve_rules, err = resolve(genes, rules, ids, resolve_none, name)
-
+    resolve_rules, err = resolve(genes, rules, ids, ARGS.none, name)
     create_ras(resolve_rules, name, rules, ids, ARGS.ras_output)
     
     if err: utils.logWarning(
@@ -946,7 +937,7 @@ def main() -> None:
         with open(args.gene_in_rule, 'r') as file:
             gene_in_rule = json.load(file)
         
-    resolve_none = check_bool(args.none)   
+    resolve_none = args.none 
     
     name = "RAS Dataset"
     dataset = read_dataset(args.input, "dataset")

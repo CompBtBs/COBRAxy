@@ -1,10 +1,10 @@
-import pickle
 import re
 import sys
+import csv
+import pickle
 from enum import Enum
 from itertools import count
-from argparse import Namespace
-from typing import Any, Callable, Generic, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Generic, List, Optional, TypeVar, Union
 
 # RESULT
 T = TypeVar('T')
@@ -294,4 +294,21 @@ def readPickle(path :FilePath) -> Any:
     with open(path.show(), "rb") as fd: return pickle.load(fd)
 
 def writePickle(path :FilePath, data :Any) -> None:
+    """
+    Saves any data in a .pickle file, created at the given path.
+
+    Args:
+        path : the path to the .pickle file.
+        data : the data to be written to the file.
+    
+    Returns:
+        None
+    """
     with open(path.show(), "wb") as fd: pickle.dump(data, fd)
+
+# CSV FILES
+def readCsv(path :FilePath) -> List[List[str]]:
+    with open(path.show(), "r", newline = "") as fd: return list(csv.reader(fd))
+
+def writeCsv(path :FilePath, data ):
+    pass
