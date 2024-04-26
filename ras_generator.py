@@ -1,5 +1,6 @@
 from __future__ import division
 # galaxy complains this ^^^ needs to be at the very beginning of the file, for some reason.
+import csv
 import sys
 import json
 import argparse
@@ -23,9 +24,9 @@ def process_args() -> argparse.Namespace:
     Returns:
         Namespace: An object containing parsed arguments.
     """
-    parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
-                                     description = 'process some value\'s'+
-                                     ' genes to create a comparison\'s map.')
+    parser = argparse.ArgumentParser(
+        usage = '%(prog)s [options]',
+        description = "process some value's genes to create a comparison's map.")
     
     parser.add_argument(
         '-rs', '--rules_selector', 
@@ -34,15 +35,9 @@ def process_args() -> argparse.Namespace:
         choices = list(Model),
         help = 'chose which type of dataset you want use')
     
-    parser.add_argument('-id', '--id',
-                        type = str,
-                        help='your reaction ids if you want custom rules')
-    parser.add_argument('-rl', '--rule_list"',
-                        type = str,
-                        help='your list of rules if you want custom rules')
-    parser.add_argument('-gr', '--gene_in_rule',
-                        type = str,
-                        help='your file with genes found in the rules if you want custom rules')
+    parser.add_argument('-rl', '--rule_list"', type = str,
+        help = 'your list of rules if you want custom rules')
+    
     parser.add_argument('-n', '--none',
                         type = bool,
                         default = True,
@@ -790,7 +785,6 @@ def create_ras (resolve_rules: Optional[ResolvedRules], dataset_name: str, rules
         resolve_rules (dict): Dictionary containing resolved rules.
         dataset_name (str): Name of the dataset.
         rules (list): List of rules.
-        ids (list): List of IDs corresponding to the rules.
         file (str): Path to the output RAS file.
 
     Returns:
@@ -813,6 +807,97 @@ def create_ras (resolve_rules: Optional[ResolvedRules], dataset_name: str, rules
     
     text_file.write(output_to_csv)
     text_file.close()
+
+################################- NEW RAS COMPUTATION -################################
+Expr = Optional[Union[int, float]]
+Ras  = Expr
+def ras_for_cell_lines(dataset: pd.DataFrame, rules: Dict[str, ruleUtils.OpList]) -> Dict[str, Dict[str, Ras]]:
+    """
+    Generates the RAS scores for each cell line found in the dataset.
+
+    Args:
+        dataset (pd.DataFrame): Dataset containing gene values.
+        rules (dict): The dict containing reaction ids as keys and rules as values.
+
+    Side effects:
+        dataset : mut
+    
+    Returns:
+        dict: A dictionary where each key corresponds to a cell line name and each value is a dictionary
+        where each key corresponds to a reaction ID and each value is its computed RAS score.
+    """
+    ras_values_by_cell_line = {}
+    dataset.set_index('Hugo_Symbol', inplace=True)
+    # Considera tutte le colonne tranne la prima in cui ci sono gli hugo quindi va scartata
+    for cell_line_name in dataset.columns[1:]:
+        cell_line = dataset[cell_line_name].to_dict()
+        ras_values_by_cell_line[cell_line_name]= get_ras_values(rules, cell_line)
+    return ras_values_by_cell_line
+
+def get_ras_values(value_rules: Dict[str, ruleUtils.OpList], dataset: Dict[str, Expr]) -> Dict[str, Ras]:
+    """
+    Computes the RAS (Reaction Activity Score) values for each rule in the given dict.
+
+    Args:
+        value_rules (dict): A dictionary where keys are reaction ids and values are OpLists.
+        dataset : gene expression data of one cell line.
+
+    Returns:
+        dict: A dictionary where keys are reaction ids and values are the computed RAS values for each rule.
+    """
+    return {key: ras_op_list(op_list, dataset) for key, op_list in value_rules.items()}
+
+def get_gene_expr(dataset :Dict[str, Expr], name :str) -> Expr:
+    if name not in dataset:
+        utils.logWarning(f"Gene \"{name}\" is mentioned in the rules but doesn't appear in the dataset.")
+
+    expr = dataset.get(name, None)
+    if not isinstance(expr, Expr):
+        raise utils.DataErr("dataset", f"found \"{expr}\" when extracting gene expression data")
+  
+    return expr
+
+def ras_op_list(op_list: ruleUtils.OpList, dataset: Dict[str, Expr]) -> Ras:
+    """
+    Computes recursively the RAS (Reaction Activity Score) value for the given OpList, considering the specified flag to control None behavior.
+
+    Args:
+        op_list (OpList): The OpList representing a rule with gene values.
+        dataset : gene expression data of one cell line.
+
+    Returns:
+        Ras: The computed RAS value for the given OpList.
+    """
+    op = op_list.op
+    ras_value :Ras = None
+    if not op: return get_gene_expr(dataset, op_list[0])
+    if op == 'and' and not ARGS.none and None in op_list: return None
+
+    for i in range(len(op_list)):
+        item = op_list[i]
+        if isinstance(item, ruleUtils.OpList):
+            item = ras_op_list(item, dataset)
+
+        else:
+          item = get_gene_expr(dataset, item)
+
+        if item is None:
+          if op == 'and' and not ARGS.none: return None
+          continue
+
+        if ras_value is None:
+          ras_value = item
+        else:
+          ras_value = ras_value + item if op == 'or' else min(ras_value, item)
+
+    return ras_value
+
+def save_as_tsv(rasScores: Dict[str, Dict[str, Ras]], path :utils.FilePath) -> None:
+    # TODO: check how Nones are handled
+    output_ras = pd.DataFrame.from_dict(rasScores)
+    
+    output_ras.insert(0, 'Reactions', rasScores.values()[0].keys())
+    output_ras.to_csv(path.show(), sep = '\t', index = False)
 
 ############################ MAIN #############################################
 def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[str, str]]) -> str:
@@ -840,7 +925,7 @@ class Model(Enum):
     Recon   = "Recon"
     ENGRO2  = "ENGRO2"
     HMRcore = "HMRcore"
-    Custom  = "Custom"
+    Custom  = "Custom" # Exists as a valid variant in the UI, but doesn't point to valid file paths.
 
     @property
     def rulesPath(self) -> utils.FilePath:
@@ -856,7 +941,7 @@ class Model(Enum):
             utils.FileFormat.PICKLE,
             prefix = f"{ARGS.tool_dir}/local/pickle files")
 
-    def getRules(self) -> Union[Dict[str, Dict[str, OldRule]], Dict[str, ruleUtils.OpList]]:
+    def getRules(self) -> Dict[str, Dict[str, OldRule]]:
         return utils.readPickle(self.rulesPath)
     
     def getTranslator(self) -> Dict[str, Dict[str, str]]:
@@ -864,7 +949,14 @@ class Model(Enum):
 
     def __str__(self) -> str: return self.value
 
-def main_new() -> None:
+def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
+    path = utils.FilePath.fromStrPath(ARGS.rule_list)
+    if path.ext is utils.FileFormat.PICKLE: return utils.readPickle(path)
+
+    # csv rules need to be parsed, those in a pickle format are taken to be pre-parsed.
+    return { line[0] : ruleUtils.parseRuleToNestedList(line[1]) for line in utils.readCsv(path) }
+
+def main() -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
     
@@ -874,29 +966,23 @@ def main_new() -> None:
     # get args from frontend (related xml)
     global ARGS
     ARGS = process_args()
-
-    # load custom model
-    model :Model = ARGS.rules_selector
-    
-    
     
     # read dataset
     dataset = read_dataset(ARGS.input, "dataset")
     dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
 
-    name = "RAS Dataset"
-    type_gene = gene_type(dataset.iloc[0, 0], name)
-        
-    if ARGS.rules_selector is Model.Custom:
-        
-        return
-    
-    # open rules & translator for current model
-    rules        = model.getRules()
-    translator   = model.getTranslator()
-    # ^^^ TODO: inutile ovunque, perchè i modelli custom non traducono e gli altri aprono i gene_in_rule altrove.
+    # handle custom models
+    model :Model = ARGS.rules_selector
+    if model is Model.Custom:
+        return save_as_tsv(
+            ras_for_cell_lines(dataset, load_custom_rules()),
+            utils.FilePath.fromStrPath(ARGS.ras_output))
     
     # This is the standard flow of the ras_generator program, for non-custom models.
+    name = "RAS Dataset"
+    type_gene = gene_type(dataset.iloc[0, 0], name)
+    
+    rules      = model.getRules()
     genes      = data_gene(dataset, type_gene, name, None)
     ids, rules = load_id_rules(rules.get(type_gene))
     
@@ -910,62 +996,6 @@ def main_new() -> None:
     
     print("Execution succeded")
 
-def main() -> None:
-    """
-    Initializes everything and sets the program in motion based on the fronted input arguments.
-
-    Returns:
-        None
-    """
-    args = process_args()
-
-    if args.rules_selector == 'HMRcore':        
-        recon = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_rules.p', 'rb'))
-    elif args.rules_selector == 'Recon':
-        recon = pk.load(open(args.tool_dir + '/local/pickle files/Recon_rules.p', 'rb'))
-    elif args.rules_selector == 'ENGRO2':
-        recon = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_rules.p', 'rb'))
-    elif args.rules_selector == 'Custom':
-        ids = []
-        with open(args.id, 'r') as file:
-            ids = file.readlines()
-
-        rules = []
-        with open(args.rule_list, 'r') as file:
-            rules = file.readlines()
-        gene_in_rule = {}
-        with open(args.gene_in_rule, 'r') as file:
-            gene_in_rule = json.load(file)
-        
-    resolve_none = args.none 
-    
-    name = "RAS Dataset"
-    dataset = read_dataset(args.input, "dataset")
-
-    dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
-
-    type_gene = gene_type(dataset.iloc[0, 0], name) 
-        
-    if args.rules_selector != 'Custom':
-        genes = data_gene(dataset, type_gene, name, None)
-        ids, rules = load_id_rules(recon.get(type_gene))
-    elif args.rules_selector == 'Custom':
-        genes = data_gene(dataset, type_gene, name, gene_in_rule)
-    
-    resolve_rules, err = resolve(genes, rules, ids, resolve_none, name)
-
-    create_ras(resolve_rules, name, rules, ids, args.ras_output)
-      
-    if err != None and err:
-        warning('Warning: gene\n' + str(err) + '\nnot found in class '
-            + name + ', the expression level for this gene ' +
-            'will be considered NaN\n')
-
-    
-    print('Execution succeded')
-
-    return None
-
 ###############################################################################
 if __name__ == "__main__":
-    main_new()
+    main()

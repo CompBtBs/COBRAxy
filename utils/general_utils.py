@@ -309,6 +309,3 @@ def writePickle(path :FilePath, data :Any) -> None:
 # CSV FILES
 def readCsv(path :FilePath) -> List[List[str]]:
     with open(path.show(), "r", newline = "") as fd: return list(csv.reader(fd))
-
-def writeCsv(path :FilePath, data ):
-    pass

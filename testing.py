@@ -470,25 +470,15 @@ class UnitTester:
                 testStatusMsg = "interrupted"
                 break
 
-        self.log(f"Testing {testStatusMsg}: {fails} problem{'s' * (fails > 1)} found.", LogMode.Minimal)
+        self.log(f"Testing {testStatusMsg}: {fails} problem{'s' * (fails != 1)} found.\n", LogMode.Minimal)
+        # ^^^ Manually applied an extra newline of space.
 
 ## Unit testing all the modules:
 def unit_marea() -> None:
     import marea as m
     import pandas as pd
-    processArgsNamespaceCheck = MatchingShape({
-        "custom_rules" : ExactValue("false"),
-        "custom_rule"  : Exists(), #IsOfType(str), # None
-        "custom_map"   : Exists(), #IsOfType(str), # None
-        "none"         : ExactValue("true"),
-        "pValue"       : ExactValue(0.1),
-        "fChange"      : ExactValue(1.5),
-        "tool_dir"     : ExactValue("marea"),
-        "option"       : Exists(), #AcceptedValues("datasets", "dataset_class") # None
-    }, "namespace")
 
     unitTester = UnitTester("marea", LogMode.Pedantic, False,
-        #UnitTest(m.process_args, [None], processArgsNamespaceCheck), # complains about sys argvs
         UnitTest(m.read_dataset, ["", ""], IsOfType(pd.DataFrame)),
 
         UnitTest(m.name_dataset, ["customName", 12], ExactValue("customName")),
@@ -502,8 +492,11 @@ def unit_marea() -> None:
         UnitTest(m.fold_change, [0, 0.35], ExactValue("-INF")),
         UnitTest(m.fold_change, [0.5, 0], ExactValue("INF")),
         UnitTest(m.fold_change, [0, 0], ExactValue(0)),
+
+        UnitTest(
+            m.Arrow(m.Arrow.MAX_W, m.ArrowColor.DownRegulated, True).toStyleStr, [],
+            ExactValue("stroke:#0000FF;stroke-width:12;stroke-dasharray:5,5")),
     ).testModule()
-    #TODO: finish
 
 def unit_rps_generator() -> None:
     import rps_generator as rps
@@ -624,24 +617,31 @@ def unit_rps_generator() -> None:
     ).testModule()
 
 def unit_custom_data_generator() -> None:
-    import custom_data_generator as cdg 
-    UnitTester("custom_data_generator", LogMode.Pedantic, False,
-        UnitTest(cdg.CustomErr, ["myMsg", "more details"], MatchingShape({
+    import custom_data_generator as cdg
+
+    UnitTester("custom data generator", LogMode.Pedantic, False,
+        UnitTest(lambda :True, [], ExactValue(True)), # No tests can be done without a model at hand!
+    ).testModule()
+
+def unit_utils() -> None:
+    import utils.general_utils as utils
+    import utils.rule_parsing as ruleUtils
+
+    UnitTester("utils", LogMode.Pedantic, False,
+        UnitTest(utils.CustomErr, ["myMsg", "more details"], MatchingShape({
             "details" : ExactValue("more details"),
             "msg"     : ExactValue("myMsg"),
-            "id"      : ExactValue(0)
+            "id"      : ExactValue(0) # this will fail if any custom errors happen anywhere else before!
         })),
 
-        UnitTest(cdg.CustomErr, ["myMsg", "more details", 42], MatchingShape({
+        UnitTest(utils.CustomErr, ["myMsg", "more details", 42], MatchingShape({
             "details" : ExactValue("more details"),
             "msg"     : ExactValue("myMsg"),
             "id"      : ExactValue(42)
         })),
 
-        UnitTest(cdg.load_custom_model, [""], Exists(False)), # should panic
-
         UnitTest(
-            cdg.parseRuleToNestedList, ["A or B and C or (D and E)"],
+            ruleUtils.parseRuleToNestedList, ["A or B and C or (D and E)"],
             Many(
                 ExactValue("A"), 
                 Many(ExactValue("B"), ExactValue("C")),
@@ -651,38 +651,28 @@ def unit_custom_data_generator() -> None:
 
 def unit_ras_generator() -> None:
     import ras_generator as ras
-    import pickle
+    import utils.rule_parsing as ruleUtils
 
-    with open("./local/pickle files/gene_dict_ENGRO2.pickle", "rb") as fd:
-        geneTranslatorENGRO2 = pickle.load(fd)
+    # Making an alias to mask the name of the inner function and separate the 2 tests:
+    opListAlias = lambda op_list, dataset : ras.ras_op_list(op_list, dataset)
     
-    with open("./local/pickle files/gene_dict_HMR_core.pickle", "rb") as fd:
-        geneTranslatorHMRcore = pickle.load(fd)
+    ras.ARGS = ras.process_args()
+    rule = ruleUtils.OpList("and")
+    rule.extend(["foo", "bar", "baz"])
+
+    dataset = { "foo" : 5, "bar" : 2, "baz" : None }
     
-    with open("./local/pickle files/gene_dict_RECON.pickle", "rb") as fd:
-        geneTranslatorRECON = pickle.load(fd)
-
-    UnitTester("ras generator", LogMode.Pedantic, False,
-        UnitTest(ras.translateGene, ["foo", "ensembl_gene_id", geneTranslatorENGRO2], Exists(False)),
-        UnitTest(ras.translateGene, ["foo", "ensembl_gene_id", geneTranslatorHMRcore], Exists(False)),
-        UnitTest(ras.translateGene, ["foo", "ensembl_gene_id", geneTranslatorRECON], Exists(False)),
-        # ^^^ these should panic
-
-        UnitTest(
-            ras.translateGene,
-            ["ENSG00000017483", "ensembl_gene_id", geneTranslatorENGRO2],
-            ExactValue("HGNC:18070")),
-        
-        UnitTest(
-            ras.translateGene,
-            ["ENSG00000017483", "ensembl_gene_id", geneTranslatorHMRcore],
-            ExactValue("HGNC:18070")),
-        
-        UnitTest(
-            ras.translateGene,
-            ["ENSG00000017483", "ensembl_gene_id", geneTranslatorRECON],
-            ExactValue("HGNC:18070")),
-    ).testModule()
+    tester = UnitTester("ras generator", LogMode.Pedantic, False,
+        UnitTest(ras.ras_op_list, [rule, dataset], ExactValue(2)),
+        UnitTest(opListAlias, [rule, dataset], ExactValue(None)),
+    )
+    
+    tester.testFunction(ras.ras_op_list.__name__)
+    ras.ARGS.none = False
+    tester.testFunction(opListAlias.__name__)
 
 if __name__ == "__main__":
+    unit_marea()
+    unit_ras_generator()
     unit_custom_data_generator()
+    unit_utils()

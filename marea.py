@@ -1,25 +1,21 @@
 from __future__ import division
+from enum import Enum
+import re
 import sys
 import pandas as pd
 import itertools as it
 import scipy.stats as st
-import collections
 import lxml.etree as ET
-import pickle as pk
 import math
 import os
 import argparse
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPDF
 import pyvips
-import cairosvg as cairo
+import utils.general_utils as utils
 from PIL import Image
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen import canvas
-from typing import Union, Optional, List, Dict
+from typing import Tuple, Union, Optional, List, Dict
 
 ########################## argparse ##########################################
+ARGS :argparse.Namespace
 def process_args(args :List[str]) -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
@@ -30,9 +26,14 @@ def process_args(args :List[str]) -> argparse.Namespace:
     Returns:
         Namespace : An object containing the parsed arguments
     """
-    parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
-                                     description = 'process some value\'s'+
-                                     ' genes to create a comparison\'s map.')
+    parser = argparse.ArgumentParser(
+        usage = "%(prog)s [options]",
+        description = "process some value's genes to create a comparison's map.")
+    
+    parser.add_argument(
+        "-rd", "--react_dir", type = bool, default = False,
+        help = "Style arrow tips instead of body.")
+
     parser.add_argument('-cr', '--custom_rules', 
                         type = str,
                         default = 'false',
@@ -297,6 +298,64 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 el.set('style', fix_style(el.get('style', ""), col, width, dash))
     return core_map
 
+class ArrowColor(Enum):
+    Invalid       = "#BEBEBE" # gray, fold-change under treshold
+    UpRegulated   = "#E41A1C" # red, up-regulated reaction
+    DownRegulated = "#0000FF" # blue, down-regulated reaction
+
+    def __str__(self) -> str: return self.value
+
+class Arrow:
+    MIN_W = 2
+    MAX_W = 12
+    
+    def __init__(self, width :int, col: ArrowColor, isDashed = False) -> None:
+        self.w    = width
+        self.col  = col
+        self.dash = isDashed
+    
+    def applyTo(self, metabMap :ET.ElementTree, reactionId :str, mindReactionDir = True) -> None:
+        try: arrowEl :ET.Element = metabMap.xpath(
+            f"//*[@id=\"{self.getMapReactionId(reactionId, mindReactionDir)}\"]")[0]
+        
+        except IndexError as err:
+            utils.logWarning(f"Reaction ID \"{reactionId}\" mentioned in dataset but not found in map")
+            return
+        
+        currentStyles :str = arrowEl.get("style", "")
+        if not re.search(r";stroke:[^;]+;stroke-width:[^;]+;stroke-dasharray:[^;]+$", currentStyles):
+            arrowEl.set("style", currentStyles + self.toStyleStr())
+            return # I don't bother to check much, as long as I don't extend the style tag at every edit
+    
+        arrowEl.set("style", ';'.join(currentStyles.split(';')[:-3]) + self.toStyleStr())
+    
+    def getMapReactionId(reactionId :str, mindReactionDir :bool) -> str:
+        # we assume the reactionIds also don't encode reaction dir if they don't mind it when styling the map.
+        if not mindReactionDir: return "R_" + reactionId
+
+        #TODO: this is clearly something we need to make consistent in RPS
+        return reactionId[:-3:-1] + reactionId[:-2] # "Pyr_F" --> "F_Pyr"
+
+    def toStyleStr(self) -> str:
+        return f"stroke:{self.col};stroke-width:{self.w};stroke-dasharray:{'5,5' if self.dash else 'none'}"
+
+def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]], metabMap :ET.ElementTree, maxNumericFoldChange :float) -> None:
+    for reactionId, (pValue, foldChange) in rpsEnrichmentRes.items():
+        if isinstance(foldChange,str): foldChange = float(foldChange)
+        if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
+            Arrow(Arrow.MIN_W, ArrowColor.Invalid, dash = True).applyTo(metabMap, reactionId)
+            continue
+
+        if abs(foldChange) < math.log(ARGS.fChange, 2):
+            Arrow(Arrow.MIN_W, ArrowColor.Invalid).applyTo(metabMap, reactionId)
+            continue
+        
+        width = Arrow.MAX_W
+        if not math.isinf(foldChange):
+            width = max(abs(foldChange * Arrow.MAX_W) / maxNumericFoldChange, Arrow.MIN_W)
+        
+        color = ArrowColor.DownRegulated if foldChange < 0 else ArrowColor.UpRegulated
+        Arrow(width, color).applyTo(metabMap, reactionId)
 
 ############################ split class ######################################
 def split_class(classes :pd.DataFrame, resolve_rules :Dict[str, List[float]]) -> Dict[str, List[List[float]]]:
@@ -402,6 +461,14 @@ def convert_to_pdf(file_svg :str, file_png :str, file_pdf :str) -> None:
         print(f'Error generating PDF file: {e}')
 
 ############################ map ##############################################
+def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float) -> None:
+    if not ARGS.react_dir:
+        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
+        return
+
+    for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
+    applyRpsEnrichmentToMap(tmp, core_map, max_F_C)
+
 def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], threshold_P_V :float, threshold_F_C :float, create_svg :bool, create_pdf :bool, comparison :str, control :str) -> None:
     """
     Compares clustered data based on a given comparison mode and generates metabolic maps visualizing the results.
@@ -437,7 +504,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
 
     if comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            tmp :Dict[str, List[List[Union[float, FoldChange]]]] = {}
+            tmp :Dict[str, List[Union[float, FoldChange]]] = {}
             count = 0
             max_F_C = 0
             for l1, l2 in zip(class_pat.get(i), class_pat.get(j)):
@@ -458,9 +525,9 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
             tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
             
             if create_svg or create_pdf:
-                if args.custom_rules == 'false' or (args.custom_rules == 'true'
-                                                        and args.custom_map != ''):
-                    fix_map(tmp, core_map, threshold_P_V, threshold_F_C, max_F_C)
+                if args.custom_rules == 'false' or (args.custom_rules == 'true' and args.custom_map != ''):
+                    temp_enrichmentUpdate(tmp, core_map, max_F_C)
+
                     file_svg = 'result/' + i + '_vs_' + j + ' (SVG Map).svg'
                     with open(file_svg, 'wb') as new_map:
                         new_map.write(ET.tostring(core_map))
@@ -510,9 +577,8 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
             tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
             
             if create_svg or create_pdf:
-                if args.custom_rules == 'false' or (args.custom_rules == 'true'
-                                                        and args.custom_map != ''):
-                    fix_map(tmp, core_map, threshold_P_V, threshold_F_C, max_F_C)
+                if args.custom_rules == 'false' or (args.custom_rules == 'true' and args.custom_map != ''):
+                    temp_enrichmentUpdate(tmp, core_map, max_F_C)
                     file_svg = 'result/' + single_cluster + '_vs_ rest (SVG Map).svg'
                     with open(file_svg, 'wb') as new_map:
                         new_map.write(ET.tostring(core_map))
@@ -554,9 +620,8 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
             tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
             
             if create_svg or create_pdf:
-                if args.custom_rules == 'false' or (args.custom_rules == 'true'
-                                                        and args.custom_map != ''):
-                    fix_map(tmp, core_map, threshold_P_V, threshold_F_C, max_F_C)
+                if args.custom_rules == 'false' or (args.custom_rules == 'true' and args.custom_map != ''):
+                    temp_enrichmentUpdate(tmp, core_map, max_F_C)
                     file_svg = 'result/' + i + '_vs_' + j + ' (SVG Map).svg'
                     with open(file_svg, 'wb') as new_map:
                         new_map.write(ET.tostring(core_map))
@@ -586,19 +651,20 @@ def main() -> None:
     Raises:
         sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
     """
-    args = process_args(sys.argv)
+    global ARGS
+    ARGS = process_args(sys.argv)
     
-    create_svg = check_bool(args.generate_svg)
-    create_pdf = check_bool(args.generate_pdf)
+    create_svg = check_bool(ARGS.generate_svg)
+    create_pdf = check_bool(ARGS.generate_pdf)
 
     if os.path.isdir('result') == False:
         os.makedirs('result')
 
     class_pat :Dict[str, List[List[float]]] = {}
     
-    if args.option == 'datasets':
+    if ARGS.option == 'datasets':
         num = 1
-        for i, j in zip(args.input_datas, args.names):
+        for i, j in zip(ARGS.input_datas, ARGS.names):
             name = name_dataset(j, num)
             resolve_rules = read_dataset(i, name)
             
@@ -623,9 +689,9 @@ def main() -> None:
         
             num += 1
             
-    if args.option == 'dataset_class':
+    if ARGS.option == 'dataset_class':
         name = 'RAS'
-        resolve_rules = read_dataset(args.input_data, name)
+        resolve_rules = read_dataset(ARGS.input_data, name)
         resolve_rules.iloc[:, 0] = (resolve_rules.iloc[:, 0]).astype(str)
             
         ids =  pd.Series.tolist(resolve_rules.iloc[:, 0])
@@ -642,31 +708,31 @@ def main() -> None:
         for k in resolve_rules:
             resolve_rules_float[k] = list(map(to_float, resolve_rules[k])); resolve_rules_float
 
-        classes = read_dataset(args.input_class, 'class')
+        classes = read_dataset(ARGS.input_class, 'class')
         classes = classes.astype(str)
         
         if resolve_rules_float != None:
             class_pat = split_class(classes, resolve_rules_float)
     	
        
-    if args.custom_rules == 'true':
+    if ARGS.custom_rules == 'true':
         try:
-            core_map :ET.ElementTree = ET.parse(args.custom_map)
+            core_map :ET.ElementTree = ET.parse(ARGS.custom_map)
         except (ET.XMLSyntaxError, ET.XMLSchemaParseError):
             sys.exit('Execution aborted: custom map in wrong format')
     else:
 
-        if args.choice_map == 'HMRcoremap':
-            core_map = ET.parse(args.tool_dir+'/local/svg metabolic maps/HMRcoreMap.svg')
-        elif args.choice_map == 'ENGRO2map':
-            core_map = ET.parse(args.tool_dir+'/local/svg metabolic maps/ENGRO2map.svg')
+        if ARGS.choice_map == 'HMRcoremap':
+            core_map = ET.parse(ARGS.tool_dir+'/local/svg metabolic maps/HMRcoreMap.svg')
+        elif ARGS.choice_map == 'ENGRO2map':
+            core_map = ET.parse(ARGS.tool_dir+'/local/svg metabolic maps/ENGRO2map.svg')
         
     class_pat_trim :Dict[str, List[List[float]]] = {}
     
     for key in class_pat.keys():
         class_pat_trim[key.strip()] = class_pat[key]    
     
-    maps(core_map, class_pat_trim, ids, args.pValue, args.fChange, create_svg, create_pdf, args.comparison, args.control)
+    maps(core_map, class_pat_trim, ids, ARGS.pValue, ARGS.fChange, create_svg, create_pdf, ARGS.comparison, ARGS.control)
 
     print('Execution succeded')
 
