@@ -131,8 +131,6 @@ def save_as_csv(data :dict, file_path :utils.FilePath, fieldNames :Tuple[str, st
         for key, value in data.items():
             writer.writerow({ fieldNames[0] : key, fieldNames[1] : value })
 
-
-
 ###############################- ENTRY POINT -################################
 def main() -> None:
     """

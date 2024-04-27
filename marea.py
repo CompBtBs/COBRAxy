@@ -14,6 +14,7 @@ import utils.general_utils as utils
 from PIL import Image
 from typing import Tuple, Union, Optional, List, Dict
 
+ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
 def process_args(args :List[str]) -> argparse.Namespace:
@@ -299,6 +300,9 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
     return core_map
 
 class ArrowColor(Enum):
+    """
+    Encodes possible arrow colors based on their meaning in the enrichment process.
+    """
     Invalid       = "#BEBEBE" # gray, fold-change under treshold
     UpRegulated   = "#E41A1C" # red, up-regulated reaction
     DownRegulated = "#0000FF" # blue, down-regulated reaction
@@ -306,20 +310,49 @@ class ArrowColor(Enum):
     def __str__(self) -> str: return self.value
 
 class Arrow:
+    """
+    Models the properties of a reaction arrow that change based on enrichment.
+    """
     MIN_W = 2
     MAX_W = 12
     
     def __init__(self, width :int, col: ArrowColor, isDashed = False) -> None:
+        """
+        (Private) Initializes an instance of Arrow.
+
+        Args:
+            width : width of the arrow, ideally to be kept within Arrow.MIN_W and Arrow.MAX_W (not enforced).
+            col : color of the arrow.
+            isDashed : whether the arrow should be dashed, meaning the associated pValue resulted not significant.
+        
+        Returns:
+            None : practically, a Arrow instance.
+        """
         self.w    = width
         self.col  = col
         self.dash = isDashed
     
     def applyTo(self, metabMap :ET.ElementTree, reactionId :str, mindReactionDir = True) -> None:
+        """
+        Applies the Arrow's styles to the actual reaction arrow in the given metabolic map.
+
+        Args:
+            metabMap : the metabolic map to edit.
+            reactionId : the reaction ID associated with the arrow to style, as encoded in the dataset.
+            mindReactionDir: if True the arrow's tips corresponding to a specific direction in the reaction will be styled,
+            otherwise the body will.
+        
+        Side effects:
+            metabMap : mut
+        
+        Returns:
+            None
+        """
         try: arrowEl :ET.Element = metabMap.xpath(
             f"//*[@id=\"{self.getMapReactionId(reactionId, mindReactionDir)}\"]")[0]
         
         except IndexError as err:
-            utils.logWarning(f"Reaction ID \"{reactionId}\" mentioned in dataset but not found in map")
+            ERRORS.append(reactionId)
             return
         
         currentStyles :str = arrowEl.get("style", "")
@@ -329,7 +362,17 @@ class Arrow:
     
         arrowEl.set("style", ';'.join(currentStyles.split(';')[:-3]) + self.toStyleStr())
     
-    def getMapReactionId(reactionId :str, mindReactionDir :bool) -> str:
+    def getMapReactionId(self, reactionId :str, mindReactionDir :bool) -> str:
+        """
+        Computes the reaction ID as encoded in the map for a given reaction ID from the dataset.
+
+        Args:
+            reactionId: the reaction ID, as encoded in the dataset.
+            mindReactionDir: if True forward (F_) and backward (B_) directions will be encoded in the result.
+    
+        Returns:
+            str : the ID of an arrow's body or tips in the map.
+        """
         # we assume the reactionIds also don't encode reaction dir if they don't mind it when styling the map.
         if not mindReactionDir: return "R_" + reactionId
 
@@ -337,13 +380,33 @@ class Arrow:
         return reactionId[:-3:-1] + reactionId[:-2] # "Pyr_F" --> "F_Pyr"
 
     def toStyleStr(self) -> str:
+        """
+        Collapses the styles of this Arrow into a str, ready to be applied as part of the "style" property on an svg element.
+
+        Returns:
+            str : the styles string.
+        """
         return f"stroke:{self.col};stroke-width:{self.w};stroke-dasharray:{'5,5' if self.dash else 'none'}"
 
 def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]], metabMap :ET.ElementTree, maxNumericFoldChange :float) -> None:
+    """
+    (Temporary) Applies RPS enrichment results to the provided metabolic map.
+
+    Args:
+        rpsEnrichmentRes : RPS enrichment results.
+        metabMap : the metabolic map to edit.
+        maxNumericFoldChange : biggest finite fold-change value found.
+    
+    Side effects:
+        metabMap : mut
+    
+    Returns:
+        None
+    """
     for reactionId, (pValue, foldChange) in rpsEnrichmentRes.items():
         if isinstance(foldChange,str): foldChange = float(foldChange)
         if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
-            Arrow(Arrow.MIN_W, ArrowColor.Invalid, dash = True).applyTo(metabMap, reactionId)
+            Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True).applyTo(metabMap, reactionId)
             continue
 
         if abs(foldChange) < math.log(ARGS.fChange, 2):
@@ -673,7 +736,7 @@ def main() -> None:
             ids =  pd.Series.tolist(resolve_rules.iloc[:, 0])
 
             resolve_rules = resolve_rules.drop(resolve_rules.columns[[0]], axis=1)
-            resolve_rules = resolve_rules.replace({'None': None})
+            resolve_rules = resolve_rules.replace({'None': None}) #TODO: maea panics here, rps doesn't handle Nones
             resolve_rules = resolve_rules.to_dict('list')
             
             #Converto i valori da str a float
@@ -736,8 +799,10 @@ def main() -> None:
 
     print('Execution succeded')
 
-    return None
-
+    if not ERRORS: return
+    utils.logWarning(
+        f"The following reaction IDs were mentioned in the dataset but couldn't be found in the map: {ERRORS}",
+        utils.FilePath.fromStrPath(ARGS.out_log))
 
 ###############################################################################
 

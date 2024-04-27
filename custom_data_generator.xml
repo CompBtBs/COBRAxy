@@ -20,7 +20,7 @@
         <param name="name" argument="--name" type="text" label="Model's name:" value="Model" help="Default: Model" />
         
         <param name="output_format" argument="--output_format" type="select" label="Output files format:">
-            <option value="pickle" selected="true">pickle extension (binary, non-editable, pre-parsed)</option>
+            <option value="p" selected="true">pickle extension (binary, non-editable, pre-parsed)</option>
             <option value="csv">Comma Separated Values (csv text file, editable, raw)</option>
         </param>
     </inputs>

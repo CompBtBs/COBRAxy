@@ -12,6 +12,7 @@ import utils.general_utils as utils
 import utils.rule_parsing as ruleUtils
 from typing import Union, Optional, List, Dict, Tuple, TypeVar
 
+ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
 def process_args() -> argparse.Namespace:
@@ -35,8 +36,11 @@ def process_args() -> argparse.Namespace:
         choices = list(Model),
         help = 'chose which type of dataset you want use')
     
-    parser.add_argument('-rl', '--rule_list"', type = str,
-        help = 'your list of rules if you want custom rules')
+    parser.add_argument("-rl", "--rule_list", type = str,
+        help = "path to input file with custom rules, if provided")
+
+    parser.add_argument("-rn", "--rules_name", type = str, help = "custom rules name")
+    # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
     
     parser.add_argument('-n', '--none',
                         type = bool,
@@ -827,7 +831,7 @@ def ras_for_cell_lines(dataset: pd.DataFrame, rules: Dict[str, ruleUtils.OpList]
         where each key corresponds to a reaction ID and each value is its computed RAS score.
     """
     ras_values_by_cell_line = {}
-    dataset.set_index('Hugo_Symbol', inplace=True)
+    dataset.set_index(dataset.columns[0], inplace=True)
     # Considera tutte le colonne tranne la prima in cui ci sono gli hugo quindi va scartata
     for cell_line_name in dataset.columns[1:]:
         cell_line = dataset[cell_line_name].to_dict()
@@ -848,12 +852,18 @@ def get_ras_values(value_rules: Dict[str, ruleUtils.OpList], dataset: Dict[str, 
     return {key: ras_op_list(op_list, dataset) for key, op_list in value_rules.items()}
 
 def get_gene_expr(dataset :Dict[str, Expr], name :str) -> Expr:
-    if name not in dataset:
-        utils.logWarning(f"Gene \"{name}\" is mentioned in the rules but doesn't appear in the dataset.")
+    """
+    Extracts the gene expression of the given gene from a cell line dataset.
 
+    Args:
+        dataset : gene expression data of one cell line.
+        name : gene name.
+    
+    Returns:
+        Expr : the gene's expression value.
+    """
     expr = dataset.get(name, None)
-    if not isinstance(expr, Expr):
-        raise utils.DataErr("dataset", f"found \"{expr}\" when extracting gene expression data")
+    if expr is None: ERRORS.append(name)
   
     return expr
 
@@ -892,12 +902,24 @@ def ras_op_list(op_list: ruleUtils.OpList, dataset: Dict[str, Expr]) -> Ras:
 
     return ras_value
 
-def save_as_tsv(rasScores: Dict[str, Dict[str, Ras]], path :utils.FilePath) -> None:
-    # TODO: check how Nones are handled
-    output_ras = pd.DataFrame.from_dict(rasScores)
+def save_as_tsv(rasScores: Dict[str, Dict[str, Ras]], reactions :List[str]) -> None:
+    """
+    Save computed ras scores to the given path, as a tsv file.
+
+    Args:
+        rasScores : the computed ras scores.
+        path : the output tsv file's path.
     
-    output_ras.insert(0, 'Reactions', rasScores.values()[0].keys())
-    output_ras.to_csv(path.show(), sep = '\t', index = False)
+    Returns:
+        None
+    """
+    for scores in rasScores.values(): # this is actually a lot faster than using the ootb dataframe metod, sadly
+        for reactId, score in scores.items():
+            if score is None: scores[reactId] = "None"
+
+    output_ras = pd.DataFrame.from_dict(rasScores)
+    output_ras.insert(0, 'Reactions', reactions)
+    output_ras.to_csv(ARGS.ras_output, sep = '\t', index = False)
 
 ############################ MAIN #############################################
 def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[str, str]]) -> str:
@@ -922,39 +944,74 @@ def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[s
 
 OldRule = List[Union[str, "OldRule"]]
 class Model(Enum):
+    """
+    Represents a metabolic model, either custom or locally supported. Custom models don't point to valid file paths.
+    """
     Recon   = "Recon"
     ENGRO2  = "ENGRO2"
     HMRcore = "HMRcore"
     Custom  = "Custom" # Exists as a valid variant in the UI, but doesn't point to valid file paths.
 
     @property
+    def modelErr(self) -> utils.CustomErr:
+        err = utils.CustomErr("Custom models don't point to valid file paths")
+        err.errName = "Model Error"
+        return err
+
+    @property
     def rulesPath(self) -> utils.FilePath:
+        if self is Model.Custom: raise self.modelErr
         return utils.FilePath(
             f"{self.name}_rules",
             utils.FileFormat.PICKLE,
-            prefix = f"{ARGS.tool_dir}/local/pickle files")
+            prefix = f"{ARGS.tool_dir}/local/pickle files/")
 
     @property
     def genesPath(self) -> utils.FilePath:
+        if self is Model.Custom: raise self.modelErr
         return utils.FilePath(
             f"{self.name}_genes",
             utils.FileFormat.PICKLE,
-            prefix = f"{ARGS.tool_dir}/local/pickle files")
+            prefix = f"{ARGS.tool_dir}/local/pickle files/")
 
     def getRules(self) -> Dict[str, Dict[str, OldRule]]:
+        """
+        Open "rules" file for this model.
+
+        Returns:
+            Dict[str, Dict[str, OldRule]] : the rules for this model.
+        """
         return utils.readPickle(self.rulesPath)
     
     def getTranslator(self) -> Dict[str, Dict[str, str]]:
+        """
+        Open "gene translator (old: gene_in_rule)" file for this model.
+
+        Returns:
+            Dict[str, Dict[str, str]] : the translator dict for this model.
+        """
         return utils.readPickle(self.genesPath)
 
     def __str__(self) -> str: return self.value
 
 def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
-    path = utils.FilePath.fromStrPath(ARGS.rule_list)
-    if path.ext is utils.FileFormat.PICKLE: return utils.readPickle(path)
+    """
+    Opens custom rules file and extracts the rules. If the file is in .csv format an additional parsing step will be
+    performed, significantly impacting the runtime.
+
+    Returns:
+        Dict[str, ruleUtils.OpList] : dict mapping reaction IDs to rules.
+    """
+    datFilePath = utils.FilePath.fromStrPath(ARGS.rule_list) # actual file, stored in galaxy as a .dat
+    
+    try: filenamePath = utils.FilePath.fromStrPath(ARGS.rules_name) # file's name in input, to determine its original ext
+    except utils.PathErr as err:
+        raise utils.PathErr(ARGS.rules_name, f"Please make sure your file's name is a valid file path, {err.msg}")
+     
+    if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
 
     # csv rules need to be parsed, those in a pickle format are taken to be pre-parsed.
-    return { line[0] : ruleUtils.parseRuleToNestedList(line[1]) for line in utils.readCsv(path) }
+    return { line[0] : ruleUtils.parseRuleToNestedList(line[1]) for line in utils.readCsv(datFilePath) }
 
 def main() -> None:
     """
@@ -974,9 +1031,15 @@ def main() -> None:
     # handle custom models
     model :Model = ARGS.rules_selector
     if model is Model.Custom:
-        return save_as_tsv(
-            ras_for_cell_lines(dataset, load_custom_rules()),
-            utils.FilePath.fromStrPath(ARGS.ras_output))
+        rules = load_custom_rules()
+        reactions = list(rules.keys())
+
+        save_as_tsv(ras_for_cell_lines(dataset, rules), reactions)
+        if ERRORS: utils.logWarning(
+            f"The following genes are mentioned in the rules but don't appear in the dataset: {ERRORS}",
+            utils.FilePath.fromStrPath(ARGS.out_log))
+        
+        return
     
     # This is the standard flow of the ras_generator program, for non-custom models.
     name = "RAS Dataset"

@@ -654,7 +654,9 @@ def unit_ras_generator() -> None:
     import utils.rule_parsing as ruleUtils
 
     # Making an alias to mask the name of the inner function and separate the 2 tests:
-    opListAlias = lambda op_list, dataset : ras.ras_op_list(op_list, dataset)
+    def opListAlias(op_list, dataset):
+        ras.ARGS.none = False
+        return ras.ras_op_list(op_list, dataset)
     
     ras.ARGS = ras.process_args()
     rule = ruleUtils.OpList("and")
@@ -662,14 +664,12 @@ def unit_ras_generator() -> None:
 
     dataset = { "foo" : 5, "bar" : 2, "baz" : None }
     
-    tester = UnitTester("ras generator", LogMode.Pedantic, False,
+    UnitTester("ras generator", LogMode.Pedantic, False,
         UnitTest(ras.ras_op_list, [rule, dataset], ExactValue(2)),
         UnitTest(opListAlias, [rule, dataset], ExactValue(None)),
-    )
-    
-    tester.testFunction(ras.ras_op_list.__name__)
-    ras.ARGS.none = False
-    tester.testFunction(opListAlias.__name__)
+        UnitTest(ras.Model.ENGRO2.getRules, [], IsOfType(dict)),
+        UnitTest(ras.Model.Custom.getRules, [], Exists(False)), # expected panic
+    ).testModule()
 
 if __name__ == "__main__":
     unit_marea()

@@ -119,11 +119,11 @@ class FileFormat(Enum):
     """
     Encodes possible file extensions to conditionally save data in a different format.
     """
-    DAT    = "dat" # this is how galaxy treats all your files!
-    CSV    = "csv"
-    XML    = "xml"
-    JSON   = "json"
-    PICKLE = "p"#"pickle"
+    DAT    = ("dat",) # this is how galaxy treats all your files!
+    CSV    = ("csv",)
+    XML    = ("xml",)
+    JSON   = ("json",)
+    PICKLE = ("pickle", "pk", "p")
 
     @classmethod
     def fromExt(cls, ext :str) -> "FileFormat":
@@ -137,10 +137,13 @@ class FileFormat(Enum):
             FileFormat: The FileFormat instance corresponding to the file extension.
         """
         variantName = ext.upper()
-        if variantName not in FileFormat.__members__:
-            raise PathErr(ext, f"\"{ext}\" is not a valid file extension")
+        if variantName in FileFormat.__members__: return FileFormat[variantName]
         
-        return FileFormat[variantName]
+        variantName = variantName.lower()
+        for member in cls:
+            if variantName in member.value: return member
+        
+        raise PathErr(ext, f"\"{ext}\" is not a valid file extension")
 
     def __str__(self) -> str:
         """
@@ -149,7 +152,7 @@ class FileFormat(Enum):
         Returns:
             str : the string representation of the file extension.
         """
-        return self.value
+        return self.value[-1] #TODO: fix, it's the dumb pickle thing
 
 class FilePath():
     """
@@ -163,18 +166,33 @@ class FilePath():
         Args:
             path : the end of the path, containing the file name.
             ext : the file's extension.
-            prefix : anything before path, already parsed (ending in '/')
+            prefix : anything before path, if the last '/' isn't there it's added by the code.
         
         Returns:
             None : practically, a FilePath instance.
         """
         self.ext      = ext
-        self.prefix   = prefix
         self.filePath = filePath
+
+        if prefix and prefix[-1] != '/': prefix += '/'
+        self.prefix = prefix
     
     @classmethod
     def fromStrPath(cls, path :str) -> "FilePath":
-        result = re.search(r"^(?:(?P<prefix>.*)\/)?(?P<name>.*)\.(?P<ext>[^.]*)$", path)
+        """
+        Factory method to parse a string from which to obtain, if possible, a valid FilePath instance.
+
+        Args:
+            path : the string containing the path
+        
+        Raises:
+            PathErr : if the provided string doesn't represent a valid path.
+        
+        Returns:
+            FilePath : the constructed instance.
+        """
+
+        result = re.search(r"^(?P<prefix>.*\/)?(?P<name>.*)\.(?P<ext>[^.]*)$", path)
         if not result or not result["name"] or not result["ext"]:
             raise PathErr(path, f"cannot recognize folder structure or extension in path \"{path}\"")
 
@@ -190,7 +208,7 @@ class FilePath():
         """
         return str(self)
     
-    def __str__(self) -> str: return f"{self.prefix}/{self.filePath}.{self.ext}"
+    def __str__(self) -> str: return f"{self.prefix}{self.filePath}.{self.ext}"
 
 # ERRORS
 def terminate(msg :str) -> None:
@@ -291,6 +309,15 @@ class PathErr(CustomErr):
 
 # PICKLE FILES
 def readPickle(path :FilePath) -> Any:
+    """
+    Reads the contents of a .pickle file, which needs to exist at the given path.
+
+    Args:
+        path : the path to the .pickle file.
+    
+    Returns:
+        Any : the data inside a pickle file, could be anything.
+    """
     with open(path.show(), "rb") as fd: return pickle.load(fd)
 
 def writePickle(path :FilePath, data :Any) -> None:
@@ -307,5 +334,15 @@ def writePickle(path :FilePath, data :Any) -> None:
     with open(path.show(), "wb") as fd: pickle.dump(data, fd)
 
 # CSV FILES
-def readCsv(path :FilePath) -> List[List[str]]:
-    with open(path.show(), "r", newline = "") as fd: return list(csv.reader(fd))
+def readCsv(path :FilePath, skipHeader = True) -> List[List[str]]:
+    """
+    Reads the contents of a .csv file, which needs to exist at the given path.
+
+    Args:
+        path : the path to the .csv file.
+        skipHeader : whether the first row of the file is a header and should be skipped.
+    
+    Returns:
+        List[List[str]] : list of rows from the file, each parsed as a list of strings originally separated by commas.
+    """
+    with open(path.show(), "r", newline = "") as fd: return list(csv.reader(fd))[skipHeader:]

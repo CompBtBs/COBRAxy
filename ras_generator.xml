@@ -20,7 +20,8 @@
         --out_log $log
         --ras_output $ras_output
         #if $cond_rule.rules_selector == 'Custom'
-            --rule_list $Rule_list
+            --rule_list $rule_list
+            --rules_name $rule_list.element_identifier
         #end if
         ]]>
     </command>
@@ -28,7 +29,7 @@
         <conditional name="cond_rule">
             <expand macro="options"/>
             <when value="Custom">
-                <param name="Rule_list" argument="--rule_list" type="data" format="tabular, csv, pickle" label="Custom rules" />
+                <param name="rule_list" argument="--rule_list" type="data" format="tabular, csv, pickle, p, pk" label="Custom rules" />
             </when>
         </conditional>
         <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Gene Expression dataset:" />
