@@ -32,77 +32,131 @@ def process_args(args :List[str]) -> argparse.Namespace:
         description = "process some value's genes to create a comparison's map.")
     
     parser.add_argument(
-        "-rd", "--react_dir", type = bool, default = False,
-        help = "Style arrow tips instead of body.")
+        "-ra", "--using_RAS",
+        type = utils.Bool, default = True,
+        help = "choose whether to use RAS datasets.")
 
-    parser.add_argument('-cr', '--custom_rules', 
-                        type = str,
-                        default = 'false',
-                        choices = ['true', 'false'],
-                        help = 'choose whether to use custom rules')
-    parser.add_argument('-cc', '--custom_rule',
-                        type = str,
-                        help='custom rules to use')
-    parser.add_argument('-cm', '--custom_map',
-                        type = str,
-                        help='custom map to use')
-    parser.add_argument('-n', '--none',
-                        type = str,
-                        default = 'true',
-                        choices = ['true', 'false'], 
-                        help = 'compute Nan values')
-    parser.add_argument('-pv' ,'--pValue', 
-                        type = float, 
-                        default = 0.1, 
-                        help = 'P-Value threshold (default: %(default)s)')
-    parser.add_argument('-fc', '--fChange', 
-                        type = float, 
-                        default = 1.5, 
-                        help = 'Fold-Change threshold (default: %(default)s)')
-    parser.add_argument('-td', '--tool_dir',
-                        type = str,
-                        required = True,
-                        help = 'your tool directory')
-    parser.add_argument('-op', '--option', 
-                        type = str, 
-                        choices = ['datasets', 'dataset_class'],
-                        help='dataset or dataset and class')
-    parser.add_argument('-ol', '--out_log', 
-                        help = "Output log")    
-    parser.add_argument('-id', '--input_data',
-                        type = str,
-                        help = 'input dataset')
-    parser.add_argument('-ic', '--input_class', 
-                        type = str, 
-                        help = 'sample group specification')
-    parser.add_argument('-gs', '--generate_svg',
-                        type = str,
-                        default = 'true',
-                        choices = ['true', 'false'], 
-                        help = 'generate svg map')
-    parser.add_argument('-gp', '--generate_pdf',
-                        type = str,
-                        default = 'true',
-                        choices = ['true', 'false'], 
-                        help = 'generate pdf map')
-    parser.add_argument('-on', '--control',
-                        type = str)
-    parser.add_argument('-co', '--comparison',
-                        type = str, 
-                        default = '1vs1',
-                        choices = ['manyvsmany', 'onevsrest', 'onevsmany'])
-    parser.add_argument('-ids', '--input_datas', 
-                        type = str,
-                        nargs = '+', 
-                        help = 'input datasets')
-    parser.add_argument('-na', '--names', 
-                        type = str,
-                        nargs = '+', 
-                        help = 'input names')
-    parser.add_argument('-mc',  '--choice_map',
-                        type = str,
-                        choices = ['HMRcoremap','ENGRO2map'])
-                                    
+    parser.add_argument(
+        "-rp", "--using_RPS",
+        type = utils.Bool, default = False,
+        help = "choose whether to use RPS datasets.")
+
+    parser.add_argument(
+        '-cr', '--custom_rules', 
+        type = str, default = 'false', choices = ['true', 'false'],
+        help = 'choose whether to use custom rules')
+    
+    parser.add_argument(
+        '-cc', '--custom_rule',
+        type = str,
+        help='custom rules to use')
+    
+    parser.add_argument(
+        '-cm', '--custom_map',
+        type = str,
+        help='custom map to use')
+    
+    parser.add_argument(
+        '-n', '--none',
+        type = str,
+        default = 'true',
+        choices = ['true', 'false'], 
+        help = 'compute Nan values')
+    
+    parser.add_argument(
+        '-pv' ,'--pValue', 
+        type = float, 
+        default = 0.1, 
+        help = 'P-Value threshold (default: %(default)s)')
+    
+    parser.add_argument(
+        '-fc', '--fChange', 
+        type = float, 
+        default = 1.5, 
+        help = 'Fold-Change threshold (default: %(default)s)')
+    
+    parser.add_argument(
+        '-td', '--tool_dir',
+        type = str,
+        required = True,
+        help = 'your tool directory')
+    
+    parser.add_argument(
+        '-op', '--option', 
+        type = str, 
+        choices = ['datasets', 'dataset_class'],
+        help='dataset or dataset and class')
+    
+    parser.add_argument('-on', '--control', type = str)
+    parser.add_argument('-ol', '--out_log', help = "Output log")
+    
+    #RAS:
+    parser.add_argument(
+        '-id', '--input_data',
+        type = str,
+        help = 'input dataset')
+    
+    parser.add_argument(
+        '-ic', '--input_class', 
+        type = str, 
+        help = 'sample group specification')
+    
+    parser.add_argument(
+        '-ids', '--input_datas', 
+        type = str,
+        nargs = '+', 
+        help = 'input datasets')
+    
+    parser.add_argument(
+        '-na', '--names', 
+        type = str,
+        nargs = '+', 
+        help = 'input names')
+    
+    #RPS:
+    parser.add_argument(
+        '-idr', '--input_data_rps',
+        type = str,
+        help = 'input dataset rps')
+    
+    parser.add_argument(
+        '-icr', '--input_class_rps', 
+        type = str,
+        help = 'sample group specification rps')
+    
+    parser.add_argument(
+        '-idsr', '--input_datas_rps', 
+        type = str,
+        nargs = '+', 
+        help = 'input datasets rps')
+    
+    parser.add_argument(
+        '-nar', '--names_rps', 
+        type = str,
+        nargs = '+', 
+        help = 'input names rps')
+    
+    parser.add_argument(
+        "-gs", "--generate_svg",
+        type = utils.Bool, default = True,
+        help = "choose whether to use RAS datasets.")
+    
+    parser.add_argument(
+        "-gp", "--generate_pdf",
+        type = utils.Bool, default = True,
+        help = "choose whether to use RAS datasets.")
+    
+    parser.add_argument(
+        '-co', '--comparison',
+        type = str, 
+        default = '1vs1',
+        choices = ['manyvsmany', 'onevsrest', 'onevsmany'])
+    
+    parser.add_argument(
+        '-mc',  '--choice_map',
+        type = str,
+        choices = ['HMRcoremap','ENGRO2map'])
+
     args :argparse.Namespace = parser.parse_args()
     return args
 
@@ -359,7 +413,7 @@ class Arrow:
         if not re.search(r";stroke:[^;]+;stroke-width:[^;]+;stroke-dasharray:[^;]+$", currentStyles):
             arrowEl.set("style", currentStyles + self.toStyleStr())
             return # I don't bother to check much, as long as I don't extend the style tag at every edit
-    
+        
         arrowEl.set("style", ';'.join(currentStyles.split(';')[:-3]) + self.toStyleStr())
     
     def getMapReactionId(self, reactionId :str, mindReactionDir :bool) -> str:
@@ -377,7 +431,7 @@ class Arrow:
         if not mindReactionDir: return "R_" + reactionId
 
         #TODO: this is clearly something we need to make consistent in RPS
-        return reactionId[:-3:-1] + reactionId[:-2] # "Pyr_F" --> "F_Pyr"
+        return (reactionId[:-3:-1] + reactionId[:-2]) if reactionId[:-2] in ["_F", "_B"] else f"F_{reactionId}" # "Pyr_F" --> "F_Pyr"
 
     def toStyleStr(self) -> str:
         """
@@ -386,7 +440,7 @@ class Arrow:
         Returns:
             str : the styles string.
         """
-        return f"stroke:{self.col};stroke-width:{self.w};stroke-dasharray:{'5,5' if self.dash else 'none'}"
+        return f";stroke:{self.col};stroke-width:{self.w};stroke-dasharray:{'5,5' if self.dash else 'none'}"
 
 def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]], metabMap :ET.ElementTree, maxNumericFoldChange :float) -> None:
     """
@@ -524,15 +578,23 @@ def convert_to_pdf(file_svg :str, file_png :str, file_pdf :str) -> None:
         print(f'Error generating PDF file: {e}')
 
 ############################ map ##############################################
-def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float) -> None:
-    if not ARGS.react_dir:
-        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
-        return
+def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name :str) -> None:
+    editedMapName = f"{dataset1Name}_vs_{dataset2Name}"
+    tab = f"result/{editedMapName} (Tabular Result).tsv"
 
+    tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index")
+    tmp_csv = tmp_csv.reset_index()
+    header = ['ids', 'P_Value', 'Log2(fold change)']
+    tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
+    
+    if ARGS.using_RAS:
+        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
+
+    if not ARGS.using_RPS: return
     for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
     applyRpsEnrichmentToMap(tmp, core_map, max_F_C)
 
-def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], threshold_P_V :float, threshold_F_C :float, create_svg :bool, create_pdf :bool, comparison :str, control :str) -> None:
+def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str]) -> None:
     """
     Compares clustered data based on a given comparison mode and generates metabolic maps visualizing the results.
 
@@ -542,14 +604,8 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
         ids : ids for data association
         threshold_P_V : threshold for a p-value to be considered significant
         threshold_F_C : threshold for a fold change value to be considered significant
-        create_svg : does the svg need to be displayed? *
-        create_pdf : does a pdf conversion of the svg map need to be displayed? *
         comparison : comparison mode between clusters ("manyvsmany", "onevsrest", "onevsmany")
         control : another frontend-derived input parameter, identifying (I assume) the control sample
-
-        *Based on user input on a switch item in the frontend. The boolean conversion is done with
-        the check_bool function but the frontend should never produce other values outside of
-        "true" and "false" to feed to it, so these two parameters can never (hopefully) be None.
 
     Returns:
         None
@@ -560,12 +616,10 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
     Side effects:
         core_map : mut (passed to fix_map)
     """
-    args = process_args(sys.argv)
-    if (not class_pat) or (len(class_pat.keys()) < 2):
-        sys.exit('Execution aborted: classes provided for comparisons are ' +
-                 'less than two\n')
+    class_pat = { k.strip() : v for k, v in class_pat.items() }
+    if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
 
-    if comparison == "manyvsmany":
+    if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
             tmp :Dict[str, List[Union[float, FoldChange]]] = {}
             count = 0
@@ -581,34 +635,16 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                     count += 1
                 except (TypeError, ZeroDivisionError):
                     count += 1
-            tab = 'result/' + i + '_vs_' + j + ' (Tabular Result).tsv'
-            tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index")
-            tmp_csv = tmp_csv.reset_index()
-            header = ['ids', 'P_Value', 'Log2(fold change)']
-            tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
             
-            if create_svg or create_pdf:
-                if args.custom_rules == 'false' or (args.custom_rules == 'true' and args.custom_map != ''):
-                    temp_enrichmentUpdate(tmp, core_map, max_F_C)
-
-                    file_svg = 'result/' + i + '_vs_' + j + ' (SVG Map).svg'
-                    with open(file_svg, 'wb') as new_map:
-                        new_map.write(ET.tostring(core_map))
-                        
-                    
-                    if create_pdf:
-                        file_pdf = 'result/' + i + '_vs_' + j + ' (PDF Map).pdf'
-                        file_png= 'result/' + i + '_vs_' + j + ' (PNG Map).png'
-                        convert_to_pdf(file_svg, file_png, file_pdf)    
-                    
-                    if not create_svg:
-                        os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
-    elif comparison == "onevsrest":
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, i, j)
+    
+    elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
             t :List[List[List[float]]] = []
             for k in class_pat.keys():
                 if k != single_cluster:
                    t.append(class_pat.get(k))
+            
             rest :List[List[float]] = []
             for i in t:
                 rest = rest + i
@@ -618,7 +654,6 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
             max_F_C = 0
             
             primo = -1
-
             for l1, l2 in zip(class_pat.get(single_cluster), rest):
                 try:
                     stat_D, p_value = st.ks_2samp(l1, l2)
@@ -633,34 +668,14 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                     count += 1
                 except (TypeError, ZeroDivisionError):
                     count += 1
-            tab = 'result/' + single_cluster + '_vs_rest (Tabular Result).tsv'
-            tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index")
-            tmp_csv = tmp_csv.reset_index()
-            header = ['ids', 'P_Value', 'Log2(fold change)']
-            tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
             
-            if create_svg or create_pdf:
-                if args.custom_rules == 'false' or (args.custom_rules == 'true' and args.custom_map != ''):
-                    temp_enrichmentUpdate(tmp, core_map, max_F_C)
-                    file_svg = 'result/' + single_cluster + '_vs_ rest (SVG Map).svg'
-                    with open(file_svg, 'wb') as new_map:
-                        new_map.write(ET.tostring(core_map))
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, single_cluster, "rest")
                         
-                    
-                    if create_pdf:
-                        file_pdf = 'result/' + single_cluster + '_vs_ rest (PDF Map).pdf'
-                        file_png= 'result/' + single_cluster + '_vs_ rest (PNG Map).png'
-                        convert_to_pdf(file_svg, file_png, file_pdf)    
-                    
-                    if not create_svg:
-                        os.remove('result/' + single_cluster + '_vs_ rest (SVG Map).svg') 
-                        
-    elif comparison == "onevsmany":
+    elif ARGS.comparison == "onevsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            if i != control and j != control:
-                continue
-            if i == control and j == control:
-                continue
+            if i != ARGS.control and j != ARGS.control: continue
+            if i == ARGS.control and j == ARGS.control: continue
+            
             tmp = {}
             count = 0
             max_F_C = 0
@@ -676,32 +691,76 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                     count += 1
                 except (TypeError, ZeroDivisionError):
                     count += 1
-            tab = 'result/' + i + '_vs_' + j + ' (Tabular Result).tsv'
-            tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index")
-            tmp_csv = tmp_csv.reset_index()
-            header = ['ids', 'P_Value', 'Log2(fold change)']
-            tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
             
-            if create_svg or create_pdf:
-                if args.custom_rules == 'false' or (args.custom_rules == 'true' and args.custom_map != ''):
-                    temp_enrichmentUpdate(tmp, core_map, max_F_C)
-                    file_svg = 'result/' + i + '_vs_' + j + ' (SVG Map).svg'
-                    with open(file_svg, 'wb') as new_map:
-                        new_map.write(ET.tostring(core_map))
-                        
-                    
-                    if create_pdf:
-                        file_pdf = 'result/' + i + '_vs_' + j + ' (PDF Map).pdf'
-                        file_png= 'result/' + i + '_vs_' + j + ' (PNG Map).png'
-                        convert_to_pdf(file_svg, file_png, file_pdf)                     
-                    
-                    if not create_svg:
-                        os.remove('result/' + i + '_vs_' + j + ' (SVG Map).svg')
-        
-        
-        
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, i, j)
 
-    return None
+def temp_createFiles(dataset1Name :str, dataset2Name :str, core_map) -> None:
+    editedMapName = f"{dataset1Name}_vs_{dataset2Name}" #TODO: avoid repetition
+    if ARGS.custom_rules == "true": return
+    
+    svgFilePath = f"result/{editedMapName}(SVG Map).svg"
+    with open(svgFilePath, 'wb') as new_map: new_map.write(ET.tostring(core_map))
+    
+    if ARGS.generate_pdf: convert_to_pdf(
+        svgFilePath, f"result/{editedMapName}(PNG Map).png", f"result/{editedMapName}(PDF Map).pdf")                     
+    
+    if not ARGS.generate_svg: os.remove(svgFilePath)
+
+ClassPat = Dict[str, List[List[float]]]
+def temp_RASorRPS(datasets, dataset, names) -> Tuple[List[str], ClassPat]:
+    class_pat :ClassPat = {}
+    if ARGS.option == 'datasets': return temp_optionDatasets(class_pat, datasets, names), class_pat
+    return temp_optionDatasetClasses(class_pat, dataset, "RAS")
+
+def temp_optionDatasets(class_pat, datasets, names) -> List[str]:
+    num = 1
+    for i, j in zip(datasets, names):
+        name = name_dataset(j, num)
+        resolve_rules_float, ids = temp_doCommons(i, name)
+        
+        if resolve_rules_float != None:
+            class_pat[name] = list(map(list, zip(*resolve_rules_float.values())))
+    
+        num += 1
+    
+    return ids
+    
+def temp_optionDatasetClasses(class_pat, dataset, name) -> Tuple[List[str], ClassPat]:
+    resolve_rules_float, ids = temp_doCommons(dataset, name)
+
+    classes = read_dataset(ARGS.input_class, 'class')
+    classes = classes.astype(str)
+    if resolve_rules_float != None: class_pat = split_class(classes, resolve_rules_float)
+    return ids, class_pat
+
+def temp_doCommons(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List[str]]:
+    resolve_rules = read_dataset(datasetPath, datasetName)   
+    resolve_rules.iloc[:, 0] = (resolve_rules.iloc[:, 0]).astype(str)
+    ids = pd.Series.tolist(resolve_rules.iloc[:, 0])
+
+    resolve_rules = resolve_rules.drop(resolve_rules.columns[[0]], axis=1)
+    resolve_rules = resolve_rules.replace({'None': None}) #TODO: maea panics here, rps doesn't handle Nones
+    resolve_rules = resolve_rules.to_dict('list')
+    return { k : [float(vv) for vv in v if vv is not None] for k, v in resolve_rules.items() }, ids
+
+def temp_writeAllFiles(core_map :ET.ElementTree, class_pat :ClassPat) -> None:
+    if ARGS.comparison == "manyvsmany":
+        for i, j in it.combinations(class_pat.keys(), 2):
+            temp_createFiles(i, j, core_map)
+        return
+    
+    if ARGS.comparison == "onevsrest":
+        for single_cluster in class_pat.keys():
+            temp_createFiles(single_cluster, "rest", core_map)
+        
+        return
+    
+    #ARGS.comparison == "onevsmany":
+    for i, j in it.combinations(class_pat.keys(), 2):
+        if i != ARGS.control and j != ARGS.control: continue
+        if i == ARGS.control and j == ARGS.control: continue
+        
+        temp_createFiles(i, j, core_map)
 
 ############################ MAIN #############################################
 def main() -> None:
@@ -723,80 +782,27 @@ def main() -> None:
     if os.path.isdir('result') == False:
         os.makedirs('result')
 
-    class_pat :Dict[str, List[List[float]]] = {}
-    
-    if ARGS.option == 'datasets':
-        num = 1
-        for i, j in zip(ARGS.input_datas, ARGS.names):
-            name = name_dataset(j, num)
-            resolve_rules = read_dataset(i, name)
-            
-            resolve_rules.iloc[:, 0] = (resolve_rules.iloc[:, 0]).astype(str)
-            
-            ids =  pd.Series.tolist(resolve_rules.iloc[:, 0])
-
-            resolve_rules = resolve_rules.drop(resolve_rules.columns[[0]], axis=1)
-            resolve_rules = resolve_rules.replace({'None': None}) #TODO: maea panics here, rps doesn't handle Nones
-            resolve_rules = resolve_rules.to_dict('list')
-            
-            #Converto i valori da str a float
-            to_float = lambda x: float(x) if (x != None) else None
-            
-            resolve_rules_float :Dict[str, List[List[float]]] = {}
-           
-            for k in resolve_rules:
-                resolve_rules_float[k] = list(map(to_float, resolve_rules[k])); resolve_rules_float
-            
-            if resolve_rules != None:
-                class_pat[name] = list(map(list, zip(*resolve_rules_float.values())))
-        
-            num += 1
-            
-    if ARGS.option == 'dataset_class':
-        name = 'RAS'
-        resolve_rules = read_dataset(ARGS.input_data, name)
-        resolve_rules.iloc[:, 0] = (resolve_rules.iloc[:, 0]).astype(str)
-            
-        ids =  pd.Series.tolist(resolve_rules.iloc[:, 0])
-
-        resolve_rules = resolve_rules.drop(resolve_rules.columns[[0]], axis=1)
-        resolve_rules = resolve_rules.replace({'None': None})
-        resolve_rules = resolve_rules.to_dict('list')
-            
-        #Converto i valori da str a float
-        to_float = lambda x: float(x) if (x != None) else None
-            
-        resolve_rules_float = {}
-           
-        for k in resolve_rules:
-            resolve_rules_float[k] = list(map(to_float, resolve_rules[k])); resolve_rules_float
-
-        classes = read_dataset(ARGS.input_class, 'class')
-        classes = classes.astype(str)
-        
-        if resolve_rules_float != None:
-            class_pat = split_class(classes, resolve_rules_float)
-    	
-       
     if ARGS.custom_rules == 'true':
         try:
             core_map :ET.ElementTree = ET.parse(ARGS.custom_map)
         except (ET.XMLSyntaxError, ET.XMLSchemaParseError):
             sys.exit('Execution aborted: custom map in wrong format')
+    
     else:
-
         if ARGS.choice_map == 'HMRcoremap':
             core_map = ET.parse(ARGS.tool_dir+'/local/svg metabolic maps/HMRcoreMap.svg')
         elif ARGS.choice_map == 'ENGRO2map':
             core_map = ET.parse(ARGS.tool_dir+'/local/svg metabolic maps/ENGRO2map.svg')
-        
-    class_pat_trim :Dict[str, List[List[float]]] = {}
-    
-    for key in class_pat.keys():
-        class_pat_trim[key.strip()] = class_pat[key]    
-    
-    maps(core_map, class_pat_trim, ids, ARGS.pValue, ARGS.fChange, create_svg, create_pdf, ARGS.comparison, ARGS.control)
 
+    if ARGS.using_RAS:
+        ids, class_pat = temp_RASorRPS(ARGS.input_datas, ARGS.input_data, ARGS.names)
+        maps(core_map, class_pat, ids)
+    
+    if ARGS.using_RPS:
+        ids, class_pat = temp_RASorRPS(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.names_rps)
+        maps(core_map, class_pat, ids)
+    
+    temp_writeAllFiles(core_map, class_pat)
     print('Execution succeded')
 
     if not ERRORS: return

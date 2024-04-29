@@ -17,72 +17,74 @@
 
       	--tool_dir $__tool_directory__
       	--option $cond.type_selector
-		--react_dir $reaction_dir
+		--using_RAS $cond.using_RAS.check
+		--using_RPS $cond.using_RPS.check
         --out_log $log
 	
         #if $cond.type_selector == 'datasets':
-            --input_datas
-            #for $data in $cond.input_Datasets:
-                ${data.input}
-            #end for
-            --names
-            #for $data in $cond.input_Datasets:
-                ${data.input_name}
-            #end for
-            --comparison ${cond.comparis.comparison}
-			#if $cond.comparis.comparison == 'onevsmany'
-            	--control '${cond.comparis.controlgroup}'
-            #end if
-            
-            --choice_map '${cond.cond_choice_map.choice_map}'
+			#if $cond.using_RAS.check == "true":
+				--input_datas
+				#for $data in $cond.input_Datasets:
+					${data.input}
+				#end for
 
-            #if $cond.advanced.choice == 'true':
-				#if $cond.advanced.cond_map.cond_map_choice == 'true':
-					--custom_rules true
-					--custom_map ${cond.advanced.cond_map.custom_map}
-				#end if
-      	       --pValue ${cond.advanced.pValue}
-      	       --fChange ${cond.advanced.fChange}
-	           --generate_svg ${cond.advanced.generateSvg}
-	    	   --generate_pdf ${cond.advanced.generatePdf}
-     	    #else 
-	            --pValue 0.05
-	            --fChange 1.5
-	            --generate_svg false
-	            --generate_pdf true
-	        #end if
+				--names
+				#for $data in $cond.input_Datasets:
+					${data.input_name}
+				#end for
+			#end if
+
+			#if $cond.using_RPS.check == "true":
+				--input_datas_rps
+				#for $data in $cond.input_Datasets_RPS:
+					${data.input_rps}
+				#end for
+
+				--names_rps
+				#for $data in $cond.input_Datasets_RPS:
+					${data.input_name_rps}
+				#end for
+			#end if
+        
         #elif $cond.type_selector == 'dataset_class':
-            --input_data ${input_data}
-            --input_class ${input_class}
-            --comparison ${cond.comparis.comparison}
-            #if $cond.comparis.comparison == 'onevsmany'
+			#if $cond.using_RAS.check == "true":
+				--input_data ${input_data}
+				--input_class ${input_class}
+			#end if
+
+			#if $cond.using_RPS.check == "true":
+				--input_data_rps ${input_data_rps}
+				--input_class_rps ${input_class_rps}
+			#end if
+        #end if
+
+		--comparison ${comparis.comparison}
+            #if $comparis.comparison == 'onevsmany'
             	--control '${cond.comparis.controlgroup}'
             #end if
 
-            --choice_map '${cond.cond_choice_map.choice_map}'
-
-            #if $cond.advanced.choice == 'true':
-				#if $cond.advanced.cond_map.cond_map_choice == 'true':
+            --choice_map '${cond_choice_map.choice_map}'
+            #if $advanced.choice == 'true':
+				#if $advanced.cond_map.cond_map_choice == 'true':
 					--custom_rules true
-					--custom_map ${cond.advanced.cond_map.custom_map}
+					--custom_map ${advanced.cond_map.custom_map}
 				#end if
-      	        --pValue ${cond.advanced.pValue}
-      	        --fChange ${cond.advanced.fChange}
-	            --generate_svg ${cond.advanced.generateSvg}
-	            --generate_pdf ${cond.advanced.generatePdf}
+
+      	        --pValue ${advanced.pValue}
+      	        --fChange ${advanced.fChange}
+	            --generate_svg ${advanced.generateSvg}
+	            --generate_pdf ${advanced.generatePdf}
+			
 	        #else 
 	            --pValue 0.05
 	            --fChange 1.5
 	            --generate_svg false
 	            --generate_pdf true
 	        #end if
-        #end if
         ]]>
 	</command>
 	
 	<inputs>
-		<param name="reaction_dir" argument="--react_dir" type="boolean" checked="false" label="If checked the tips of the arrows will be colored, otherwise the body will." />
-
 		<conditional name="cond">
 			<param name="type_selector" argument="--option" type="select" label="Input format:">
 				<option value="datasets" selected="true">RAS of group 1 + RAS of group 2 + ... + RAS of group N</option>
@@ -90,102 +92,90 @@
 			</param>
 
 			<when value="datasets">
-				<repeat name="input_Datasets" title="RAS dataset" min="2">
-					<param name="input" argument="--input_datas" type="data" format="tabular, csv, tsv" label="add dataset" />
-					<param name="input_name" argument="--names" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
-				</repeat>
+				<conditional name = "using_RAS">
+					<param name = "check" argument = "--using_RAS" type = "boolean" checked = "true" label = "Using RAS datasets." />
 
-				<conditional name="comparis">
-					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
-						<option value="manyvsmany" selected="true">One vs One</option>
-						<option value="onevsrest">One vs All</option>
-						<option value="onevsmany">One vs Control</option>
-					</param>
-					<when value="onevsmany">
-						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					<when value = "true">
+						<repeat name="input_Datasets" title="RAS dataset" min="2">
+							<param name="input" argument="--input_datas" type="data" format="tabular, csv, tsv" label="add dataset" />
+							<param name="input_name" argument="--names" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+						</repeat>
 					</when>
 				</conditional>
-				
-				<conditional name="cond_choice_map">
-					<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
-						<option value="HMRcoremap" selected="true">HMRcoremap</option>
-						<option value="ENGRO2map">ENGRO2</option>
-					</param>
-				</conditional>
-				
-				<conditional name="advanced">
-					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
-						<option value="true" selected="true">No</option>
-						<option value="false">Yes</option>
-					</param>
 
-					<when value="true">
-						<conditional name="cond_map">
-							<param name="cond_map_choice" type="boolean" checked="false" label="Use custom map?" help="Use this option only if you have generated RAS using a custom set of rules">
-								<option value="false" selected="true">No</option>
-								<option value="true">Yes</option>
-							</param>
+				<conditional name = "using_RPS">
+					<param name = "check" argument = "--using_RPS" type = "boolean" checked = "false" label = "Using RPS datasets." />
 
-							<when value="true">				
-								<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
-							</when>
-						</conditional>
-
-						<param name="pValue" argument="--pValue" type="float" size="20" value="0.01" max="1" min="0" label="P-value threshold:" help="min value 0" />
-						<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
-						<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
-						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+					<when value = "true">
+						<repeat name="input_Datasets_RPS" title="RPS dataset" min="2">
+							<param name="input_rps" argument="--input_datas_rps" type="data" format="tabular, csv, tsv" label="add dataset" />
+							<param name="input_name_rps" argument="--names_rps" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+						</repeat>
 					</when>
 				</conditional>
 			</when>
 
 			<when value="dataset_class">
-                <param name="input_data" argument="--input_data" type="data" format="tabular, csv, tsv" label="RAS of all samples" />
-                <param name="input_class" argument="--input_class" type="data" format="tabular, csv, tsv" label="Sample group specification" />
-                
-				<conditional name="comparis">
-					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
-						<option value="manyvsmany" selected="true">One vs One</option>
-						<option value="onevsrest">One vs All</option>
-						<option value="onevsmany">One vs Control</option>
-					</param>
+				<conditional name = "using_RAS">
+					<param name = "check" argument = "--using_RAS" type = "boolean" checked = "true" label = "Using RAS datasets." />
 
-					<when value="onevsmany">
-						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					<when value = "true">
+						<param name="input_data" argument="--input_data" type="data" format="tabular, csv, tsv" label="RAS of all samples" />
+						<param name="input_class" argument="--input_class" type="data" format="tabular, csv, tsv" label="Sample group specification" />
 					</when>
 				</conditional>
 
-				<conditional name="cond_choice_map">
-					<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
-						<option value="HMRcoremap" selected="true">HMRcoremap</option>
-						<option value="ENGRO2">ENGRO2</option>
+				<conditional name = "using_RPS">
+					<param name = "check" argument = "--using_RPS" type = "boolean" checked = "false" label = "Using RPS datasets." />
+
+					<when value = "true">
+						<param name="input_data_rps" argument="--input_data_rps" type="data" format="tabular, csv, tsv" label="RPS of all samples" />
+						<param name="input_class_rps" argument="--input_class_rps" type="data" format="tabular, csv, tsv" label="Sample group specification" />
+					</when>
+			</conditional>
+			</when>
+		</conditional>
+		
+		<conditional name="comparis">
+			<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
+				<option value="manyvsmany" selected="true">One vs One</option>
+				<option value="onevsrest">One vs All</option>
+				<option value="onevsmany">One vs Control</option>
+			</param>
+			<when value="onevsmany">
+				<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+			</when>
+		</conditional>
+		
+		<conditional name="cond_choice_map">
+			<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
+				<option value="HMRcoremap" selected="true">HMRcoremap</option>
+				<option value="ENGRO2map">ENGRO2</option>
+			</param>
+		</conditional>
+		
+		<conditional name="advanced">
+			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+				<option value="true" selected="true">No</option>
+				<option value="false">Yes</option>
+			</param>
+
+			<when value="true">
+				<conditional name="cond_map">
+					<param name="cond_map_choice" type="boolean" checked="false" label="Use custom map?" help="Use this option only if you have generated RAS using a custom set of rules">
+						<option value="false" selected="true">No</option>
+						<option value="true">Yes</option>
 					</param>
-				</conditional>
 
-				<conditional name="advanced">
-					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
-						<option value="true" selected="true">No</option>
-						<option value="false">Yes</option>
-					</param>
-
-					<when value="true">
-						<conditional name="cond_map">
-							<param name="cond_map_choice" type="boolean" checked="false" label="Use custom map?" help="Use this option only if you have generated RAS using a custom set of rules">
-								<option value="false" selected="true">No</option>
-								<option value="true">Yes</option>
-							</param>
-
-							<when value="true">								
-								<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
-							</when>
-						</conditional>
-
-						<param name="pValue" argument="--pValue" type="float" size="20" value="0.01" max="1" min="0" label="P-value threshold:" help="min value 0" />
-						<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
-						<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
-						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+					<when value="true">				
+						<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
 					</when>
 				</conditional>
+
+				<param name="pValue" argument="--pValue" type="float" size="20" value="0.01" max="1" min="0" label="P-value threshold:" help="min value 0" />
+				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
+				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
+				<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
 			</when>
 		</conditional>
 	</inputs>

@@ -114,6 +114,9 @@ class Result(Generic[T, E]):
         try: return Result.Ok(mapper(self.value))
         except Exception as e: return Result.Err(e)
 
+def Bool(s :str) -> bool:
+    return s.lower() == "true"
+
 # FILES
 class FileFormat(Enum):
     """
