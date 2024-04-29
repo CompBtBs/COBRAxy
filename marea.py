@@ -31,37 +31,22 @@ def process_args(args :List[str]) -> argparse.Namespace:
         usage = "%(prog)s [options]",
         description = "process some value's genes to create a comparison's map.")
     
+    #General:
     parser.add_argument(
-        "-ra", "--using_RAS",
-        type = utils.Bool, default = True,
-        help = "choose whether to use RAS datasets.")
+        '-td', '--tool_dir',
+        type = str,
+        required = True,
+        help = 'your tool directory')
+    
+    parser.add_argument('-on', '--control', type = str)
+    parser.add_argument('-ol', '--out_log', help = "Output log")
 
+    #Computation details:
     parser.add_argument(
-        "-rp", "--using_RPS",
-        type = utils.Bool, default = False,
-        help = "choose whether to use RPS datasets.")
-
-    parser.add_argument(
-        '-cr', '--custom_rules', 
-        type = str, default = 'false', choices = ['true', 'false'],
-        help = 'choose whether to use custom rules')
-    
-    parser.add_argument(
-        '-cc', '--custom_rule',
-        type = str,
-        help='custom rules to use')
-    
-    parser.add_argument(
-        '-cm', '--custom_map',
-        type = str,
-        help='custom map to use')
-    
-    parser.add_argument(
-        '-n', '--none',
-        type = str,
-        default = 'true',
-        choices = ['true', 'false'], 
-        help = 'compute Nan values')
+        '-co', '--comparison',
+        type = str, 
+        default = '1vs1',
+        choices = ['manyvsmany', 'onevsrest', 'onevsmany'])
     
     parser.add_argument(
         '-pv' ,'--pValue', 
@@ -76,21 +61,17 @@ def process_args(args :List[str]) -> argparse.Namespace:
         help = 'Fold-Change threshold (default: %(default)s)')
     
     parser.add_argument(
-        '-td', '--tool_dir',
-        type = str,
-        required = True,
-        help = 'your tool directory')
-    
-    parser.add_argument(
-        '-op', '--option', 
+        '-op', '--option',
         type = str, 
         choices = ['datasets', 'dataset_class'],
         help='dataset or dataset and class')
     
-    parser.add_argument('-on', '--control', type = str)
-    parser.add_argument('-ol', '--out_log', help = "Output log")
-    
     #RAS:
+    parser.add_argument(
+        "-ra", "--using_RAS",
+        type = utils.Bool("using_RAS"), default = True,
+        help = "choose whether to use RAS datasets.")
+
     parser.add_argument(
         '-id', '--input_data',
         type = str,
@@ -115,6 +96,11 @@ def process_args(args :List[str]) -> argparse.Namespace:
     
     #RPS:
     parser.add_argument(
+        "-rp", "--using_RPS",
+        type = utils.Bool("using_RPS"), default = False,
+        help = "choose whether to use RPS datasets.")
+    
+    parser.add_argument(
         '-idr', '--input_data_rps',
         type = str,
         help = 'input dataset rps')
@@ -136,26 +122,26 @@ def process_args(args :List[str]) -> argparse.Namespace:
         nargs = '+', 
         help = 'input names rps')
     
+    #Output:
     parser.add_argument(
         "-gs", "--generate_svg",
-        type = utils.Bool, default = True,
+        type = utils.Bool("generate_svg"), default = True,
         help = "choose whether to use RAS datasets.")
     
     parser.add_argument(
         "-gp", "--generate_pdf",
-        type = utils.Bool, default = True,
+        type = utils.Bool("generate_pdf"), default = True,
         help = "choose whether to use RAS datasets.")
     
     parser.add_argument(
-        '-co', '--comparison',
-        type = str, 
-        default = '1vs1',
-        choices = ['manyvsmany', 'onevsrest', 'onevsmany'])
+        '-cm', '--custom_map',
+        type = str,
+        help='custom map to use')
     
     parser.add_argument(
         '-mc',  '--choice_map',
-        type = str,
-        choices = ['HMRcoremap','ENGRO2map'])
+        type = utils.Model, default = utils.Model.HMRcore,
+        choices = [utils.Model.HMRcore, utils.Model.ENGRO2, utils.Model.Custom])
 
     args :argparse.Namespace = parser.parse_args()
     return args
@@ -218,26 +204,6 @@ def name_dataset(name_data :str, count :int) -> str:
     else:
         return str(name_data)
 
-############################ check_methods ####################################
-def check_bool(b :str) -> Optional[bool]:
-    """
-    Converts a string input parameter into a boolean representation.
-
-    Args:
-        b : string to cast to boolean (from frontend input params)
-
-    Returns:
-        bool :
-            True : when b is "true"
-            False : when b is "false"
-
-        None : for any other value of b
-    """
-    if b == 'true':
-        return True
-    elif b == 'false':
-        return False
-    
 ############################ map_methods ######################################
 FoldChange = Union[float, int, str] # Union[float, Literal[0, "-INF", "INF"]]
 def fold_change(avg1 :float, avg2 :float) -> FoldChange:
@@ -696,7 +662,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
 
 def temp_createFiles(dataset1Name :str, dataset2Name :str, core_map) -> None:
     editedMapName = f"{dataset1Name}_vs_{dataset2Name}" #TODO: avoid repetition
-    if ARGS.custom_rules == "true": return
+    if ARGS.choice_map is utils.Model.Custom: return
     
     svgFilePath = f"result/{editedMapName}(SVG Map).svg"
     with open(svgFilePath, 'wb') as new_map: new_map.write(ET.tostring(core_map))
@@ -756,7 +722,7 @@ def temp_writeAllFiles(core_map :ET.ElementTree, class_pat :ClassPat) -> None:
         return
     
     #ARGS.comparison == "onevsmany":
-    for i, j in it.combinations(class_pat.keys(), 2):
+    for i, j in it.combinations(class_pat.keys(), 2): #TODO: this is [bad word], change.
         if i != ARGS.control and j != ARGS.control: continue
         if i == ARGS.control and j == ARGS.control: continue
         
@@ -775,24 +741,13 @@ def main() -> None:
     """
     global ARGS
     ARGS = process_args(sys.argv)
-    
-    create_svg = check_bool(ARGS.generate_svg)
-    create_pdf = check_bool(ARGS.generate_pdf)
 
-    if os.path.isdir('result') == False:
-        os.makedirs('result')
+    if os.path.isdir('result') == False: os.makedirs('result')
 
-    if ARGS.custom_rules == 'true':
-        try:
-            core_map :ET.ElementTree = ET.parse(ARGS.custom_map)
-        except (ET.XMLSyntaxError, ET.XMLSchemaParseError):
-            sys.exit('Execution aborted: custom map in wrong format')
+    if ARGS.choice_map is utils.Model.Custom:
+        ARGS.choice_map.mapPath = utils.FilePath.fromStrPath(ARGS.custom_map)
     
-    else:
-        if ARGS.choice_map == 'HMRcoremap':
-            core_map = ET.parse(ARGS.tool_dir+'/local/svg metabolic maps/HMRcoreMap.svg')
-        elif ARGS.choice_map == 'ENGRO2map':
-            core_map = ET.parse(ARGS.tool_dir+'/local/svg metabolic maps/ENGRO2map.svg')
+    core_map = ARGS.choice_map.getMap()
 
     if ARGS.using_RAS:
         ids, class_pat = temp_RASorRPS(ARGS.input_datas, ARGS.input_data, ARGS.names)
@@ -807,8 +762,8 @@ def main() -> None:
 
     if not ERRORS: return
     utils.logWarning(
-        f"The following reaction IDs were mentioned in the dataset but couldn't be found in the map: {ERRORS}",
-        utils.FilePath.fromStrPath(ARGS.out_log))
+        f"The following reaction IDs were mentioned in the dataset but weren't found in the map: {ERRORS}",
+        ARGS.out_log)
 
 ###############################################################################
 

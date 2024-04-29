@@ -23,19 +23,17 @@ def process_args() -> argparse.Namespace:
         usage = "%(prog)s [options]",
         description = "generate custom data from a given model")
     
-    parser.add_argument("-ol", "--out_log",    type = str, required = True, help = "Output log")
-    parser.add_argument("-id", "--input",      type = str, required = True, help = "Input model")
-    parser.add_argument("-mn", "--name",       type = str, required = True, help = "Input model name")
+    parser.add_argument("-ol", "--out_log", type = str, required = True, help = "Output log")
+    parser.add_argument("-id", "--input",   type = str, required = True, help = "Input model")
+    parser.add_argument("-mn", "--name",    type = str, required = True, help = "Input model name")
     # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
 
     parser.add_argument(
         "-of", "--output_format",
-        type = utils.FileFormat,
-        default = utils.FileFormat.PICKLE,
+        type = utils.FileFormat, default = utils.FileFormat.PICKLE,
         choices = [utils.FileFormat.CSV, utils.FileFormat.PICKLE],
         # ^^^ Not all variants are valid here, otherwise list(utils.FileFormat) would be best.
-        required = True,
-        help = "Extension of all output files")
+        required = True, help = "Extension of all output files")
     
     argsNamespace = parser.parse_args()
     argsNamespace.out_dir = "result"

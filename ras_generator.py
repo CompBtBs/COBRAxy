@@ -31,9 +31,7 @@ def process_args() -> argparse.Namespace:
     
     parser.add_argument(
         '-rs', '--rules_selector', 
-        type = Model,
-        default = Model.HMRcore,
-        choices = list(Model),
+        type = utils.Model, default = utils.Model.HMRcore, choices = list(utils.Model),
         help = 'chose which type of dataset you want use')
     
     parser.add_argument("-rl", "--rule_list", type = str,
@@ -42,24 +40,30 @@ def process_args() -> argparse.Namespace:
     parser.add_argument("-rn", "--rules_name", type = str, help = "custom rules name")
     # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
     
-    parser.add_argument('-n', '--none',
-                        type = bool,
-                        default = True,
-                        choices = [True, False],
-                        help = 'compute Nan values')
-    parser.add_argument('-td', '--tool_dir',
-                        type = str,
-                        required = True,
-                        help = 'your tool directory')
-    parser.add_argument('-ol', '--out_log', 
-                        help = "Output log")    
-    parser.add_argument('-in', '--input', #id è diventato in
-                        type = str,
-                        help = 'input dataset')
-    parser.add_argument('-ra', '--ras_output',
-                        type = str,
-                        required = True,
-                        help = 'ras output')
+    parser.add_argument(
+        '-n', '--none',
+        type = utils.Bool("none"), default = True,
+        help = 'compute Nan values')
+    
+    parser.add_argument(
+        '-td', '--tool_dir',
+        type = str,
+        required = True, help = 'your tool directory')
+    
+    parser.add_argument(
+        '-ol', '--out_log',
+        type = str,
+        help = "Output log")    
+    
+    parser.add_argument(
+        '-in', '--input', #id è diventato in
+        type = str,
+        help = 'input dataset')
+    
+    parser.add_argument(
+        '-ra', '--ras_output',
+        type = str,
+        required = True, help = 'ras output')
     
     return parser.parse_args()
 
@@ -942,58 +946,6 @@ def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[s
     if geneName in supportedGenesInEncoding: return supportedGenesInEncoding[geneName]
     raise ValueError(f"Gene \"{geneName}\" non trovato, verifica di star utilizzando il modello corretto!")
 
-OldRule = List[Union[str, "OldRule"]]
-class Model(Enum):
-    """
-    Represents a metabolic model, either custom or locally supported. Custom models don't point to valid file paths.
-    """
-    Recon   = "Recon"
-    ENGRO2  = "ENGRO2"
-    HMRcore = "HMRcore"
-    Custom  = "Custom" # Exists as a valid variant in the UI, but doesn't point to valid file paths.
-
-    @property
-    def modelErr(self) -> utils.CustomErr:
-        err = utils.CustomErr("Custom models don't point to valid file paths")
-        err.errName = "Model Error"
-        return err
-
-    @property
-    def rulesPath(self) -> utils.FilePath:
-        if self is Model.Custom: raise self.modelErr
-        return utils.FilePath(
-            f"{self.name}_rules",
-            utils.FileFormat.PICKLE,
-            prefix = f"{ARGS.tool_dir}/local/pickle files/")
-
-    @property
-    def genesPath(self) -> utils.FilePath:
-        if self is Model.Custom: raise self.modelErr
-        return utils.FilePath(
-            f"{self.name}_genes",
-            utils.FileFormat.PICKLE,
-            prefix = f"{ARGS.tool_dir}/local/pickle files/")
-
-    def getRules(self) -> Dict[str, Dict[str, OldRule]]:
-        """
-        Open "rules" file for this model.
-
-        Returns:
-            Dict[str, Dict[str, OldRule]] : the rules for this model.
-        """
-        return utils.readPickle(self.rulesPath)
-    
-    def getTranslator(self) -> Dict[str, Dict[str, str]]:
-        """
-        Open "gene translator (old: gene_in_rule)" file for this model.
-
-        Returns:
-            Dict[str, Dict[str, str]] : the translator dict for this model.
-        """
-        return utils.readPickle(self.genesPath)
-
-    def __str__(self) -> str: return self.value
-
 def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     """
     Opens custom rules file and extracts the rules. If the file is in .csv format an additional parsing step will be
@@ -1029,15 +981,15 @@ def main() -> None:
     dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
 
     # handle custom models
-    model :Model = ARGS.rules_selector
-    if model is Model.Custom:
+    model :utils.Model = ARGS.rules_selector
+    if model is utils.Model.Custom:
         rules = load_custom_rules()
         reactions = list(rules.keys())
 
         save_as_tsv(ras_for_cell_lines(dataset, rules), reactions)
         if ERRORS: utils.logWarning(
             f"The following genes are mentioned in the rules but don't appear in the dataset: {ERRORS}",
-            utils.FilePath.fromStrPath(ARGS.out_log))
+            ARGS.out_log)
         
         return
     
@@ -1055,7 +1007,7 @@ def main() -> None:
     if err: utils.logWarning(
         f"Warning: gene(s) {err} not found in class \"{name}\", " +
         "the expression level for this gene will be considered NaN",
-        utils.FilePath.fromStrPath(ARGS.out_log))
+        ARGS.out_log)
     
     print("Execution succeded")
 

@@ -22,7 +22,7 @@
         --out_log $log
 	
         #if $cond.type_selector == 'datasets':
-			#if $cond.using_RAS.check == "true":
+			#if $cond.using_RAS.check == 'true':
 				--input_datas
 				#for $data in $cond.input_Datasets:
 					${data.input}
@@ -34,7 +34,7 @@
 				#end for
 			#end if
 
-			#if $cond.using_RPS.check == "true":
+			#if $cond.using_RPS.check == 'true':
 				--input_datas_rps
 				#for $data in $cond.input_Datasets_RPS:
 					${data.input_rps}
@@ -47,40 +47,38 @@
 			#end if
         
         #elif $cond.type_selector == 'dataset_class':
-			#if $cond.using_RAS.check == "true":
+			#if $cond.using_RAS.check == 'true':
 				--input_data ${input_data}
 				--input_class ${input_class}
 			#end if
 
-			#if $cond.using_RPS.check == "true":
+			#if $cond.using_RPS.check == 'true':
 				--input_data_rps ${input_data_rps}
 				--input_class_rps ${input_class_rps}
 			#end if
         #end if
 
 		--comparison ${comparis.comparison}
-            #if $comparis.comparison == 'onevsmany'
-            	--control '${cond.comparis.controlgroup}'
-            #end if
+		#if $comparis.comparison == 'onevsmany'
+			--control '${cond.comparis.controlgroup}'
+		#end if
 
-            --choice_map '${cond_choice_map.choice_map}'
-            #if $advanced.choice == 'true':
-				#if $advanced.cond_map.cond_map_choice == 'true':
-					--custom_rules true
-					--custom_map ${advanced.cond_map.custom_map}
-				#end if
-
-      	        --pValue ${advanced.pValue}
-      	        --fChange ${advanced.fChange}
-	            --generate_svg ${advanced.generateSvg}
-	            --generate_pdf ${advanced.generatePdf}
-			
-	        #else 
-	            --pValue 0.05
-	            --fChange 1.5
-	            --generate_svg false
-	            --generate_pdf true
-	        #end if
+		--choice_map '${cond_choice_map.choice_map}'
+		#if $cond_choice_map.choice_map == 'Custom':
+			--custom_map ${advanced.cond_map.custom_map}
+		#end if
+		
+		#if $advanced.choice == 'true':
+			--pValue ${advanced.pValue}
+			--fChange ${advanced.fChange}
+			--generate_svg ${advanced.generateSvg}
+			--generate_pdf ${advanced.generatePdf}
+		#else 
+			--pValue 0.05
+			--fChange 1.5
+			--generate_svg false
+			--generate_pdf true
+		#end if
         ]]>
 	</command>
 	
@@ -149,9 +147,14 @@
 		
 		<conditional name="cond_choice_map">
 			<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
-				<option value="HMRcoremap" selected="true">HMRcoremap</option>
-				<option value="ENGRO2map">ENGRO2</option>
+				<option value="HMRcore" selected="true">HMRcore</option>
+				<option value="ENGRO2">ENGRO2</option>
+				<option value="Custom">Custom</option>
 			</param>
+
+			<when value="Custom">				
+				<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
+			</when>
 		</conditional>
 		
 		<conditional name="advanced">
@@ -161,17 +164,6 @@
 			</param>
 
 			<when value="true">
-				<conditional name="cond_map">
-					<param name="cond_map_choice" type="boolean" checked="false" label="Use custom map?" help="Use this option only if you have generated RAS using a custom set of rules">
-						<option value="false" selected="true">No</option>
-						<option value="true">Yes</option>
-					</param>
-
-					<when value="true">				
-						<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
-					</when>
-				</conditional>
-
 				<param name="pValue" argument="--pValue" type="float" size="20" value="0.01" max="1" min="0" label="P-value threshold:" help="min value 0" />
 				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
 				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />

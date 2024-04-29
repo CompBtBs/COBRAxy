@@ -2,9 +2,11 @@ import re
 import sys
 import csv
 import pickle
+import lxml.etree as ET
+
 from enum import Enum
 from itertools import count
-from typing import Any, Callable, Generic, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 # RESULT
 T = TypeVar('T')
@@ -114,19 +116,17 @@ class Result(Generic[T, E]):
         try: return Result.Ok(mapper(self.value))
         except Exception as e: return Result.Err(e)
 
-def Bool(s :str) -> bool:
-    return s.lower() == "true"
-
 # FILES
 class FileFormat(Enum):
     """
     Encodes possible file extensions to conditionally save data in a different format.
     """
     DAT    = ("dat",) # this is how galaxy treats all your files!
-    CSV    = ("csv",)
-    XML    = ("xml",)
-    JSON   = ("json",)
-    PICKLE = ("pickle", "pk", "p")
+    CSV    = ("csv",) # this is how most editable input data is written
+    SVG    = ("svg",) # this is how most metabolic maps are written
+    XML    = ("xml",) # this is one main way cobra models appear in
+    JSON   = ("json",) # this is the other
+    PICKLE = ("pickle", "pk", "p") # this is how all runtime data structures are saved
 
     @classmethod
     def fromExt(cls, ext :str) -> "FileFormat":
@@ -159,8 +159,8 @@ class FileFormat(Enum):
 
 class FilePath():
     """
-    Represents a file path. View this as an attempt to standardize file-related operations by expecting values of this type
-    in any process requesting a file path.
+    Represents a file path. View this as an attempt to standardize file-related operations by expecting
+    values of this type in any process requesting a file path.
     """
     def __init__(self, filePath :str, ext :FileFormat, *, prefix = "") -> None:
         """
@@ -226,19 +226,26 @@ def terminate(msg :str) -> None:
     """
     sys.exit(f"Execution aborted: {msg}\n")
 
-def logWarning(msg :str, loggerPath :FilePath) -> None:
+def logWarning(msg :str, loggerPath :str) -> None:
     """
     Log a warning message to an output log file and print it to the console. The final period and a
     newline is added by the function.
 
     Args:
         s (str): The warning message to be logged and printed.
-        loggerPath : The file path of the output log file.
+        loggerPath : The file path of the output log file. Given as a string, parsed to a FilePath and
+        immediately read back (beware relative expensive operation, log with caution).
 
     Returns:
         None
     """
-    with open(loggerPath.show(), 'a') as log: log.write(f"{msg}.\n")
+    # building the path and then reading it immediately seems useless, but it's actually a way of
+    # validating that reduces repetition on the caller's side. Besides, logging a message by writing
+    # to a file is supposed to be computationally expensive anyway, so this is also a good deterrent from
+    # mindlessly logging whenever something comes up, log at the very end and tell the user everything
+    # that went wrong. If you don't like it: implement a persistent runtime buffer that gets dumped to
+    # the file only at the end of the program's execution.
+    with open(FilePath.fromStrPath(loggerPath).show(), 'a') as log: log.write(f"{msg}.\n")
 
 class CustomErr(Exception):
     """
@@ -263,7 +270,7 @@ class CustomErr(Exception):
 
         self.id = max(explicitErrCode, next(CustomErr.__idGenerator))
 
-    def throw(self, loggerPath :Optional[FilePath] = None) -> None:
+    def throw(self, loggerPath = "") -> None:
         """
         Raises the current CustomErr instance, logging a warning message before doing so.
 
@@ -294,9 +301,17 @@ class CustomErr(Exception):
         """
         return f"{CustomErr.errName} #{self.id}: {self.msg}, {self.details}."
 
+class ArgsErr(CustomErr):
+    """
+    CustomErr subclass for UI arguments errors.
+    """
+    errName = "Args Error"
+    def __init__(self, argName :str, expected :Any, actual :Any, msg = "no further details provided") -> None:
+        super().__init__(f"argument \"{argName}\" expected {expected} but got {actual}", msg)
+
 class DataErr(CustomErr):
     """
-    utils.CustomErr subclass for data formatting errors.
+    CustomErr subclass for data formatting errors.
     """
     errName = "Data Format Error"
     def __init__(self, fileName :str, msg = "no further details provided") -> None:
@@ -304,7 +319,7 @@ class DataErr(CustomErr):
 
 class PathErr(CustomErr):
     """
-    utils.CustomErr subclass for path, filename and extension formatting errors.
+    CustomErr subclass for path, filename and extension formatting errors.
     """
     errName = "Path Error"
     def __init__(self, path :str, msg = "no further details provided") -> None:
@@ -349,3 +364,62 @@ def readCsv(path :FilePath, skipHeader = True) -> List[List[str]]:
         List[List[str]] : list of rows from the file, each parsed as a list of strings originally separated by commas.
     """
     with open(path.show(), "r", newline = "") as fd: return list(csv.reader(fd))[skipHeader:]
+
+# UI ARGUMENTS
+class Bool:
+    def __init__(self, argName :str) -> None:
+        self.argName = argName
+
+    def __call__(self, s :str) -> bool: return self.check(s)
+
+    def check(self, s :str) -> bool:
+        s = s.lower()
+        if s == "true" : return True
+        if s == "false": return False
+        raise ArgsErr(self.argName, "boolean string (true or false, not case sensitive)", f"\"{s}\"")
+
+# MODELS
+OldRule = List[Union[str, "OldRule"]]
+class Model(Enum):
+    """
+    Represents a metabolic model, either custom or locally supported. Custom models don't point
+    to valid file paths.
+    """
+    Recon   = "Recon"
+    ENGRO2  = "ENGRO2"
+    HMRcore = "HMRcore"
+    Custom  = "Custom" # Exists as a valid variant in the UI, but doesn't point to valid file paths.
+
+    def __call__(self, toolDir :str) -> None:
+        self.toolDir = toolDir
+        self.pathPrefix = f"{self.toolDir}/local/pickle files/"
+
+        if self is Model.Custom: return
+        self.rulesPath = FilePath(f"{self.name}_rules", FileFormat.PICKLE, prefix = self.pathPrefix)
+        self.genesPath = FilePath(f"{self.name}_genes", FileFormat.PICKLE, prefix = self.pathPrefix)
+        self.mapPath   = FilePath(f"{self.name}_map",   FileFormat.SVG,    prefix = self.pathPrefix)
+
+    def getRules(self) -> Dict[str, Dict[str, OldRule]]:
+        """
+        Open "rules" file for this model.
+
+        Returns:
+            Dict[str, Dict[str, OldRule]] : the rules for this model.
+        """
+        return readPickle(self.rulesPath)
+    
+    def getTranslator(self) -> Dict[str, Dict[str, str]]:
+        """
+        Open "gene translator (old: gene_in_rule)" file for this model.
+
+        Returns:
+            Dict[str, Dict[str, str]] : the translator dict for this model.
+        """
+        return readPickle(self.genesPath)
+    
+    def getMap(self) -> ET.ElementTree:
+        try: return ET.parse(self.mapPath)
+        except (ET.XMLSyntaxError, ET.XMLSchemaParseError) as err:
+            raise DataErr(self.mapPath.show(), f"custom map in wrong format: {err}")
+
+    def __str__(self) -> str: return self.value

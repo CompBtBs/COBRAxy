@@ -484,10 +484,6 @@ def unit_marea() -> None:
         UnitTest(m.name_dataset, ["customName", 12], ExactValue("customName")),
         UnitTest(m.name_dataset, ["Dataset", 12], ExactValue("Dataset_12")),
 
-        UnitTest(m.check_bool, ["true"], ExactValue(True)),
-        UnitTest(m.check_bool, ["false"], ExactValue(False)),
-        UnitTest(m.check_bool, ["foo"], ExactValue(None)),
-
         UnitTest(m.fold_change, [0.5, 0.5], ExactValue(0.0)),
         UnitTest(m.fold_change, [0, 0.35], ExactValue("-INF")),
         UnitTest(m.fold_change, [0.5, 0], ExactValue("INF")),
@@ -495,7 +491,7 @@ def unit_marea() -> None:
 
         UnitTest(
             m.Arrow(m.Arrow.MAX_W, m.ArrowColor.DownRegulated, True).toStyleStr, [],
-            ExactValue("stroke:#0000FF;stroke-width:12;stroke-dasharray:5,5")),
+            ExactValue(";stroke:#0000FF;stroke-width:12;stroke-dasharray:5,5")),
     ).testModule()
 
 def unit_rps_generator() -> None:
@@ -640,6 +636,14 @@ def unit_utils() -> None:
             "id"      : ExactValue(42)
         })),
 
+        UnitTest(utils.Bool("someArg").check, ["TrUe"],  ExactValue(True)),
+        UnitTest(utils.Bool("someArg").check, ["FALse"], ExactValue(False)),
+        UnitTest(utils.Bool("someArg").check, ["foo"],   Exists(False)), # should panic!
+
+        UnitTest(utils.Model.ENGRO2.getRules, [], IsOfType(dict)),
+        UnitTest(utils.Model.Custom.getRules, [], Exists(False)), # expected panic
+
+        # rule utilities tests:
         UnitTest(
             ruleUtils.parseRuleToNestedList, ["A or B and C or (D and E)"],
             Many(
@@ -667,12 +671,10 @@ def unit_ras_generator() -> None:
     UnitTester("ras generator", LogMode.Pedantic, False,
         UnitTest(ras.ras_op_list, [rule, dataset], ExactValue(2)),
         UnitTest(opListAlias, [rule, dataset], ExactValue(None)),
-        UnitTest(ras.Model.ENGRO2.getRules, [], IsOfType(dict)),
-        UnitTest(ras.Model.Custom.getRules, [], Exists(False)), # expected panic
     ).testModule()
 
 if __name__ == "__main__":
     unit_marea()
-    unit_ras_generator()
     unit_custom_data_generator()
     unit_utils()
+    unit_ras_generator()
