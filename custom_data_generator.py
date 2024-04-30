@@ -6,6 +6,7 @@ import argparse
 import utils.general_utils as utils
 import utils.rule_parsing  as rulesUtils
 from typing import Optional, Tuple, Union, Dict
+import utils.reaction_parsing as reactionUtils
 
 ARGS : argparse.Namespace
 def process_args() -> argparse.Namespace:
@@ -94,20 +95,27 @@ def generate_rules(model: cobra.Model, *, asParsed = True) -> Union[Dict[Reactio
         for reaction in model.reactions
         if reaction.gene_reaction_rule }
 
-def generate_reactions(model :cobra.Model) -> Dict[ReactionId, str]:
+def generate_reactions(model :cobra.Model, *, asParsed = True) -> Dict[ReactionId, str]:
     """
     Generates a dictionary mapping reaction ids to reaction formulas from the model.
 
     Args:
         model : the model to derive data from.
+        asParsed : if True parses the reactions to an optimized runtime format, otherwise leaves them as they are.
 
     Returns:
         Dict[ReactionId, str] : the generated dictionary.
     """
-    return {
+
+    unparsedReactions = {
         reaction.id : reaction.reaction
         for reaction in model.reactions
-        if reaction.reaction }
+        if reaction.reaction 
+    }
+
+    if not asParsed: return unparsedReactions
+    
+    return reactionUtils.create_reaction_dict(unparsedReactions)
 
 ###############################- FILE SAVING -################################
 def save_as_csv(data :dict, file_path :utils.FilePath, fieldNames :Tuple[str, str]) -> None:
@@ -150,17 +158,18 @@ def main() -> None:
     
     # generate data and save it in the desired format and in a location galaxy understands
     # (it should show up as a collection in the history)
-    reactions     = generate_reactions(model)
     rulesPath     = utils.FilePath("rules",     ARGS.output_format, prefix = ARGS.out_dir)
     reactionsPath = utils.FilePath("reactions", ARGS.output_format, prefix = ARGS.out_dir)
 
     if ARGS.output_format is utils.FileFormat.PICKLE:
         rules = generate_rules(model, asParsed = True)
+        reactions = generate_reactions(model, asParsed = True)
         utils.writePickle(rulesPath,     rules)
         utils.writePickle(reactionsPath, reactions)
     
     elif ARGS.output_format is utils.FileFormat.CSV:
         rules = generate_rules(model, asParsed = False)
+        reactions = generate_reactions(model, asParsed = False)
         save_as_csv(rules,     rulesPath,     ("ReactionID", "Rule"))
         save_as_csv(reactions, reactionsPath, ("ReactionID", "Reaction"))
 

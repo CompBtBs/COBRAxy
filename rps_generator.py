@@ -11,6 +11,8 @@ import pandas as pd
 from enum   import Enum
 from typing import Optional, List, Dict, Tuple
 
+import utils.reaction_parsing as reactionUtils
+
 ########################## argparse ##########################################
 def process_args(args :List[str]) -> argparse.Namespace:
     """
@@ -49,7 +51,6 @@ def process_args(args :List[str]) -> argparse.Namespace:
     
     args = parser.parse_args()
     return args
-
 
 
 ############################ read_dataset ####################################
@@ -134,7 +135,6 @@ def clean_metabolite_name(name :str) -> str:
     return "".join(ch for ch in name if ch not in ",;-_'([{ }])").lower()
 
 
-
 ############################ get_metabolite_id ####################################
 def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
     """
@@ -153,7 +153,6 @@ def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
         if name in synonyms: return id
     
     return ""
-
 
 
 ############################ update_metabolite_names ####################################
@@ -176,6 +175,7 @@ def update_metabolite_names(abundances_dict: Dict[str, float], syn_dict: Dict[st
         if id: updated_abundances[id] = abundance
 
     return updated_abundances
+
 
 ############################ check_missing_metab ####################################
 def check_missing_metab(reactions: Dict[str, Dict[str, int]], updated_abundances: Dict[str, float]) -> Tuple[Dict[str, float], List[str]]:
@@ -267,205 +267,6 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
         file.write(output_to_csv)
 
 
-
-############################ ReactionDir ####################################
-# Reaction direction encoding:
-class ReactionDir(Enum):
-  """
-  A reaction can go forwards, backwards or be reversible (able to proceed in both directions).
-  Models created / managed with cobrapy encode this information within the reaction's
-  formula using the arrows this enum keeps as values.
-  """
-  FORWARD    = "-->"
-  BACKWARD   = "<--"
-  REVERSIBLE = "<=>"
-
-
-############################ fromReaction ####################################
-  @classmethod
-  def fromReaction(cls, reaction :str) -> 'ReactionDir':
-    """
-    Takes a whole reaction formula string and looks for one of the arrows, returning the
-    corresponding reaction direction.
-
-    Args:
-      reaction : the reaction's formula.
-    
-    Raises:
-      ValueError : if no valid arrow is found.
-    
-    Returns:
-      ReactionDir : the corresponding reaction direction.
-    """
-    for member in cls:
-      if member.value in reaction: return member
-
-    raise ValueError("No valid arrow found within reaction string.")
-
-ReactionsDict = Dict[str, Dict[str, float]]
-
-
-
-############################ add_custom_reaction ####################################
-def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -> None:
-  """
-  Adds an entry to the given reactionsDict. Each entry consists of a given unique reaction id
-  (key) and a :dict (value) matching each substrate in the reaction to its stoichiometric coefficient.
-  Keys and values are both obtained from the reaction's formula: if a substrate (custom metabolite id)
-  appears without an explicit coeff, the value 1.0 will be used instead.
-
-  Args:
-    reactionsDict : dictionary encoding custom reactions information.
-    rId : unique reaction id.
-    reaction : the reaction's formula.
-  
-  Returns:
-    None
-
-  Side effects:
-    reactionsDict : mut
-  """
-  reaction = reaction.strip()
-  if not reaction: return
-
-  reactionsDict[rId] = {}
-  # We assume the '+' separating consecutive metabs in a reaction is spaced from them,
-  # to avoid confusing it for electrical charge:
-  for word in reaction.split(" + "):
-    metabId, stoichCoeff = word, 1.0
-    # Implicit stoichiometric coeff is equal to 1, some coeffs are floats.
-
-    # Accepted coeffs can be integer or floats with a dot (.) decimal separator
-    # and must be separated from the metab with a space:
-    foundCoeff = re.search(r"\d+(\.\d+)? ", word)
-    if foundCoeff:
-      wholeMatch  = foundCoeff.group(0)
-      metabId     = word[len(wholeMatch) + 1:].strip()
-      stoichCoeff = float(wholeMatch.strip())
-
-    reactionsDict[rId][metabId] = stoichCoeff
-
-  if not reactionsDict[rId]: del reactionsDict[rId] # Empty reactions are removed.
-
-
-############################ parse_custom_reactions ####################################
-def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
-  """
-  Creates a custom dictionary encoding reactions information from a csv file containing
-  data about these reactions, the path of which is given as input.
-
-  Args:
-    customReactionsPath : path to the reactions information file.
-  
-  Returns:
-    ReactionsDict : dictionary encoding custom reactions information.
-  """
-  reactionsData :Dict[str, str]
-  with open(customReactionsPath, "r") as fd:
-    # We expect 2 columns: the first containing reaction ids and another with the actual reactions.
-    reactionsData = { row[0] : row[1] for row in csv.reader(fd) }
-
-  reactionsDict :ReactionsDict = {}
-  for rId, reaction in reactionsData.items():
-    reactionDir = ReactionDir.fromReaction(reaction)
-    left, right = reaction.split(f" {reactionDir.value} ")
-
-    # Reversible reactions are split into distinct reactions, one for each direction.
-    # In general we only care about substrates, the product information is lost.
-    reactionIsReversible = reactionDir is ReactionDir.REVERSIBLE
-    if reactionDir is not ReactionDir.BACKWARD:
-      add_custom_reaction(reactionsDict, rId + "_F" * reactionIsReversible, left)
-    
-    if reactionDir is not ReactionDir.FORWARD:
-      add_custom_reaction(reactionsDict, rId + "_B" * reactionIsReversible, right)
-
-  return reactionsDict
-
-
-############################ count_reaction_number ####################################
-def count_reaction_number(reactions_csv_path: str) -> int:
-    """
-    Counts the total number of reactions from a CSV file. It is assumed that the first row has to be omitted as it does not contain any data
-
-    Parameters:
-        reactions_csv_path (str): The file path to the CSV file containing reaction data.
-
-    Returns:
-        int: The total number of reactions in the CSV file.
-    """
-    df = pd.read_csv(reactions_csv_path, skiprows=1) 
-    total_reactions_num = len(df)
-    return total_reactions_num
-
-
-############################ get_sorted_dict ####################################
-def get_sorted_dict(reaction_dict: Dict[str, List[str]]) -> Dict[str, int]:
-    """
-    Generates a sorted dictionary based on the count of metabolites in a reaction dictionary.
-
-    Parameters:
-        reaction_dict (dict): A dictionary representing reactions, where keys are reaction IDs and values are lists of metabolites involved in each reaction.
-
-    Returns:
-        dict: A sorted dictionary where keys are metabolites and values are their counts across all reactions.
-    """
-    count_dict = {}
-    for metabolite_list in reaction_dict.values():
-        for metabolite in metabolite_list:
-            if metabolite not in count_dict:
-                count_dict[metabolite] = 1
-            else:
-                count_dict[metabolite] += 1
-
-    sorted_dict = dict(sorted(count_dict.items(), key=lambda x: x[1], reverse=True))
-    return sorted_dict
-
-
-############################ get_top_metabolites ####################################
-def get_percentages_list(sorted_dict: Dict[str, int], total_reactions_num: int) -> List[float]:
-    """
-    Calculates the percentages of occurrence for each metabolite based on their counts in a sorted dictionary and the total amount of reactions in the model.
-
-    Parameters:
-        sorted_dict (dict): A dictionary representing sorted metabolite counts, where keys are metabolites and values are their counts.
-        total_reactions_num (int): The total number of reactions.
-
-    Returns:
-        list: A list containing the percentages of occurrence for each metabolite.
-    """
-    for key in sorted_dict:
-        sorted_dict[key] /= total_reactions_num
-
-    percentages = list(sorted_dict.values())
-    return percentages 
-
-
-############################ main ####################################
-def get_black_list(percentages: List[float], sorted_dict: Dict[str, int]) -> List[str]:
-    """
-    Generates a black list of metabolites based on the percentage occurrences and sorted metabolite counts.
-
-    Parameters:
-        percentages (list): A list containing the percentages of occurrence for each metabolite.
-        sorted_dict (dict): A dictionary representing sorted metabolite counts, where keys are metabolites and values are their counts.
-
-    Returns:
-        list: A black list containing metabolites identified as outliers based on log-scaled percentages.
-    """
-    log_scale_percentages = np.log(percentages)
-
-    data = np.array(log_scale_percentages)
-    q1 = np.percentile(data, 25)
-    q3 = np.percentile(data, 75)
-    iqr = q3 - q1
-    threshold = 1.5 * iqr
-    outliers = np.where((data < q1 - threshold) | (data > q3 + threshold))
-
-    black_list = []
-    black_list =[list(sorted_dict.keys())[outlier] for outlier in outliers[0]] 
-    return black_list
-
-
 ############################ main ####################################
 def main() -> None:
     """
@@ -488,18 +289,11 @@ def main() -> None:
     if args.reaction_choice == 'default':        
         reactions = pk.load(open(args.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
     elif args.reaction_choice == 'custom':
-        reactions = parse_custom_reactions(args.custom)   
-        count_reaction_number(args.custom)
-        sorted_dict = get_sorted_dict(reactions)
-        percentages = get_percentages_list(sorted_dict, count_reaction_number(args.custom))
-        custom_black_list = get_black_list(percentages, sorted_dict)
-        black_list = custom_black_list
+        reactions = reactionUtils.parse_custom_reactions(args.custom)   
         flag = False
       
     rps_for_cell_lines(dataset, reactions, black_list, syn_dict, args.rps_output, flag)
     
-    
-
     print('Execution succeded')
     return None
 
