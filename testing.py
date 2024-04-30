@@ -641,8 +641,8 @@ def unit_utils() -> None:
         UnitTest(utils.Bool("someArg").check, ["FALse"], ExactValue(False)),
         UnitTest(utils.Bool("someArg").check, ["foo"],   Exists(False)), # should panic!
 
-        UnitTest(utils.Model.ENGRO2.getRules, [], IsOfType(dict)),
-        UnitTest(utils.Model.Custom.getRules, [], Exists(False)), # expected panic
+        UnitTest(utils.Model.ENGRO2.getRules, ["."], IsOfType(dict)),
+        UnitTest(utils.Model.Custom.getRules, [".", ""], Exists(False)), # expected panic
 
         # rule utilities tests:
         UnitTest(

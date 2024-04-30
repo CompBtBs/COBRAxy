@@ -544,9 +544,21 @@ def convert_to_pdf(file_svg :str, file_png :str, file_pdf :str) -> None:
         print(f'Error generating PDF file: {e}')
 
 ############################ map ##############################################
-def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name :str) -> None:
-    editedMapName = f"{dataset1Name}_vs_{dataset2Name}"
-    tab = f"result/{editedMapName} (Tabular Result).tsv"
+def getResultFilesName(dataset1Name :str, dataset2Name = "rest") -> str:
+    """
+    Returns a string showcasing the comparison applied to two datasets, meant to be used as part of the output files' name.
+
+    Args:
+        dataset1Name : name of the first dataset
+        dataset2Name : name of the second dataset
+
+    Returns:
+        str : the comparison string.
+    """
+    return f"{dataset1Name}_vs_{dataset2Name}"
+
+def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, comparedDatasets :str) -> None:
+    tab = f"result/{comparedDatasets} (Tabular Result).tsv"
 
     tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index")
     tmp_csv = tmp_csv.reset_index()
@@ -602,7 +614,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, i, j)
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, getResultFilesName(i, j))
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
@@ -635,19 +647,19 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, single_cluster, "rest")
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, getResultFilesName(single_cluster))
                         
     elif ARGS.comparison == "onevsmany":
-        for i, j in it.combinations(class_pat.keys(), 2):
-            if i != ARGS.control and j != ARGS.control: continue
-            if i == ARGS.control and j == ARGS.control: continue
+        controlItems = class_pat.get(ARGS.control)
+        for otherDataset in class_pat.keys():
+            if otherDataset == ARGS.control: continue
             
             tmp = {}
             count = 0
             max_F_C = 0
-            for l1, l2 in zip(class_pat.get(i), class_pat.get(j)):
+            for l1, l2 in zip(controlItems, class_pat.get(otherDataset)):
                 try:
-                    stat_D, p_value = st.ks_2samp(l1, l2)
+                    _, p_value = st.ks_2samp(l1, l2)
                     #sum(l1) da errore secondo me perchè ha null
                     avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
                     if not isinstance(avg, str):
@@ -658,14 +670,13 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, i, j)
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, getResultFilesName(ARGS.control, otherDataset))
 
 def temp_createFiles(dataset1Name :str, dataset2Name :str, core_map) -> None:
-    editedMapName = f"{dataset1Name}_vs_{dataset2Name}" #TODO: avoid repetition
-    if ARGS.choice_map is utils.Model.Custom: return
-    
-    svgFilePath = f"result/{editedMapName}(SVG Map).svg"
-    with open(svgFilePath, 'wb') as new_map: new_map.write(ET.tostring(core_map))
+    editedMapName = getResultFilesName(dataset1Name, dataset2Name)
+    svgFilePath = utils.FilePath(f"{editedMapName}(SVG Map)", utils.FileFormat.SVG, prefix = "result/")
+
+    with open(svgFilePath.show(), 'wb') as new_map: new_map.write(ET.tostring(core_map)) #TODO: use utils svg writer (needs to be implemented)
     
     if ARGS.generate_pdf: convert_to_pdf(
         svgFilePath, f"result/{editedMapName}(PNG Map).png", f"result/{editedMapName}(PDF Map).pdf")                     
@@ -705,9 +716,9 @@ def temp_doCommons(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List[s
     ids = pd.Series.tolist(resolve_rules.iloc[:, 0])
 
     resolve_rules = resolve_rules.drop(resolve_rules.columns[[0]], axis=1)
-    resolve_rules = resolve_rules.replace({'None': None}) #TODO: maea panics here, rps doesn't handle Nones
+    resolve_rules = resolve_rules.replace({'None': math.nan})
     resolve_rules = resolve_rules.to_dict('list')
-    return { k : [float(vv) for vv in v if vv is not None] for k, v in resolve_rules.items() }, ids
+    return { k : list(map(float, v)) for k, v in resolve_rules.items() }, ids
 
 def temp_writeAllFiles(core_map :ET.ElementTree, class_pat :ClassPat) -> None:
     if ARGS.comparison == "manyvsmany":
@@ -743,11 +754,8 @@ def main() -> None:
     ARGS = process_args(sys.argv)
 
     if os.path.isdir('result') == False: os.makedirs('result')
-
-    if ARGS.choice_map is utils.Model.Custom:
-        ARGS.choice_map.mapPath = utils.FilePath.fromStrPath(ARGS.custom_map)
     
-    core_map = ARGS.choice_map.getMap()
+    core_map :ET.ElementTree = ARGS.choice_map.getMap(ARGS.tool_dir, utils.FilePath.fromStrPath(ARGS.custom_map))
 
     if ARGS.using_RAS:
         ids, class_pat = temp_RASorRPS(ARGS.input_datas, ARGS.input_data, ARGS.names)

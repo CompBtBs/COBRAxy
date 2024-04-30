@@ -958,7 +958,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     
     try: filenamePath = utils.FilePath.fromStrPath(ARGS.rules_name) # file's name in input, to determine its original ext
     except utils.PathErr as err:
-        raise utils.PathErr(ARGS.rules_name, f"Please make sure your file's name is a valid file path, {err.msg}")
+        raise utils.PathErr(filenamePath, f"Please make sure your file's name is a valid file path, {err.msg}")
      
     if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
 
@@ -997,7 +997,7 @@ def main() -> None:
     name = "RAS Dataset"
     type_gene = gene_type(dataset.iloc[0, 0], name)
     
-    rules      = model.getRules()
+    rules      = model.getRules(ARGS.tool_dir)
     genes      = data_gene(dataset, type_gene, name, None)
     ids, rules = load_id_rules(rules.get(type_gene))
     

@@ -146,7 +146,7 @@ class FileFormat(Enum):
         for member in cls:
             if variantName in member.value: return member
         
-        raise PathErr(ext, f"\"{ext}\" is not a valid file extension")
+        raise ValueErr("ext", "a valid FileFormat file extension", ext)
 
     def __str__(self) -> str:
         """
@@ -197,11 +197,24 @@ class FilePath():
 
         result = re.search(r"^(?P<prefix>.*\/)?(?P<name>.*)\.(?P<ext>[^.]*)$", path)
         if not result or not result["name"] or not result["ext"]:
-            raise PathErr(path, f"cannot recognize folder structure or extension in path \"{path}\"")
+            raise PathErr(path, "cannot recognize folder structure or extension in path")
 
         prefix = result["prefix"] if result["prefix"] else ""
         return cls(result["name"], FileFormat.fromExt(result["ext"]), prefix = prefix)
     
+    def panicIfIncorrect(self, expectedExt :FileFormat) -> None:
+        if self.ext != expectedExt: raise PathErr(self, "tried opening a {expectedExt} file from a path with {self.ext} extension")
+
+    def open(self, expectedExt :FileFormat) -> str:
+        """
+        Shows the path after checking TODO:finish
+
+        Returns:
+            str: _description_
+        """
+        self.panicIfIncorrect(expectedExt)
+        return self.show()
+
     def show(self) -> str:
         """
         Shows the path as a string.
@@ -209,9 +222,9 @@ class FilePath():
         Returns:
             str : the path.
         """
-        return str(self)
+        return f"{self.prefix}{self.filePath}.{self.ext}"
     
-    def __str__(self) -> str: return f"{self.prefix}{self.filePath}.{self.ext}"
+    def __str__(self) -> str: return self.show()
 
 # ERRORS
 def terminate(msg :str) -> None:
@@ -319,11 +332,19 @@ class DataErr(CustomErr):
 
 class PathErr(CustomErr):
     """
-    CustomErr subclass for path, filename and extension formatting errors.
+    CustomErr subclass for filepath formatting errors.
     """
     errName = "Path Error"
-    def __init__(self, path :str, msg = "no further details provided") -> None:
+    def __init__(self, path :FilePath, msg = "no further details provided") -> None:
         super().__init__(f"path \"{path}\" is invalid", msg)
+
+class ValueErr(CustomErr):
+    """
+    CustomErr subclass for any value error.
+    """
+    errName = "Value Error"
+    def __init__(self, valueName: str, expected :Any, actual :Any, msg = "no further details provided") -> None:
+        super().__init__(f"value \"{valueName}\" was supposed to be {expected}, but got {actual} instead", msg)
 
 # PICKLE FILES
 def readPickle(path :FilePath) -> Any:
@@ -336,7 +357,7 @@ def readPickle(path :FilePath) -> Any:
     Returns:
         Any : the data inside a pickle file, could be anything.
     """
-    with open(path.show(), "rb") as fd: return pickle.load(fd)
+    with open(path.open(FileFormat.PICKLE), "rb") as fd: return pickle.load(fd)
 
 def writePickle(path :FilePath, data :Any) -> None:
     """
@@ -349,7 +370,7 @@ def writePickle(path :FilePath, data :Any) -> None:
     Returns:
         None
     """
-    with open(path.show(), "wb") as fd: pickle.dump(data, fd)
+    with open(path.open(FileFormat.PICKLE), "wb") as fd: pickle.dump(data, fd)
 
 # CSV FILES
 def readCsv(path :FilePath, skipHeader = True) -> List[List[str]]:
@@ -363,7 +384,26 @@ def readCsv(path :FilePath, skipHeader = True) -> List[List[str]]:
     Returns:
         List[List[str]] : list of rows from the file, each parsed as a list of strings originally separated by commas.
     """
+    # we don't .open here because it could be in DAT
     with open(path.show(), "r", newline = "") as fd: return list(csv.reader(fd))[skipHeader:]
+
+# SVG FILES
+def readSvg(path :FilePath, customErr :Optional[Exception] = None) -> ET.ElementTree:
+    """
+    Reads the contents of a .svg file, which needs to exist at the given path.
+
+    Args:
+        path : the path to the .svg file.
+    
+    Raises:
+        DataErr : if the map is malformed.
+    
+    Returns:
+        Any : the data inside a svg file, could be anything.
+    """
+    try: return ET.parse(path.show()) # we don't .open here because it could be in DAT
+    except (ET.XMLSyntaxError, ET.XMLSchemaParseError) as err:
+        raise customErr if customErr else err
 
 # UI ARGUMENTS
 class Bool:
@@ -385,41 +425,37 @@ class Model(Enum):
     Represents a metabolic model, either custom or locally supported. Custom models don't point
     to valid file paths.
     """
+
     Recon   = "Recon"
     ENGRO2  = "ENGRO2"
     HMRcore = "HMRcore"
     Custom  = "Custom" # Exists as a valid variant in the UI, but doesn't point to valid file paths.
 
-    def __call__(self, toolDir :str) -> None:
-        self.toolDir = toolDir
-        self.pathPrefix = f"{self.toolDir}/local/pickle files/"
-
-        if self is Model.Custom: return
-        self.rulesPath = FilePath(f"{self.name}_rules", FileFormat.PICKLE, prefix = self.pathPrefix)
-        self.genesPath = FilePath(f"{self.name}_genes", FileFormat.PICKLE, prefix = self.pathPrefix)
-        self.mapPath   = FilePath(f"{self.name}_map",   FileFormat.SVG,    prefix = self.pathPrefix)
-
-    def getRules(self) -> Dict[str, Dict[str, OldRule]]:
+    def getRules(self, toolDir :str, customPath :Optional[FilePath] = None) -> Dict[str, Dict[str, OldRule]]:
         """
         Open "rules" file for this model.
 
         Returns:
             Dict[str, Dict[str, OldRule]] : the rules for this model.
         """
-        return readPickle(self.rulesPath)
+        path = customPath if self is Model.Custom else FilePath(f"{self.name}_rules", FileFormat.PICKLE, prefix = f"{toolDir}/local/pickle files/")
+        if not path: raise PathErr("<<MISSING>>", "it's necessary to provide a custom path when retrieving files from a custom model") #TODO: avoid repetition
+        return readPickle(path)
     
-    def getTranslator(self) -> Dict[str, Dict[str, str]]:
+    def getTranslator(self, toolDir :str, customPath :Optional[FilePath] = None) -> Dict[str, Dict[str, str]]:
         """
         Open "gene translator (old: gene_in_rule)" file for this model.
 
         Returns:
             Dict[str, Dict[str, str]] : the translator dict for this model.
         """
-        return readPickle(self.genesPath)
+        path = customPath if self is Model.Custom else FilePath(f"{self.name}_genes", FileFormat.PICKLE, prefix = f"{toolDir}/local/pickle files/")
+        if not path: raise PathErr("<<MISSING>>", "it's necessary to provide a custom path when retrieving files from a custom model")
+        return readPickle(path)
     
-    def getMap(self) -> ET.ElementTree:
-        try: return ET.parse(self.mapPath)
-        except (ET.XMLSyntaxError, ET.XMLSchemaParseError) as err:
-            raise DataErr(self.mapPath.show(), f"custom map in wrong format: {err}")
+    def getMap(self, toolDir :str, customPath :Optional[FilePath] = None) -> ET.ElementTree:
+        path = customPath if self is Model.Custom else FilePath(f"{self.name}_map", FileFormat.SVG, prefix = f"{toolDir}/local/svg metabolic maps/")
+        if not path: raise PathErr("<<MISSING>>", "it's necessary to provide a custom path when retrieving files from a custom model")
+        return readSvg(path, customErr = DataErr(path, f"custom map in wrong format"))
 
     def __str__(self) -> str: return self.value

@@ -65,7 +65,7 @@
 
 		--choice_map '${cond_choice_map.choice_map}'
 		#if $cond_choice_map.choice_map == 'Custom':
-			--custom_map ${advanced.cond_map.custom_map}
+			--custom_map ${cond_choice_map.custom_map}
 		#end if
 		
 		#if $advanced.choice == 'true':
