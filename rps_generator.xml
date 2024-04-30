@@ -16,7 +16,7 @@
         --out_log $log	
         --rps_output $rps_output
         #if $cond_reactions.reaction_choice == 'custom'
-        	--custom $cond_reactions.custom
+        	--custom $cond_reactions.Custom_react
         #end if
         ]]>
     </command>

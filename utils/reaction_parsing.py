@@ -1,5 +1,5 @@
 from enum import Enum
-import utils.general_utils as utils
+import general_utils as utils
 from typing import Dict
 import csv
 import re
@@ -71,8 +71,11 @@ def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -
     foundCoeff = re.search(r"\d+(\.\d+)? ", word)
     if foundCoeff:
       wholeMatch  = foundCoeff.group(0)
-      metabId     = word[len(wholeMatch) + 1:].strip()
+      metabId     = word[len(wholeMatch) :].strip() # +1:]
       stoichCoeff = float(wholeMatch.strip())
+
+      print(wholeMatch)
+      print(metabId)
 
     reactionsDict[rId][metabId] = stoichCoeff
 
@@ -117,12 +120,7 @@ def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
   Returns:
     ReactionsDict : dictionary encoding custom reactions information.
   """
-  reactionsData :Dict[str, str]
-  with open(customReactionsPath, "r") as fd:
-    # We expect 2 columns: the first containing reaction ids and another with the actual reactions.
-    reactionsData = { row[0] : row[1] for row in csv.reader(fd) }
-
+  reactionsData :Dict[str, str] = {row[0]: row[1] for row in utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath))} 
   
   return create_reaction_dict(reactionsData)
-
 
