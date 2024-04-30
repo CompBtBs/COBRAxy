@@ -35,11 +35,22 @@
 
     <help>
     <![CDATA[
-Rules about rules:
-"and" and "or" rigorously in lowercase
-exactly 1 space (" ") between all words
-NO space between opening parentheses ("(") and the following word
-NO space between closing parentheses (")") and the preceding word
+What it does
+-------------
+
+This tool generates two files containing reactions and rules respectively, starting from a custom model in JSON or XML format, that can be used as inputs for the RAS and RPS generator modules.
+
+Accepted files:
+    - A model: JSON or XML file reporting reactions and rules contained in the model.   
+
+
+Output:
+-------------
+
+The tool generates:
+    - rules: reporting the rules for each reaction in the custom model given. Format: csv or pickle.
+    - reactions: reporting the reactions in the custom model given. Format: csv or pickle.
+    - a log file (.txt).
     ]]>
     </help>
     <expand macro="citations" />
