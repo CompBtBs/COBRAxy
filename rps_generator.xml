@@ -21,7 +21,7 @@
         ]]>
     </command>
     <inputs>
-        <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Abundance dataset:" />
+        <param name="input" argument="--input" type="data" format="tsv, csv" label="Abundance dataset:" />
         <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
         
         <conditional name="cond_reactions">
@@ -30,7 +30,7 @@
                 	<option value="custom">Custom reaction dataset</option>
         	</param>
             <when value="custom">
-                <param name="Custom_react" type="data" format="tabular, csv, tsv, xml, txt" label="Custom reactions" />
+                <param name="Custom_react" type="data" format="csv" label="Custom reactions" />
             </when>
         </conditional>  
     </inputs>
@@ -46,64 +46,30 @@
 What it does
 -------------
 
-This tool computes Reaction Propensity Scores from metabolite abundances and reaction datasets.
+This tool computes Reaction Propensity Scores based on the availability of reaction substrates, for (ideally) each input model reaction and for each sample. 
+The score is computed as the product of the concentrations of the reacting substances, with each concentration raised to a power equal to its stoichiometric coefficient. According to themass action law, the rate of any chemical reaction is indeed proportional to this product.
+This assumption holds as long as the substrate is in significant excess over the enzyme constant KM.
+If a metabolite is either missing in the model provided with respect to its reactions or it is present in our "black list", the RPS score is set to NaN.
+This "black list" of metabolites contains those substrates that are present in too many reactions to be significant. It is defined in the file black_list.pickle and cannot be modified by the user. 
  
 Accepted files:
-    - An abundance dataset
-    - A reaction dataset
+    - An abundance dataset: Tab-separated text file reporting the abundance value of each metabolite for each cell line in the dataset. 
+                            Column header: cell line ID. 
+                            Row header: metabolite ID.    
 
-//TODO: SISTEMARE QUESTA PARTE 
- 
-Format:
-Tab-separated text file reporting the normalized expression level (e.g., TPM, RPKM, ...) of each gene (row) for a given sample (column).
-Column header: sample ID.
-Row header: gene ID.
- 
  
 Optional files:
-    - custom GPR (Gene-Protein-Reaction) rules. Two accepted formats:
+    - Custom reaction dataset: .csv file specifying for each reaction ID the corresponding formula.
+                                First column: reaction ID
+                                Second column: reaction formula.
 
-	* (Cobra Toolbox and CobraPy compliant) xml of metabolic model;
-	* .csv file specifyig for each reaction ID (column 1) the corresponding GPR rule (column 2).
- 
-Computation option ‘(A and NaN) solved as (A)’:
-In case of missing expression value, referred to as NaN (Not a Number), for a gene joined with an AND operator in a given GPR rule, the rule ‘A and NaN’
- 
-If YES is selected: the GPR will be solved as A.
- 
-If NO is selected: the GPR will be disregarded tout-court (i.e., treated as NaN).
 
-Example input
+Output:
 -------------
 
-Custom GPR rules:
-
-+------------+--------------------------------------+   
-| id         |         rule (with entrez-id         |   
-+============+======================================+   
-| r1642      |             155060 or 10357          |   
-+------------+--------------------------------------+    
-| r1643      |        155060 or 100134869           |    
-+------------+--------------------------------------+    
-| r1640      |     155060 and 100134869 or 10357    |   
-+------------+--------------------------------------+
-
-RNA-seq dataset:
-
-+------------+----------------+----------------+----------------+ 
-| Hugo_ID    |   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
-+============+================+================+================+
-| HGNC:24086 |    0.523167    |    0.371355    |    0.925661    |  
-+------------+----------------+----------------+----------------+    
-| HGNC:24086 |    0.568765    |    0.765567    |    0.456789    |    
-+------------+----------------+----------------+----------------+    
-| HGNC:9876  |    0.876545    |    0.768933    |    0.987654    |  
-+------------+----------------+----------------+----------------+
-| HGNC:9     |    0.456788    |    0.876543    |    0.876542    |    
-+------------+----------------+----------------+----------------+    
-| HGNC:23    |    0.876543    |    0.786543    |    0.897654    |   
-+------------+----------------+----------------+----------------+
-
+The tool generates:
+    - a tab-separated file(.csv): reporting the RPS values for each reaction and each cell line in the dataset.
+    - a log file (.txt).
 ]]>
     </help>
 <expand macro="citations" />

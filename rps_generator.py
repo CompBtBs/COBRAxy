@@ -45,7 +45,7 @@ def process_args(args :List[str]) -> argparse.Namespace:
     parser.add_argument('-rp', '--rps_output',
                         type = str,
                         required = True,
-                        help = 'ras output')
+                        help = 'rps output')
     
     args = parser.parse_args()
     return args
@@ -68,7 +68,7 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
         sys.exit : if there's no data (pd.errors.EmptyDataError) or if the dataset has less than 2 columns
     """
     try:
-        dataset = pd.read_csv(data, sep = ',', header = 0, engine='python')
+        dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python')
     except pd.errors.EmptyDataError:
         sys.exit('Execution aborted: wrong format of ' + name + '\n')
     if len(dataset.columns) < 2:
@@ -97,7 +97,8 @@ def name_dataset(name_data :str, count :int) -> str:
 ############################ get_abund_data ####################################
 def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Series]:
     """
-    Extracts abundance data and turns it into a series for a specific cell line from the dataset.
+    Extracts abundance data and turns it into a series for a specific cell line from the dataset, which rows are
+    metabolites and columns are cell lines.
 
     Args:
         dataset (pandas.DataFrame): The DataFrame containing abundance data for all cell lines and metabolites.
@@ -109,14 +110,13 @@ def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Se
                            Returns None if the cell index is invalid.
     """
     if cell_line_index < 0 or cell_line_index >= len(dataset.index):
-        print(f"Errore: L'indice della cell line '{cell_line_index}' non è valido.")
+        print(f"Errore: This cell line index: '{cell_line_index}' is not valid.")
         return None
 
-    cell_line_name = dataset.iloc[cell_line_index, 0] 
-    abundances_series = dataset.iloc[cell_line_index, 1:]  
-    abundances_series.name = cell_line_name
+    cell_line_name = dataset.columns[cell_line_index]
+    abundances_series = dataset[cell_line_name][1:]
 
-    return abundances_series 
+    return abundances_series
 
 
 ############################ clean_metabolite_name ####################################
@@ -258,6 +258,7 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
         updated_abundances = update_metabolite_names(series.to_dict(), syn_dict) if flag else series.to_dict()
         abundances, missing_list = check_missing_metab(reactions, updated_abundances)
         rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))
+    
     
     output_rps = pd.DataFrame.from_dict(rps_scores)
     output_to_csv = pd.DataFrame.to_csv(output_rps, sep = '\t', index = False)
@@ -486,7 +487,7 @@ def main() -> None:
     flag = True
     if args.reaction_choice == 'default':        
         reactions = pk.load(open(args.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
-    elif args.reaction_choice == 'Custom':
+    elif args.reaction_choice == 'custom':
         reactions = parse_custom_reactions(args.custom)   
         count_reaction_number(args.custom)
         sorted_dict = get_sorted_dict(reactions)
