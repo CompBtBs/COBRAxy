@@ -1,5 +1,5 @@
 from enum import Enum
-import general_utils as utils
+import utils.general_utils as utils
 from typing import Dict
 import csv
 import re
@@ -73,9 +73,6 @@ def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -
       wholeMatch  = foundCoeff.group(0)
       metabId     = word[len(wholeMatch) :].strip() # +1:]
       stoichCoeff = float(wholeMatch.strip())
-
-      print(wholeMatch)
-      print(metabId)
 
     reactionsDict[rId][metabId] = stoichCoeff
 

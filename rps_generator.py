@@ -11,6 +11,7 @@ import pandas as pd
 from enum   import Enum
 from typing import Optional, List, Dict, Tuple
 
+import utils.general_utils as utils
 import utils.reaction_parsing as reactionUtils
 
 ########################## argparse ##########################################
@@ -51,31 +52,6 @@ def process_args(args :List[str]) -> argparse.Namespace:
     
     args = parser.parse_args()
     return args
-
-
-############################ read_dataset ####################################
-def read_dataset(data :str, name :str) -> pd.DataFrame:
-    """
-    Tries to read the dataset from its path (data) as a tsv and turns it into a DataFrame.
-
-    Args:
-        data : filepath of a dataset (from frontend input params or literals upon calling)
-        name : name associated with the dataset (from frontend input params or literals upon calling)
-
-    Returns:
-        pd.DataFrame : dataset in a runtime operable shape
-    
-    Raises:
-        sys.exit : if there's no data (pd.errors.EmptyDataError) or if the dataset has less than 2 columns
-    """
-    try:
-        dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python')
-    except pd.errors.EmptyDataError:
-        sys.exit('Execution aborted: wrong format of ' + name + '\n')
-    if len(dataset.columns) < 2:
-        sys.exit('Execution aborted: wrong format of ' + name + '\n')
-    return dataset
-
 
 ############################ dataset name #####################################
 def name_dataset(name_data :str, count :int) -> str:
@@ -276,20 +252,21 @@ def main() -> None:
         None
     """
     args = process_args(sys.argv)
-
+    # use utils functions vvv
     with open(args.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
         black_list = pk.load(bl)
 
     with open(args.tool_dir + '/local/pickle files/synonyms.pickle', 'rb') as sd:
         syn_dict = pk.load(sd)
 
-    dataset = read_dataset(args.input, "dataset")
+    dataset = utils.read_dataset(utils.FilePath.fromStrPath(args.input), "dataset")
+    #TODO: (trivial) grab actual name from UI and put into ARGS
 
-    flag = True
+    flag = True #TODO: better name pls
     if args.reaction_choice == 'default':        
         reactions = pk.load(open(args.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
     elif args.reaction_choice == 'custom':
-        reactions = reactionUtils.parse_custom_reactions(args.custom)   
+        reactions = reactionUtils.parse_custom_reactions(args.custom)
         flag = False
       
     rps_for_cell_lines(dataset, reactions, black_list, syn_dict, args.rps_output, flag)

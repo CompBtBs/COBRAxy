@@ -435,7 +435,8 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]
         
         width = Arrow.MAX_W
         if not math.isinf(foldChange):
-            width = max(abs(foldChange * Arrow.MAX_W) / maxNumericFoldChange, Arrow.MIN_W)
+            try: width = max(abs(foldChange * Arrow.MAX_W) / maxNumericFoldChange, Arrow.MIN_W)
+            except ZeroDivisionError: pass #TODO: ask about this, why can this happen? Should it?
         
         color = ArrowColor.DownRegulated if foldChange < 0 else ArrowColor.UpRegulated
         Arrow(width, color).applyTo(metabMap, reactionId)
@@ -558,9 +559,9 @@ def getResultFilesName(dataset1Name :str, dataset2Name = "rest") -> str:
     return f"{dataset1Name}_vs_{dataset2Name}"
 
 def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, comparedDatasets :str) -> None:
-    tab = f"result/{comparedDatasets} (Tabular Result).tsv"
+    tab = f"result/{comparedDatasets} (Tabular Result).tsv" #TODO: use FilePath
 
-    tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index")
+    tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index") #TODO: use csv writer
     tmp_csv = tmp_csv.reset_index()
     header = ['ids', 'P_Value', 'Log2(fold change)']
     tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
@@ -679,9 +680,9 @@ def temp_createFiles(dataset1Name :str, dataset2Name :str, core_map) -> None:
     with open(svgFilePath.show(), 'wb') as new_map: new_map.write(ET.tostring(core_map)) #TODO: use utils svg writer (needs to be implemented)
     
     if ARGS.generate_pdf: convert_to_pdf(
-        svgFilePath, f"result/{editedMapName}(PNG Map).png", f"result/{editedMapName}(PDF Map).pdf")                     
-    
-    if not ARGS.generate_svg: os.remove(svgFilePath)
+        svgFilePath.show(), f"result/{editedMapName}(PNG Map).png", f"result/{editedMapName}(PDF Map).pdf")                     
+    #TODO: finish setting up FilePaths and convert these functions to use them instead of strings
+    if not ARGS.generate_svg: os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
 def temp_RASorRPS(datasets, dataset, names) -> Tuple[List[str], ClassPat]:
@@ -716,7 +717,9 @@ def temp_doCommons(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List[s
     ids = pd.Series.tolist(resolve_rules.iloc[:, 0])
 
     resolve_rules = resolve_rules.drop(resolve_rules.columns[[0]], axis=1)
-    resolve_rules = resolve_rules.replace({'None': math.nan})
+    try: resolve_rules = resolve_rules.replace({'None': math.nan})
+    except: pass #TODO: dataframes are acoustic but this is still bad, solution: opt out of dataframes before converting
+
     resolve_rules = resolve_rules.to_dict('list')
     return { k : list(map(float, v)) for k, v in resolve_rules.items() }, ids
 
@@ -755,7 +758,12 @@ def main() -> None:
 
     if os.path.isdir('result') == False: os.makedirs('result')
     
-    core_map :ET.ElementTree = ARGS.choice_map.getMap(ARGS.tool_dir, utils.FilePath.fromStrPath(ARGS.custom_map))
+    core_map :ET.ElementTree = ARGS.choice_map.getMap(
+        ARGS.tool_dir,
+        utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
+    # TODO: ^^^ ugly but fine for now, the argument is None if the model isn't custom because no file was given.
+    # getMap will None-check the customPath and panic when the model IS custom but there's no file (good). A cleaner
+    # solution can be derived from my comment in FilePath.fromStrPath
 
     if ARGS.using_RAS:
         ids, class_pat = temp_RASorRPS(ARGS.input_datas, ARGS.input_data, ARGS.names)

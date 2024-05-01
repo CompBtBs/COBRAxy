@@ -259,7 +259,7 @@ class MatchingShape(CheckingMode):
 
             checkRes.targetName = self.objName
             return TestResult.Err(
-                f"property \"{propName}\" failed check {checkingMode}",
+                f"property \"{propName}\" failed check {checkingMode} on shape {obj}",
                 checkRes.log(isCompact = False),
                 self.objName)
 
@@ -651,22 +651,27 @@ def unit_utils() -> None:
                 ExactValue("A"), 
                 Many(ExactValue("B"), ExactValue("C")),
                 Many(ExactValue("D"), ExactValue("E"))
-        )),   
-        UnitTest(reactionUtils.create_reaction_dict, [{'shdgd': '2 pyruvate + 1 h2o <=> 1 h2o + 2 acetate', 'sgwrw': '2 co2 + 6 h2o --> 3 atp'}], 
-                 MatchingShape({
-                        "shdgd_B" : MatchingShape({
-                            "pyruvate" : ExactValue(2),
-                            "h2o" : ExactValue(1),
-                        }),
-                        "shdgd_F" : MatchingShape({
-                            "acetate" : ExactValue(2),
-                            "h2o" : ExactValue(1)
-                        }),
-                        "sgwrw" : MatchingShape({
-                            "co2" : ExactValue(2),
-                            "h20" : ExactValue(6),
-                        })
-                    }, "reaction dict")),   
+        )),
+
+        UnitTest(
+            reactionUtils.create_reaction_dict,
+            [{'shdgd': '2 pyruvate + 1 h2o <=> 1 h2o + 2 acetate', 'sgwrw': '2 co2 + 6 h2o --> 3 atp'}], 
+            MatchingShape({
+                "shdgd_B" : MatchingShape({
+                    "acetate" : ExactValue(2),
+                    "h2o" : ExactValue(1),
+                }),
+
+                "shdgd_F" : MatchingShape({
+                    "pyruvate" : ExactValue(2),
+                    "h2o" : ExactValue(1)
+                }),
+
+                "sgwrw" : MatchingShape({
+                    "co2" : ExactValue(2),
+                    "h2o" : ExactValue(6),
+                })
+            }, "reaction dict")),   
     ).testModule()
 
 def unit_ras_generator() -> None:
@@ -690,11 +695,7 @@ def unit_ras_generator() -> None:
     ).testModule()
 
 if __name__ == "__main__":
-    import utils.reaction_parsing as reactionUtils
-    print(reactionUtils.create_reaction_dict({'shdgd': '2 pyruvate + 1 h2o <=> 1 h2o + 2 acetate', 'sgwrw': '2 co2 + 6 h2o --> 3 atp'}))
-    raise Exception("This is a test")
-    
-    #unit_marea()
+    unit_marea()
     unit_custom_data_generator()
     unit_utils()
     unit_ras_generator()

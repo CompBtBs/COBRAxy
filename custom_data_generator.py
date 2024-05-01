@@ -31,7 +31,8 @@ def process_args() -> argparse.Namespace:
 
     parser.add_argument(
         "-of", "--output_format",
-        type = utils.FileFormat, default = utils.FileFormat.PICKLE,
+        # vvv I have to use .fromExt because enums in python are the plague and have been implemented by a chimpanzee.
+        type = utils.FileFormat.fromExt, default = utils.FileFormat.PICKLE,
         choices = [utils.FileFormat.CSV, utils.FileFormat.PICKLE],
         # ^^^ Not all variants are valid here, otherwise list(utils.FileFormat) would be best.
         required = True, help = "Extension of all output files")
