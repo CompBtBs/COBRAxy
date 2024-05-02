@@ -62,6 +62,11 @@ def process_args(args :List[str]) -> argparse.Namespace:
         help = 'Fold-Change threshold (default: %(default)s)')
     
     parser.add_argument(
+        "-ne", "--net",
+        type = utils.Bool("net"), default = False,
+        help = "choose if you want net enrichment for RPS")
+
+    parser.add_argument(
         '-op', '--option',
         type = str, 
         choices = ['datasets', 'dataset_class'],
@@ -573,16 +578,10 @@ def buildOutputPath(dataset1Name :str, dataset2Name = "rest", *, details = "", e
         prefix = "result")
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
-def old_writeTabularResult(enrichedScores :OldEnrichedScores, outPath :utils.FilePath) -> None:
-    tmp_csv = pd.DataFrame.from_dict(enrichedScores, orient = "index")
-    tmp_csv = tmp_csv.reset_index()
-    header = ['ids', 'P_Value', 'Log2(fold change)']
-    tmp_csv.to_csv(outPath.show(), sep = '\t', index = False, header = header)
-
-def new_writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePath) -> None:
+def writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePath) -> None:
     fieldNames = ("ids", "P_Value", "Log2(fold change)")
     with open(outPath.show(), "w", newline = "") as fd:
-        writer = csv.DictWriter(fd, fieldnames = fieldNames)
+        writer = csv.DictWriter(fd, fieldnames = fieldNames, delimiter = '\t')
         writer.writeheader()
 
         for reactId, [pValue, foldChange] in enrichedScores.items():
@@ -593,8 +592,7 @@ def new_writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.Fi
             }) #TODO: if you know a prettier way go for it! :D
 
 def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name = "rest") -> None:
-    new_writeTabularResult(
-        tmp, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
+    writeTabularResult(tmp, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
     
     if ARGS.using_RAS:
         fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
@@ -715,59 +713,46 @@ def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementT
     if not ARGS.generate_svg: os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
-def temp_RASorRPS(datasets, dataset, names) -> Tuple[List[str], ClassPat]:
+def getClassesAndIdsFromDatasets(datasets, dataset, names) -> Tuple[List[str], ClassPat]:
     class_pat :ClassPat = {}
-    if ARGS.option == 'datasets': return temp_optionDatasets(class_pat, datasets, names), class_pat
-    return temp_optionDatasetClasses(class_pat, dataset, "RAS")
-
-def temp_optionDatasets(class_pat, datasets, names) -> List[str]:
-    num = 1
-    for i, j in zip(datasets, names):
-        name = name_dataset(j, num)
-        resolve_rules_float, ids = temp_doCommons(i, name)
+    if ARGS.option == 'datasets':
+        num = 1
+        for i, j in zip(datasets, names):
+            name = name_dataset(j, num)
+            resolve_rules_float, ids = getDatasetValues(i, name)
+            print(resolve_rules_float, f"ids:{ids}")
+            if resolve_rules_float != None:
+                class_pat[name] = list(map(list, zip(*resolve_rules_float.values())))
         
-        if resolve_rules_float != None:
-            class_pat[name] = list(map(list, zip(*resolve_rules_float.values())))
-    
-        num += 1
-    
-    return ids
-    
-def temp_optionDatasetClasses(class_pat, dataset, name) -> Tuple[List[str], ClassPat]:
-    resolve_rules_float, ids = temp_doCommons(dataset, name)
+            num += 1
+      
+    elif ARGS.option == "dataset_class":
+        classes = read_dataset(ARGS.input_class, "class")
+        classes = classes.astype(str)
 
-    classes = read_dataset(ARGS.input_class, 'class')
-    classes = classes.astype(str)
-    if resolve_rules_float != None: class_pat = split_class(classes, resolve_rules_float)
+        resolve_rules_float, ids = getDatasetValues(dataset, name)
+        if resolve_rules_float != None: class_pat = split_class(classes, resolve_rules_float)
+    
     return ids, class_pat
+    #^^^ TODO: this could be a match statement over an enum, make it happen future marea dev with python 3.12! (it's why I kept the ifs)
 
-def temp_doCommons(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List[str]]:
-    resolve_rules = read_dataset(datasetPath, datasetName)   
-    resolve_rules.iloc[:, 0] = (resolve_rules.iloc[:, 0]).astype(str)
-    ids = pd.Series.tolist(resolve_rules.iloc[:, 0])
+#TODO: create these damn args as FilePath objects
+def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List[str]]:
+    """
+    Opens the dataset at the given path and extracts the values (expected nullable numerics) and the IDs.
 
-    resolve_rules = resolve_rules.drop(resolve_rules.columns[[0]], axis=1)
-    try: resolve_rules = resolve_rules.replace({'None': math.nan})
-    except: pass #TODO: dataframes are acoustic but this is still bad, solution: opt out of dataframes before converting
+    Args:
+        datasetPath : path to the dataset
+        datasetName (str): dataset name, used in error reporting
 
-    resolve_rules = resolve_rules.to_dict('list')
-    return { k : list(map(float, v)) for k, v in resolve_rules.items() }, ids
+    Returns:
+        Tuple[ClassPat, List[str]]: values and IDs extracted from the dataset
+    """
+    dataset = read_dataset(datasetPath, datasetName)
+    IDs = pd.Series.tolist(dataset.iloc[:, 0].astype(str))
 
-def temp_writeAllFiles(core_map :ET.ElementTree, class_pat :ClassPat) -> None:
-    if ARGS.comparison == "manyvsmany":
-        for i, j in it.combinations(class_pat.keys(), 2):
-            createOutputMaps(i, j, core_map)
-        return
-    
-    if ARGS.comparison == "onevsrest":
-        for single_cluster in class_pat.keys():
-            createOutputMaps(single_cluster, "rest", core_map)
-        
-        return
-    
-    for otherDataset in class_pat.keys():
-        if otherDataset == ARGS.control: continue
-        createOutputMaps(i, j, core_map)
+    dataset = dataset.drop(dataset.columns[0], axis = "columns").to_dict("list")
+    return { id : list(map(utils.Float("Dataset values, not an argument"), values)) for id, values in dataset.items() }, IDs
 
 ############################ MAIN #############################################
 def main() -> None:
@@ -793,22 +778,32 @@ def main() -> None:
     # solution can be derived from my comment in FilePath.fromStrPath
 
     if ARGS.using_RAS:
-        ids, class_pat = temp_RASorRPS(ARGS.input_datas, ARGS.input_data, ARGS.names)
+        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.names)
         maps(core_map, class_pat, ids)
     
     if ARGS.using_RPS:
-        ids, class_pat = temp_RASorRPS(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.names_rps)
+        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.names_rps)
         maps(core_map, class_pat, ids)
     
-    temp_writeAllFiles(core_map, class_pat)
-    print('Execution succeded')
+    # create output files: TODO: this is the same comparison happening in "maps", find a better way to organize this
+    if ARGS.comparison == "manyvsmany":
+        for i, j in it.combinations(class_pat.keys(), 2): createOutputMaps(i, j, core_map)
+        return
+    
+    if ARGS.comparison == "onevsrest":
+        for single_cluster in class_pat.keys(): createOutputMaps(single_cluster, "rest", core_map)
+        return
+    
+    for otherDataset in class_pat.keys():
+        if otherDataset != ARGS.control: createOutputMaps(i, j, core_map)
 
     if not ERRORS: return
     utils.logWarning(
         f"The following reaction IDs were mentioned in the dataset but weren't found in the map: {ERRORS}",
         ARGS.out_log)
+    
+    print('Execution succeded')
 
 ###############################################################################
-
 if __name__ == "__main__":
     main()

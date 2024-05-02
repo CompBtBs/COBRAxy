@@ -230,7 +230,7 @@ def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, i
     """
     rps_scores=[]
     
-    for (_, series) in dataframe.iterrows():
+    for (_, series) in dataframe.iterrows(): #TODO: what is this iterating over?
         updated_abundances = update_metabolite_names(series.to_dict(), syn_dict) if flag else series.to_dict()
         abundances, missing_list = check_missing_metab(reactions, updated_abundances)
         rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))

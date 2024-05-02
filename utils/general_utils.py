@@ -1,3 +1,4 @@
+import math
 import re
 import sys
 import csv
@@ -369,7 +370,7 @@ def read_dataset(path :FilePath, datasetName = "Dataset (not actual file name!)"
     # hard to implement anything better. Also, this function's name advertizes it as a dataset-specific operation and
     # contains dubious responsibility (how many columns..) while being a file-opening function instead. My suggestion is
     # TODO: stop using dataframes ever at all in anything and find a way to have tight control over file extensions.
-    try: dataset = pd.read_csv(path.show(), sep = '\t', header = 0, engine = "python")
+    try: dataset = pd.read_csv(path.show(), sep = '\t', header = None, engine = "python")
     except:
         try: dataset = pd.read_csv(path.show(), sep = ',', header = 0, engine = "python")
         except Exception as err: raise DataErr(datasetName, f"encountered empty or wrongly formatted data: {err}")
@@ -459,6 +460,19 @@ class Bool:
         if s == "false": return False
         raise ArgsErr(self.argName, "boolean string (true or false, not case sensitive)", f"\"{s}\"")
 
+class Float:
+    def __init__(self, argName :str) -> None:
+        self.argName = argName
+    
+    def __call__(self, s :str) -> float: return self.check(s)
+
+    def check(self, s :str) -> float:
+        try: return float(s)
+        except ValueError:
+            s = s.lower()
+            if s == "nan" or s == "none": return math.nan
+            raise ArgsErr(self.argName, "numeric string or \"None\" or \"NaN\" (not case sensitive)", f"\"{s}\"")
+
 # MODELS
 OldRule = List[Union[str, "OldRule"]]
 class Model(Enum):
@@ -472,6 +486,9 @@ class Model(Enum):
     HMRcore = "HMRcore"
     Custom  = "Custom" # Exists as a valid variant in the UI, but doesn't point to valid file paths.
 
+    def __raiseMissingPathErr(self, path :Optional[FilePath]) -> None:
+        if not path: raise PathErr("<<MISSING>>", "it's necessary to provide a custom path when retrieving files from a custom model")
+
     def getRules(self, toolDir :str, customPath :Optional[FilePath] = None) -> Dict[str, Dict[str, OldRule]]:
         """
         Open "rules" file for this model.
@@ -480,7 +497,7 @@ class Model(Enum):
             Dict[str, Dict[str, OldRule]] : the rules for this model.
         """
         path = customPath if self is Model.Custom else FilePath(f"{self.name}_rules", FileFormat.PICKLE, prefix = f"{toolDir}/local/pickle files/")
-        if not path: raise PathErr("<<MISSING>>", "it's necessary to provide a custom path when retrieving files from a custom model") #TODO: avoid repetition
+        self.__raiseMissingPathErr(path)
         return readPickle(path)
     
     def getTranslator(self, toolDir :str, customPath :Optional[FilePath] = None) -> Dict[str, Dict[str, str]]:
@@ -491,12 +508,12 @@ class Model(Enum):
             Dict[str, Dict[str, str]] : the translator dict for this model.
         """
         path = customPath if self is Model.Custom else FilePath(f"{self.name}_genes", FileFormat.PICKLE, prefix = f"{toolDir}/local/pickle files/")
-        if not path: raise PathErr("<<MISSING>>", "it's necessary to provide a custom path when retrieving files from a custom model")
+        self.__raiseMissingPathErr(path)
         return readPickle(path)
     
     def getMap(self, toolDir :str, customPath :Optional[FilePath] = None) -> ET.ElementTree:
         path = customPath if self is Model.Custom else FilePath(f"{self.name}_map", FileFormat.SVG, prefix = f"{toolDir}/local/svg metabolic maps/")
-        if not path: raise PathErr("<<MISSING>>", "it's necessary to provide a custom path when retrieving files from a custom model")
+        self.__raiseMissingPathErr(path)
         return readSvg(path, customErr = DataErr(path, f"custom map in wrong format"))
 
     def __str__(self) -> str: return self.value

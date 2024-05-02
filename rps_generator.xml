@@ -21,7 +21,7 @@
         ]]>
     </command>
     <inputs>
-        <param name="input" argument="--input" type="data" format="tsv, csv" label="Abundance dataset:" />
+        <param name="input" argument="--input" type="data" format="tabular, tsv, csv" label="Abundance dataset:" />
         <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
         
         <conditional name="cond_reactions">
