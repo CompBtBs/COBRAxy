@@ -1,13 +1,10 @@
 from __future__ import division
 # galaxy complains this ^^^ needs to be at the very beginning of the file, for some reason.
-import csv
 import sys
-import json
 import argparse
 import collections
 import pandas as pd
 import pickle as pk
-from enum import Enum
 import utils.general_utils as utils
 import utils.rule_parsing as ruleUtils
 from typing import Union, Optional, List, Dict, Tuple, TypeVar
@@ -67,21 +64,6 @@ def process_args() -> argparse.Namespace:
     
     return parser.parse_args()
 
-########################### warning ###########################################
-def warning(s :str) -> None:
-    """
-    Log a warning message to an output log file and print it to the console.
-
-    Args:
-        s (str): The warning message to be logged and printed.
-    
-    Returns:
-        None
-    """
-    args = process_args()
-    with open(args.out_log, 'a') as log:
-            log.write(s)
-            
 ############################ dataset input ####################################
 def read_dataset(data :str, name :str) -> pd.DataFrame:
     """
@@ -106,23 +88,6 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
         sys.exit('Execution aborted: wrong format of ' + name + '\n')
     return dataset
 
-############################ dataset name #####################################
-def name_dataset(name_data :str, count :int) -> str:
-    """
-    Produces a unique name for a dataset based on what was provided by the user. The default name for any dataset is "Dataset", thus if the user didn't change it this function appends f"_{count}" to make it unique.
-
-    Args:
-        name_data : name associated with the dataset (from frontend input params)
-        count : counter from 1 to make these names unique (external)
-
-    Returns:
-        str : the name made unique
-    """
-    if str(name_data) == 'Dataset':
-        return str(name_data) + '_' + str(count)
-    else:
-        return str(name_data)
-    
 ############################ load id e rules ##################################
 def load_id_rules(reactions :Dict[str, Dict[str, List[str]]]) -> Tuple[List[str], List[Dict[str, List[str]]]]:
     """
@@ -236,8 +201,58 @@ def check_entrez(l :str) -> bool:
         return l.isdigit()
     else: 
         return False
+
+############################ gene #############################################
+def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Optional[Dict[str, str]]) -> Dict[str, str]:
+    """
+    Process gene data to ensure correct formatting and handle duplicates.
+
+    Args:
+        gene (DataFrame): DataFrame containing gene data.
+        type_gene (str): Type of gene data (e.g., 'hugo_id', 'ensembl_gene_id', 'symbol', 'entrez_id').
+        name (str): Name of the dataset.
+        gene_custom (dict or None): Custom gene data dictionary if provided.
+
+    Returns:
+        dict: A dictionary containing gene data with gene IDs as keys and corresponding values.
+    """
+    args = process_args()    
+    for i in range(len(gene)):
+        tmp = gene.iloc[i, 0]
+        if tmp.startswith(' ') or tmp.endswith(' '):
+            gene.iloc[i, 0] = (tmp.lstrip()).rstrip()
+    gene_dup = [item for item, count in 
+               collections.Counter(gene[gene.columns[0]]).items() if count > 1]
+    pat_dup = [item for item, count in 
+               collections.Counter(list(gene.columns)).items() if count > 1]
+
+    if gene_dup:
+        if gene_custom == None:
+            if args.rules_selector == 'HMRcore':
+                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_genes.p', 'rb'))
+            
+            elif args.rules_selector == 'Recon':
+                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/Recon_genes.p', 'rb'))
+            
+            elif args.rules_selector == 'ENGRO2':
+                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
+            
+            gene_in_rule = gene_in_rule.get(type_gene)
+        
+        else:
+            gene_in_rule = gene_custom
+        tmp = []
+        for i in gene_dup:
+            if gene_in_rule.get(i) == 'ok':
+                tmp.append(i)
+        if tmp:
+            sys.exit('Execution aborted because gene ID '
+                     +str(tmp)+' in '+name+' is duplicated\n')
     
-############################ resolve_methods ##################################
+    if pat_dup: utils.logWarning(f"Warning: duplicated label\n{pat_dup} in {name}", ARGS.out_log)
+    return (gene.set_index(gene.columns[0])).to_dict()
+
+############################ resolve ##########################################
 def replace_gene_value(l :str, d :str) -> Tuple[Union[int, float], list]:
     """
     Replace gene identifiers with corresponding values from a dictionary.
@@ -409,340 +424,6 @@ def control_list(ris, l :List[Optional[Union[float, int, list]]], cn :bool) -> O
             return False
     return ris
 
-############################ make recon #######################################
-def check_and_doWord(l :List[str]) -> Union[bool, tuple]: 
-    """
-    Check and parse intems in the input list, removing spaces and checking brackets.
-
-    Args:
-        l (list): List of characters representing words.
-
-    Returns:
-        tuple: A tuple containing two lists: the first list contains the parsed words and operators, the second list contains only the gene identifiers.
-        False: if the brackets are not balanced.
-    """
-    tmp = []
-    tmp_genes = []
-    count = 0
-    while l:
-        if count >= 0:
-            if l[0] == '(':
-                count += 1
-                tmp.append(l[0])
-                l.pop(0)
-            elif l[0] == ')':
-                count -= 1
-                tmp.append(l[0])
-                l.pop(0)
-            elif l[0] == ' ':
-                l.pop(0)
-            else:
-                word = []
-                while l:
-                    if l[0] in [' ', '(', ')']:
-                        break
-                    else:
-                        word.append(l[0])
-                        l.pop(0)
-                word = ''.join(word)
-                tmp.append(word)
-                if not(word in ['or', 'and']):
-                    tmp_genes.append(word)
-        else:
-            return False
-    if count == 0:
-        return (tmp, tmp_genes)
-    else:
-        return False
-
-def brackets_to_list(l :List[str]) -> List[str]:
-    """
-    Convert expression inside brackets to the correct list format.
-
-    Args:
-        l (list): List representing an expression containing brackets.
-
-    Returns:
-        list: List representing the expression without brackets.
-    """
-    tmp = []
-    while l:
-        if l[0] == '(':
-            l.pop(0)
-            tmp.append(resolve_brackets(l))
-        else:
-            tmp.append(l[0])
-            l.pop(0)
-    return tmp
-
-def resolve_brackets(l :List[str]) -> List[str]:
-    """
-    Resolve expression inside brackets.
-
-    Args:
-        l (list): List representing an expression containing brackets.
-
-    Returns:
-        list: List representing the resolved expression.
-    """
-    tmp = []
-    while l[0] != ')':
-        if l[0] == '(':
-            l.pop(0)
-            tmp.append(resolve_brackets(l))
-        else:
-            tmp.append(l[0])
-            l.pop(0)
-    l.pop(0)
-    return tmp
-
-def priorityAND(l :List[str]) -> List[str]:
-    """
-    Prioritize the 'and' operator over 'or'. It creates a boolean expression assigning priority to 'and' operator
-    over the 'or'. It returns a modified list in which 'and' operators are run before the 'or' ones.
-
-    Args:
-        l (list): List representing an expression.
-
-    Returns:
-        list: List with 'and' operations having higher priority over 'or'.
-    """
-    tmp = []
-    flag = True
-    while l:
-        if len(l) == 1:
-            if isinstance(l[0], list):
-                tmp.append(priorityAND(l[0]))
-            else:
-                tmp.append(l[0])
-            l = l[1:]
-        elif l[0] == 'or':
-            tmp.append(l[0])
-            flag = False
-            l = l[1:]
-        elif l[1] == 'or':
-            if isinstance(l[0], list): 
-                tmp.append(priorityAND(l[0]))
-            else:
-                tmp.append(l[0])
-            tmp.append(l[1])
-            flag = False
-            l = l[2:]
-        elif l[1] == 'and':
-            tmpAnd = []
-            if isinstance(l[0], list): 
-                tmpAnd.append(priorityAND(l[0]))
-            else:
-                tmpAnd.append(l[0])
-            tmpAnd.append(l[1])
-            if isinstance(l[2], list): 
-                tmpAnd.append(priorityAND(l[2]))
-            else:
-                tmpAnd.append(l[2])
-            l = l[3:]
-            while l:
-                if l[0] == 'and':
-                    tmpAnd.append(l[0])
-                    if isinstance(l[1], list): 
-                        tmpAnd.append(priorityAND(l[1]))
-                    else:
-                        tmpAnd.append(l[1])
-                    l = l[2:]
-                elif l[0] == 'or':
-                    flag = False
-                    break
-            if flag == True: #when there are only AND in list
-                tmp.extend(tmpAnd)
-            elif flag == False:
-                tmp.append(tmpAnd)
-    return tmp
-
-def checkRule(l :List[str]) -> bool:
-    """
-    Check if the expression follows the rule format.
-
-    Args:
-        l (list): List representing an expression.
-
-    Returns:
-        bool: True if the expression follows the rule format, False otherwise.
-    """
-    if len(l) == 1:
-        if isinstance(l[0], list):
-            if checkRule(l[0]) is False:
-                return False
-    elif len(l) > 2:
-        if checkRule2(l) is False:
-            return False
-    else:
-        return False
-    return True
-
-def checkRule2(l :List[str]) -> bool:
-    """
-    Check if the expression follows the rule format.
-
-    Args:
-        l (list): List representing an expression.
-
-    Returns:
-        bool: True if the expression follows the rule format, False otherwise.
-    """
-    while l:
-        if len(l) == 1:
-            return False
-        elif isinstance(l[0], list) and l[1] in ['and', 'or']:
-            if checkRule(l[0]) is False:
-                return False
-            if isinstance(l[2], list):
-                if checkRule(l[2]) is False:
-                    return False
-            l = l[3:]
-        elif l[1] in ['and', 'or']:
-            if isinstance(l[2], list):
-                if checkRule(l[2]) is False:
-                    return False
-            l = l[3:]
-        elif l[0] in ['and', 'or']:
-            if isinstance(l[1], list):
-                if checkRule(l[1]) is False:
-                    return False
-            l = l[2:]
-        else:
-            return False
-    return True
-
-def do_rules(rules :List[str]) -> Tuple[List[str], List[str]]:
-    """
-    Process a list of rules.
-
-    Args:
-        rules (list): List of strings representing rules.
-
-    Returns:
-        tuple: A tuple containing:
-              split_rules (list): List of structured rules.
-              gene_in_rule (list): List containing genes found in the rules.
-    """
-    split_rules = []
-    err_rules = []
-    tmp_gene_in_rule = []
-    for i in range(len(rules)):
-        tmp = list(rules[i])
-        if tmp:
-            tmp, tmp_genes = check_and_doWord(tmp)
-            tmp_gene_in_rule.extend(tmp_genes)
-            if tmp is False:
-                split_rules.append([])
-                err_rules.append(rules[i])
-            else:
-                tmp = brackets_to_list(tmp)
-                if checkRule(tmp):
-                    split_rules.append(priorityAND(tmp))
-                else:
-                    split_rules.append([])
-                    err_rules.append(rules[i])
-        else:
-            split_rules.append([])
-    if err_rules:
-        warning('Warning: wrong format rule in ' + str(err_rules) + '\n')
-    return (split_rules, list(set(tmp_gene_in_rule)))
-
-def make_recon(data) -> Tuple[List[str], List[str], Dict[str, str]]:
-    """
-    Read reaction rules from a given dataset, process them using the `do_rules` function,
-    and return the IDs of reactions, structured rules, and a dictionary of genes found in the rules.
-
-    Args:
-        data (str): Path to the dataset file.
-
-    Returns:
-        tuple: A tuple containing:
-            - ids (list): List of reaction IDs.
-            - split_rules (list): List of structured rules.
-            - gene_in_rule (dict): Dictionary containing genes found in the rules.
-    """
-    try:
-        import cobra as cb
-        import warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            recon = cb.io.read_sbml_model(data)
-        react = recon.reactions
-        rules = [react[i].gene_reaction_rule for i in range(len(react))]
-        ids = [react[i].id for i in range(len(react))]
-    except:
-        try:
-            data = (pd.read_csv(data, sep = '\t', dtype = str, engine='python')).fillna('')
-            if len(data.columns) < 2:
-                sys.exit('Execution aborted: wrong format of '+
-                         'custom datarules\n')
-            if len(data.columns) > 2:
-                warning('Warning: more than 2 columns in custom datarules.\n' +
-                        'Extra columns have been disregarded\n')
-            ids = list(data.iloc[:, 0])
-            rules = list(data.iloc[:, 1])
-        except pd.errors.EmptyDataError:
-            sys.exit('Execution aborted: wrong format of custom datarules\n')
-        except pd.errors.ParserError:
-            sys.exit('Execution aborted: wrong format of custom datarules\n')            
-    split_rules, tmp_genes = do_rules(rules)
-    gene_in_rule = { gene : "ok" for gene in tmp_genes }
-    return (ids, split_rules, gene_in_rule)
-
-############################ gene #############################################
-def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Optional[Dict[str, str]]) -> Dict[str, str]:
-    """
-    Process gene data to ensure correct formatting and handle duplicates.
-
-    Args:
-        gene (DataFrame): DataFrame containing gene data.
-        type_gene (str): Type of gene data (e.g., 'hugo_id', 'ensembl_gene_id', 'symbol', 'entrez_id').
-        name (str): Name of the dataset.
-        gene_custom (dict or None): Custom gene data dictionary if provided.
-
-    Returns:
-        dict: A dictionary containing gene data with gene IDs as keys and corresponding values.
-    """
-    args = process_args()    
-    for i in range(len(gene)):
-        tmp = gene.iloc[i, 0]
-        if tmp.startswith(' ') or tmp.endswith(' '):
-            gene.iloc[i, 0] = (tmp.lstrip()).rstrip()
-    gene_dup = [item for item, count in 
-               collections.Counter(gene[gene.columns[0]]).items() if count > 1]
-    pat_dup = [item for item, count in 
-               collections.Counter(list(gene.columns)).items() if count > 1]
-
-    if gene_dup:
-        if gene_custom == None:
-            if args.rules_selector == 'HMRcore':
-                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_genes.p', 'rb'))
-            
-            elif args.rules_selector == 'Recon':
-                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/Recon_genes.p', 'rb'))
-            
-            elif args.rules_selector == 'ENGRO2':
-                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
-            
-            gene_in_rule = gene_in_rule.get(type_gene)
-        
-        else:
-            gene_in_rule = gene_custom
-        tmp = []
-        for i in gene_dup:
-            if gene_in_rule.get(i) == 'ok':
-                tmp.append(i)
-        if tmp:
-            sys.exit('Execution aborted because gene ID '
-                     +str(tmp)+' in '+name+' is duplicated\n')
-    if pat_dup:
-        warning('Warning: duplicated label\n' + str(pat_dup) + 'in ' + name + 
-                '\n')
-        
-    return (gene.set_index(gene.columns[0])).to_dict()
-
-############################ resolve ##########################################
 ResolvedRules = Dict[str, List[Optional[Union[float, int]]]]
 def resolve(genes: Dict[str, str], rules: List[str], ids: List[str], resolve_none: bool, name: str) -> Tuple[Optional[ResolvedRules], Optional[list]]:
     """
@@ -778,14 +459,17 @@ def resolve(genes: Dict[str, str], rules: List[str], ids: List[str], resolve_non
             else:
                 tmp_resolve.append(None)    
         resolve_rules[key] = tmp_resolve
+    
     if flag is False:
-        warning('Warning: no computable score (due to missing gene values)' +
-                'for class ' + name + ', the class has been disregarded\n')
+        utils.logWarning(
+            f"Warning: no computable score (due to missing gene values) for class {name}, the class has been disregarded",
+            ARGS.out_log)
+        
         return (None, None)
+    
     return (resolve_rules, list(set(not_found)))
-
 ############################ create_ras #######################################
-def create_ras (resolve_rules: Optional[ResolvedRules], dataset_name: str, rules: List[str], ids: List[str], file: str) -> None:
+def create_ras(resolve_rules: Optional[ResolvedRules], dataset_name: str, rules: List[str], ids: List[str], file: str) -> None:
     """
     Create a RAS (Reaction Activity Score) file from resolved rules.
 
@@ -798,8 +482,8 @@ def create_ras (resolve_rules: Optional[ResolvedRules], dataset_name: str, rules
     Returns:
         None
     """
-    if resolve_rules == None:
-        warning("Couldn't generate RAS for current dataset: " + dataset_name)
+    if resolve_rules is None:
+        utils.logWarning(f"Couldn't generate RAS for current dataset: {dataset_name}", ARGS.out_log)
 
     for geni in resolve_rules.values():
         for i, valori in enumerate(geni):
@@ -926,6 +610,7 @@ def save_as_tsv(rasScores: Dict[str, Dict[str, Ras]], reactions :List[str]) -> N
     output_ras.to_csv(ARGS.ras_output, sep = '\t', index = False)
 
 ############################ MAIN #############################################
+#TODO: not used but keep, it will be when the new translator dicts will be used.
 def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[str, str]]) -> str:
     """
     Translate gene from any supported encoding to HugoID.
