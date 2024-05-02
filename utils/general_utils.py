@@ -125,9 +125,15 @@ class FileFormat(Enum):
     """
     DAT    = ("dat",) # this is how galaxy treats all your files!
     CSV    = ("csv",) # this is how most editable input data is written
+    TSV    = ("tsv",) # this is how most editable input data is ACTUALLY written TODO:more support pls!!
+    
     SVG    = ("svg",) # this is how most metabolic maps are written
+    PNG    = ("png",) # this is a common output format for images (such as metabolic maps)
+    PDF    = ("pdf",) # this is also a common output format for images, as it's required in publications.
+
     XML    = ("xml",) # this is one main way cobra models appear in
     JSON   = ("json",) # this is the other
+    
     PICKLE = ("pickle", "pk", "p") # this is how all runtime data structures are saved
 
     @classmethod
@@ -426,6 +432,19 @@ def readSvg(path :FilePath, customErr :Optional[Exception] = None) -> ET.Element
     try: return ET.parse(path.show())
     except (ET.XMLSyntaxError, ET.XMLSchemaParseError) as err:
         raise customErr if customErr else err
+
+def writeSvg(path :FilePath, data:ET.ElementTree) -> None:
+    """
+    Saves svg data opened with lxml.etree in a .svg file, created at the given path.
+
+    Args:
+        path : the path to the .svg file.
+        data : the data to be written to the file.
+    
+    Returns:
+        None
+    """
+    with open(path.show(), "wb") as fd: fd.write(ET.tostring(data))
 
 # UI ARGUMENTS
 class Bool:

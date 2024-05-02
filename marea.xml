@@ -194,7 +194,7 @@ Accepted files are:
 RAS datasets format: tab-separated text files, reporting the RAS value of each reaction (row) for a given sample (column).
 
 Column header: sample ID.
-Raw header: reaction ID. 
+Row header: reaction ID. 
 
 Optional files:
     - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.

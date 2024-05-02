@@ -1,4 +1,5 @@
 from __future__ import division
+import csv
 from enum import Enum
 import re
 import sys
@@ -436,7 +437,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]
         width = Arrow.MAX_W
         if not math.isinf(foldChange):
             try: width = max(abs(foldChange * Arrow.MAX_W) / maxNumericFoldChange, Arrow.MIN_W)
-            except ZeroDivisionError: pass #TODO: ask about this, why can this happen? Should it?
+            except ZeroDivisionError: pass
         
         color = ArrowColor.DownRegulated if foldChange < 0 else ArrowColor.UpRegulated
         Arrow(width, color).applyTo(metabMap, reactionId)
@@ -477,7 +478,7 @@ def split_class(classes :pd.DataFrame, resolve_rules :Dict[str, List[float]]) ->
 
 ############################ conversion ##############################################
 #conversion from svg to png 
-def svg_to_png_with_background(svg_path :str, png_path :str, dpi :int = 72, scale :int = 1, size :Optional[float] = None) -> None:
+def svg_to_png_with_background(svg_path :utils.FilePath, png_path :utils.FilePath, dpi :int = 72, scale :int = 1, size :Optional[float] = None) -> None:
     """
     Internal utility to convert an SVG to PNG (forced opaque) to aid in PDF conversion.
 
@@ -492,11 +493,11 @@ def svg_to_png_with_background(svg_path :str, png_path :str, dpi :int = 72, scal
         None
     """
     if size:
-        image = pyvips.Image.new_from_file(svg_path, dpi=dpi, scale=1)
+        image = pyvips.Image.new_from_file(svg_path.show(), dpi=dpi, scale=1)
         scale = size / image.width
         image = image.resize(scale)
     else:
-        image = pyvips.Image.new_from_file(svg_path, dpi=dpi, scale=scale)
+        image = pyvips.Image.new_from_file(svg_path.show(), dpi=dpi, scale=scale)
 
     white_background = pyvips.Image.black(image.width, image.height).new_from_image([255, 255, 255])
     white_background = white_background.affine([scale, 0, 0, scale])
@@ -505,11 +506,11 @@ def svg_to_png_with_background(svg_path :str, png_path :str, dpi :int = 72, scal
         white_background = white_background.extract_band(0)
 
     composite_image = white_background.composite2(image, 'over')
-    composite_image.write_to_file(png_path)
+    composite_image.write_to_file(png_path.show())
 
 #funzione unica, lascio fuori i file e li passo in input
 #conversion from png to pdf
-def convert_png_to_pdf(png_file :str, pdf_file :str) -> None:
+def convert_png_to_pdf(png_file :utils.FilePath, pdf_file :utils.FilePath) -> None:
     """
     Internal utility to convert a PNG to PDF to aid from SVG conversion.
 
@@ -520,12 +521,12 @@ def convert_png_to_pdf(png_file :str, pdf_file :str) -> None:
     Returns:
         None
     """
-    image = Image.open(png_file)
+    image = Image.open(png_file.show())
     image = image.convert("RGB")
-    image.save(pdf_file, "PDF", resolution=100.0)
+    image.save(pdf_file.show(), "PDF", resolution=100.0)
 
 #function called to reduce redundancy in the code
-def convert_to_pdf(file_svg :str, file_png :str, file_pdf :str) -> None:
+def convert_to_pdf(file_svg :utils.FilePath, file_png :utils.FilePath, file_pdf :utils.FilePath) -> None:
     """
     Converts the SVG map at the provided path to PDF.
 
@@ -540,31 +541,60 @@ def convert_to_pdf(file_svg :str, file_png :str, file_pdf :str) -> None:
     svg_to_png_with_background(file_svg, file_png)
     try:
         convert_png_to_pdf(file_png, file_pdf)
-        print(f'PDF file {file_pdf} successfully generated.')
+        print(f'PDF file {file_pdf.filePath} successfully generated.')
+    
     except Exception as e:
-        print(f'Error generating PDF file: {e}')
+        raise utils.DataErr(file_pdf.show(), f'Error generating PDF file: {e}')
 
 ############################ map ##############################################
-def getResultFilesName(dataset1Name :str, dataset2Name = "rest") -> str:
+def buildOutputPath(dataset1Name :str, dataset2Name = "rest", *, details = "", ext :utils.FileFormat) -> utils.FilePath:
     """
-    Returns a string showcasing the comparison applied to two datasets, meant to be used as part of the output files' name.
+    Builds a FilePath instance from the names of confronted datasets ready to point to a location in the
+    "result/" folder, used by this tool for output files in collections.
 
     Args:
-        dataset1Name : name of the first dataset
-        dataset2Name : name of the second dataset
+        dataset1Name : _description_
+        dataset2Name : _description_. Defaults to "rest".
+        details : _description_
+        ext : _description_
 
     Returns:
-        str : the comparison string.
+        utils.FilePath : _description_
     """
-    return f"{dataset1Name}_vs_{dataset2Name}"
+    # This function returns a util data structure but is extremely specific to this module.
+    # RAS also uses collections as output and as such might benefit from a method like this, but I'd wait
+    # TODO: until a third tool with multiple outputs appears before porting this to utils.
+    return utils.FilePath(
+        f"{dataset1Name}_vs_{dataset2Name}" + (f" ({details})" if details else ""),
+        # ^^^ yes this string is built every time even if the form is the same for the same 2 datasets in
+        # all output files: I don't care, this was never the performance bottleneck of the tool and
+        # there is no other net gain in saving and re-using the built string.
+        ext,
+        prefix = "result")
 
-def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, comparedDatasets :str) -> None:
-    tab = f"result/{comparedDatasets} (Tabular Result).tsv" #TODO: use FilePath
-
-    tmp_csv = pd.DataFrame.from_dict(tmp, orient = "index") #TODO: use csv writer
+OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
+def old_writeTabularResult(enrichedScores :OldEnrichedScores, outPath :utils.FilePath) -> None:
+    tmp_csv = pd.DataFrame.from_dict(enrichedScores, orient = "index")
     tmp_csv = tmp_csv.reset_index()
     header = ['ids', 'P_Value', 'Log2(fold change)']
-    tmp_csv.to_csv(tab, sep = '\t', index = False, header = header)
+    tmp_csv.to_csv(outPath.show(), sep = '\t', index = False, header = header)
+
+def new_writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePath) -> None:
+    fieldNames = ("ids", "P_Value", "Log2(fold change)")
+    with open(outPath.show(), "w", newline = "") as fd:
+        writer = csv.DictWriter(fd, fieldnames = fieldNames)
+        writer.writeheader()
+
+        for reactId, [pValue, foldChange] in enrichedScores.items():
+            writer.writerow({
+                fieldNames[0] : reactId,
+                fieldNames[1] : pValue,
+                fieldNames[2] : foldChange
+            }) #TODO: if you know a prettier way go for it! :D
+
+def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name = "rest") -> None:
+    new_writeTabularResult(
+        tmp, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
     
     if ARGS.using_RAS:
         fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
@@ -597,7 +627,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
     """
     class_pat = { k.strip() : v for k, v in class_pat.items() }
     if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
-
+    #TODO: below is some repeated code that should be abstracted out
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
             tmp :Dict[str, List[Union[float, FoldChange]]] = {}
@@ -615,7 +645,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, getResultFilesName(i, j))
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, i, j)
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
@@ -648,7 +678,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, getResultFilesName(single_cluster))
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, single_cluster)
                         
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
@@ -671,17 +701,17 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, getResultFilesName(ARGS.control, otherDataset))
+            temp_enrichmentUpdate(tmp, core_map, max_F_C, ARGS.control, otherDataset)
 
-def temp_createFiles(dataset1Name :str, dataset2Name :str, core_map) -> None:
-    editedMapName = getResultFilesName(dataset1Name, dataset2Name)
-    svgFilePath = utils.FilePath(f"{editedMapName}(SVG Map)", utils.FileFormat.SVG, prefix = "result/")
+def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
+    svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details = "SVG Map", ext = utils.FileFormat.SVG)
+    utils.writeSvg(svgFilePath, core_map)
 
-    with open(svgFilePath.show(), 'wb') as new_map: new_map.write(ET.tostring(core_map)) #TODO: use utils svg writer (needs to be implemented)
-    
-    if ARGS.generate_pdf: convert_to_pdf(
-        svgFilePath.show(), f"result/{editedMapName}(PNG Map).png", f"result/{editedMapName}(PDF Map).pdf")                     
-    #TODO: finish setting up FilePaths and convert these functions to use them instead of strings
+    if ARGS.generate_pdf:
+        pngPath = buildOutputPath(dataset1Name, dataset2Name, details = "PNG Map", ext = utils.FileFormat.PNG)
+        pdfPath = buildOutputPath(dataset1Name, dataset2Name, details = "PDF Map", ext = utils.FileFormat.PDF)
+        convert_to_pdf(svgFilePath, pngPath, pdfPath)                     
+
     if not ARGS.generate_svg: os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
@@ -726,21 +756,18 @@ def temp_doCommons(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List[s
 def temp_writeAllFiles(core_map :ET.ElementTree, class_pat :ClassPat) -> None:
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            temp_createFiles(i, j, core_map)
+            createOutputMaps(i, j, core_map)
         return
     
     if ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
-            temp_createFiles(single_cluster, "rest", core_map)
+            createOutputMaps(single_cluster, "rest", core_map)
         
         return
     
-    #ARGS.comparison == "onevsmany":
-    for i, j in it.combinations(class_pat.keys(), 2): #TODO: this is [bad word], change.
-        if i != ARGS.control and j != ARGS.control: continue
-        if i == ARGS.control and j == ARGS.control: continue
-        
-        temp_createFiles(i, j, core_map)
+    for otherDataset in class_pat.keys():
+        if otherDataset == ARGS.control: continue
+        createOutputMaps(i, j, core_map)
 
 ############################ MAIN #############################################
 def main() -> None:
