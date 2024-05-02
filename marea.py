@@ -325,6 +325,9 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 el.set('style', fix_style(el.get('style', ""), col, width, dash))
     return core_map
 
+def getElementById(reactionId :str, metabMap :ET.ElementTree) -> utils.Result[ET.Element, IndexError]:
+    return utils.Result.Ok(f"//*[@id=\"{reactionId}\"]").map(lambda xPath : metabMap.xpath(xPath)[0])
+
 class ArrowColor(Enum):
     """
     Encodes possible arrow colors based on their meaning in the enrichment process.
@@ -374,10 +377,9 @@ class Arrow:
         Returns:
             None
         """
-        try: arrowEl :ET.Element = metabMap.xpath(
-            f"//*[@id=\"{self.getMapReactionId(reactionId, mindReactionDir)}\"]")[0]
-        
-        except IndexError as err:
+        #TODO: this is sh*t but I don't know how to change it until I have the intended use clearer!
+        try: arrowEl = getElementById(self.getMapReactionId(reactionId, mindReactionDir), metabMap).unwrap()
+        except utils.Result.ResultErr:
             ERRORS.append(reactionId)
             return
         

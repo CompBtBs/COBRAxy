@@ -11,114 +11,6 @@ from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 import pandas as pd
 
-# RESULT
-T = TypeVar('T')
-E = TypeVar('E', bound = Exception)
-class Result(Generic[T, E]):
-    """
-    Class to handle the result of an operation, with a value and a boolean flag to indicate
-    whether the operation was successful or not.
-    """
-    def __init__(self, value :Union[T, E], isOk :bool) -> None:
-        """
-        (Private) Initializes an instance of Result.
-
-        Args:
-            value (Union[T, E]): The value to be stored in the Result instance.
-            isOk (bool): A boolean flag to indicate whether the operation was successful or not.
-        
-            Returns:
-                None : practically, a Result instance.
-        """
-        self.isOk  = isOk
-        self.isErr = not isOk
-        self.value = value
-
-    @classmethod
-    def Ok(cls,  value :T) -> "Result":
-        """
-        Constructs a new Result instance with a successful operation.
-
-        Args:
-            value (T): The value to be stored in the Result instance, set as successful.
-
-        Returns:
-            Result: A new Result instance with a successful operation.
-        """
-        return Result(value, isOk = True)
-    
-    @classmethod
-    def Err(cls, value :E) -> "Result": 
-        """
-        Constructs a new Result instance with a failed operation.
-
-        Args:
-            value (E): The value to be stored in the Result instance, set as failed.
-
-        Returns:
-            Result: A new Result instance with a failed operation.
-        """
-        return Result(value, isOk = False)
-
-    def unwrap(self) -> T:
-        """
-        Unwraps the value of the Result instance, if the operation was successful.
-
-        Raises:
-            ValueError: If the operation was not successful.
-
-        Returns:
-            T: The value of the Result instance, if the operation was successful.
-        """
-        if self.isOk: return self.value
-        raise ValueError(f"Unwrapped Result.Err : {self.value}")
-
-    def unwrapOr(self, default :T) -> T:
-        """
-        Unwraps the value of the Result instance, if the operation was successful, otherwise
-        it returns a default value.
-
-        Args:
-            default (T): The default value to be returned if the operation was not successful.
-
-        Returns:
-            T: The value of the Result instance, if the operation was successful,
-            otherwise the default value.
-        """
-        return self.value if self.isOk else default
-    
-    def expect(self, err :Exception) -> T:
-        """
-        Expects that the value of the Result instance is successful, otherwise it raises an error.
-
-        Args:
-            err (Exception): The error to be raised if the operation was not successful.
-
-        Raises:
-            err: The error raised if the operation was not successful
-
-        Returns:
-            T: The value of the Result instance, if the operation was successful.
-        """
-        if self.isOk: return self.value
-        raise err
-
-    U = TypeVar("U")
-    def map(self, mapper: Callable[[T], U]) -> "Result[U, E]":
-        """
-        Pipes the Result value into the mapper operation if successful and it returns
-        the Result of that operation.
-
-        Args:
-            mapper (Callable[[T], U]): The mapper operation to be applied to the Result value.
-
-        Returns:
-            Result[U, E]: The result of the mapper operation applied to the Result value.
-        """
-        if self.isErr: return self
-        try: return Result.Ok(mapper(self.value))
-        except Exception as e: return Result.Err(e)
-
 # FILES
 class FileFormat(Enum):
     """
@@ -347,6 +239,124 @@ class ValueErr(CustomErr):
     errName = "Value Error"
     def __init__(self, valueName: str, expected :Any, actual :Any, msg = "no further details provided") -> None:
         super().__init__(f"value \"{valueName}\" was supposed to be {expected}, but got {actual} instead", msg)
+
+# RESULT
+T = TypeVar('T')
+E = TypeVar('E', bound = CustomErr) # should bind to Result.ResultErr but python happened!
+class Result(Generic[T, E]):
+    class ResultErr(CustomErr):
+        """
+        CustomErr subclass for all Result errors.
+        """
+        errName = "Result Error"
+        def __init__(self, msg = "no further details provided") -> None:
+            super().__init__(msg)
+    """
+    Class to handle the result of an operation, with a value and a boolean flag to indicate
+    whether the operation was successful or not.
+    """
+    def __init__(self, value :Union[T, E], isOk :bool) -> None:
+        """
+        (Private) Initializes an instance of Result.
+
+        Args:
+            value (Union[T, E]): The value to be stored in the Result instance.
+            isOk (bool): A boolean flag to indicate whether the operation was successful or not.
+        
+            Returns:
+                None : practically, a Result instance.
+        """
+        self.isOk  = isOk
+        self.isErr = not isOk
+        self.value = value
+
+    @classmethod
+    def Ok(cls,  value :T) -> "Result":
+        """
+        Constructs a new Result instance with a successful operation.
+
+        Args:
+            value (T): The value to be stored in the Result instance, set as successful.
+
+        Returns:
+            Result: A new Result instance with a successful operation.
+        """
+        return Result(value, isOk = True)
+    
+    @classmethod
+    def Err(cls, value :E) -> "Result": 
+        """
+        Constructs a new Result instance with a failed operation.
+
+        Args:
+            value (E): The value to be stored in the Result instance, set as failed.
+
+        Returns:
+            Result: A new Result instance with a failed operation.
+        """
+        return Result(value, isOk = False)
+
+    def unwrap(self) -> T:
+        """
+        Unwraps the value of the Result instance, if the operation was successful.
+
+        Raises:
+            ResultErr: If the operation was not successful.
+
+        Returns:
+            T: The value of the Result instance, if the operation was successful.
+        """
+        if self.isOk: return self.value
+        raise Result.ResultErr(f"Unwrapped Result.Err : {self.value}")
+
+    def unwrapOr(self, default :T) -> T:
+        """
+        Unwraps the value of the Result instance, if the operation was successful, otherwise
+        it returns a default value.
+
+        Args:
+            default (T): The default value to be returned if the operation was not successful.
+
+        Returns:
+            T: The value of the Result instance, if the operation was successful,
+            otherwise the default value.
+        """
+        return self.value if self.isOk else default
+    
+    def expect(self, err :"Result.ResultErr") -> T:
+        """
+        Expects that the value of the Result instance is successful, otherwise it raises an error.
+
+        Args:
+            err (Exception): The error to be raised if the operation was not successful.
+
+        Raises:
+            err: The error raised if the operation was not successful.
+
+        Returns:
+            T: The value of the Result instance, if the operation was successful.
+        """
+        if self.isOk: return self.value
+        raise err
+
+    U = TypeVar("U")
+    def map(self, mapper: Callable[[T], U]) -> "Result[U, E]":
+        """
+        Pipes the Result value into the mapper operation if successful and it returns
+        the Result of that operation.
+
+        Args:
+            mapper (Callable[[T], U]): The mapper operation to be applied to the Result value.
+
+        Returns:
+            Result[U, E]: The result of the mapper operation applied to the Result value.
+        """
+        if self.isErr: return self
+        try: return Result.Ok(mapper(self.value))
+        except Exception as e: return Result.Err(e)
+    
+    def __str__(self):
+        return f"Result::{'Ok' if self.isOk else 'Err'}({self.value})"
 
 # FILES
 def read_dataset(path :FilePath, datasetName = "Dataset (not actual file name!)") -> pd.DataFrame:

@@ -71,7 +71,7 @@ def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -
     foundCoeff = re.search(r"\d+(\.\d+)? ", word)
     if foundCoeff:
       wholeMatch  = foundCoeff.group(0)
-      metabId     = word[len(wholeMatch) :].strip() # +1:]
+      metabId     = word[len(wholeMatch):].strip()
       stoichCoeff = float(wholeMatch.strip())
 
     reactionsDict[rId][metabId] = stoichCoeff
@@ -102,6 +102,13 @@ def create_reaction_dict(unparsed_reactions: Dict[str, str]) -> ReactionsDict:
         
         if reactionDir is not ReactionDir.FORWARD:
             add_custom_reaction(reactionsDict, rId + "_B" * reactionIsReversible, right)
+        
+        # ^^^ to further clarify: if a reaction is NOT reversible it will not be marked as _F or _B
+        # and whichever direction we DO keep (forward if --> and backward if <--) loses this information.
+        # This IS a small problem when coloring the map in marea.py because the arrow IDs in the map follow
+        # through with a similar convention on ALL reactions and correctly encode direction based on their
+        # model of origin. TODO: a proposed solution is to unify the standard in RPS to fully mimic the maps,
+        # which involves re-writing the "reactions" dictionary.
     
     return reactionsDict
 
