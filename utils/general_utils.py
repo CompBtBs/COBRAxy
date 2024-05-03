@@ -238,7 +238,7 @@ class ValueErr(CustomErr):
     """
     errName = "Value Error"
     def __init__(self, valueName: str, expected :Any, actual :Any, msg = "no further details provided") -> None:
-        super().__init__(f"value \"{valueName}\" was supposed to be {expected}, but got {actual} instead", msg)
+        super().__init__("value " + f"\"{valueName}\" " * bool(valueName) + f"was supposed to be {expected}, but got {actual} instead", msg)
 
 # RESULT
 T = TypeVar('T')
