@@ -19,7 +19,7 @@ from typing import Tuple, Union, Optional, List, Dict
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args(args :List[str]) -> argparse.Namespace:
+def process_args() -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
 
@@ -51,13 +51,13 @@ def process_args(args :List[str]) -> argparse.Namespace:
         choices = ['manyvsmany', 'onevsrest', 'onevsmany'])
     
     parser.add_argument(
-        '-pv' ,'--pValue', 
+        '-pv' ,'--pValue',
         type = float, 
         default = 0.1, 
         help = 'P-Value threshold (default: %(default)s)')
     
     parser.add_argument(
-        '-fc', '--fChange', 
+        '-fc', '--fChange',
         type = float, 
         default = 1.5, 
         help = 'Fold-Change threshold (default: %(default)s)')
@@ -85,18 +85,18 @@ def process_args(args :List[str]) -> argparse.Namespace:
         help = 'input dataset')
     
     parser.add_argument(
-        '-ic', '--input_class', 
+        '-ic', '--input_class',
         type = str, 
         help = 'sample group specification')
     
     parser.add_argument(
-        '-ids', '--input_datas', 
+        '-ids', '--input_datas',
         type = str,
         nargs = '+', 
         help = 'input datasets')
     
     parser.add_argument(
-        '-na', '--names', 
+        '-na', '--names',
         type = str,
         nargs = '+', 
         help = 'input names')
@@ -152,25 +152,7 @@ def process_args(args :List[str]) -> argparse.Namespace:
 
     args :argparse.Namespace = parser.parse_args()
     return args
-
-########################### warning ###########################################
-def warning(s :str) -> None:
-    """
-    Gets a logger (.out_log) in the :Namespace object obtained from calling process_args, opens it in append mode and writes the input param (s) to it.
-
-    Args:
-        s : Always starting (in file) with "Warning: "
-
-    Returns:
-        None
-
-    Side Effects:
-        Edits logger file in the :Namespace object
-    """
-    args = process_args(sys.argv)
-    with open(args.out_log, 'a') as log:
-            log.write(s)
-            
+          
 ############################ dataset input ####################################
 def read_dataset(data :str, name :str) -> pd.DataFrame:
     """
@@ -326,8 +308,23 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 el.set('style', fix_style(el.get('style', ""), col, width, dash))
     return core_map
 
-def getElementById(reactionId :str, metabMap :ET.ElementTree) -> utils.Result[ET.Element, IndexError]:
-    return utils.Result.Ok(f"//*[@id=\"{reactionId}\"]").map(lambda xPath : metabMap.xpath(xPath)[0])
+def getElementById(reactionId :str, metabMap :ET.ElementTree) -> utils.Result[ET.Element, utils.Result.ResultErr]:
+    """
+    Finds any element in the given map with the given ID. ID uniqueness in an svg file is recommended but
+    not enforced, if more than one element with the exact ID is found only the first will be returned.
+
+    Args:
+        reactionId (str): exact ID of the requested element.
+        metabMap (ET.ElementTree): metabolic map containing the element.
+
+    Returns:
+        utils.Result[ET.Element, ResultErr]: result of the search, either the first match found or a ResultErr.
+    """
+    return utils.Result.Ok(
+        f"//*[@id=\"{reactionId}\"]").map(
+        lambda xPath : metabMap.xpath(xPath)[0]).mapErr(
+        lambda _ : utils.Result.ResultErr(f"No elements with ID \"{reactionId}\" found in map"))
+        # ^^^ we shamelessly ignore the contents of the IndexError, it offers nothing to the user.
 
 def styleMapElement(element :ET.Element, styleStr :str) -> None:
     currentStyles :str = element.get("style", "")
@@ -343,13 +340,13 @@ class ReactionDirection(Enum):
 
     @classmethod
     def fromDir(cls, s :str) -> "ReactionDirection":
-        for member in cls:
-            if member.value == s: return member
-        
-        raise utils.ValueErr("", "a valid ReactionDirection", f"\"{s}\"")
+        # vvv as long as there's so few variants I actually condone the if spam:
+        if s == ReactionDirection.Direct.value:  return ReactionDirection.Direct
+        if s == ReactionDirection.Inverse.value: return ReactionDirection.Inverse
+        return ReactionDirection.Unknown
 
 def reactionIdIsDirectional(reactionId :str) -> ReactionDirection:
-    return ReactionDirection.fromDir(reactionId)
+    return ReactionDirection.fromDir(reactionId[-2:])
 
 def getArrowBodyElementId(reactionId :str) -> str:
     if reactionIdIsDirectional(reactionId) is not ReactionDirection.Unknown: reactionId = reactionId[:-2]
@@ -376,6 +373,19 @@ class ArrowColor(Enum):
     UpRegulated   = "#E41A1C" # red, up-regulated reaction
     DownRegulated = "#0000FF" # blue, down-regulated reaction
 
+    UpRegulatedInv = "#E40000"
+    # ^^^ different shade of red, up-regulated net value for a reversible reaction with
+    # conflicting enrichment in the two directions.
+
+    DownRegulatedInv = "#00FFFF"
+    # ^^^ different shade of blue, down-regulated net value for a reversible reaction with
+    # conflicting enrichment in the two directions.
+
+    @classmethod
+    def fromFoldChangeSign(cls, foldChange :float, *, useAltColor = False) -> "ArrowColor":
+        colors = (cls.DownRegulated, cls.DownRegulatedInv) if foldChange < 0 else (cls.UpRegulated, cls.UpRegulatedInv)
+        return colors[useAltColor]
+
     def __str__(self) -> str: return self.value
 
 class Arrow:
@@ -384,8 +394,8 @@ class Arrow:
     """
     MIN_W = 2
     MAX_W = 12
-    
-    def __init__(self, width :int, col: ArrowColor, isDashed = False) -> None:
+
+    def __init__(self, width :int, col: ArrowColor, *, isDashed = False) -> None:
         """
         (Private) Initializes an instance of Arrow.
 
@@ -401,13 +411,14 @@ class Arrow:
         self.col  = col
         self.dash = isDashed
     
-    def applyTo(reactionId :str, metabMap :ET.ElementTree, styleStr :str) -> None:
-        if getElementById(reactionId, metabMap).map(lambda el : styleMapElement(el, styleStr())).isErr: ERRORS.append(reactionId)
+    def applyTo(self, reactionId :str, metabMap :ET.ElementTree, styleStr :str) -> None:
+        if getElementById(reactionId, metabMap).map(lambda el : styleMapElement(el, styleStr)).isErr:
+            ERRORS.append(reactionId)
 
     def styleReactionElements(self, metabMap :ET.ElementTree, reactionId :str, *, mindReactionDir = True) -> None:
         # If We're dealing with RAS data or in general don't care about the direction of the reaction we only style the arrow body
         if not mindReactionDir:
-            return self.applyTo(getElementById(getArrowBodyElementId(reactionId), metabMap), metabMap, self.toStyleStr())
+            return self.applyTo(getArrowBodyElementId(reactionId), metabMap, self.toStyleStr())
         
         # Now we style the arrow head(s):
         idOpt1, idOpt2 = getArrowHeadElementId(reactionId)
@@ -469,6 +480,11 @@ class Arrow:
         """
         return f";stroke:{self.col};stroke-width:{self.w};stroke-dasharray:{'5,5' if self.dash else 'none'}"
 
+# vvv These constants could be inside the class itself a static properties, but python
+# was built by brainless organisms so here we are!
+INVALID_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
+INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
+
 def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]], metabMap :ET.ElementTree, maxNumericFoldChange :float) -> None:
     """
     (Temporary) Applies RPS enrichment results to the provided metabolic map.
@@ -488,13 +504,13 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]
         pValue = values[0]
         foldChange = values[1]
 
-        if isinstance(foldChange,str): foldChange = float(foldChange)
+        if isinstance(foldChange, str): foldChange = float(foldChange)
         if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
-            Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True).styleReactionElements(metabMap, reactionId)
+            INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId)
             continue
 
         if abs(foldChange) < math.log(ARGS.fChange, 2):
-            Arrow(Arrow.MIN_W, ArrowColor.Invalid).styleReactionElements(metabMap, reactionId)
+            INVALID_ARROW.styleReactionElements(metabMap, reactionId)
             continue
         
         width = Arrow.MAX_W
@@ -502,31 +518,28 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]
             try: width = max(abs(foldChange * Arrow.MAX_W) / maxNumericFoldChange, Arrow.MIN_W)
             except ZeroDivisionError: pass
         
-        color = ArrowColor.DownRegulated if foldChange < 0 else ArrowColor.UpRegulated
-
         if not reactionId.endswith("_RV"): # RV stands for reversible reactions
-            Arrow(width, color).styleReactionElements(metabMap, reactionId)
+            Arrow(width, ArrowColor.fromFoldChangeSign(foldChange)).styleReactionElements(metabMap, reactionId)
             continue
         
-        reactionId = reactionId[:-3]
-        if ARGS.net:
-            # style the arrow head(s):
+        reactionId = reactionId[:-3] # Remove "_RV"
+        if ARGS.net: # style the arrow head(s):
             avg1 = values[2]
             avg2 = values[3]
-            inversionScore = (avg1 < 0) + (avg2 < 0) # Invert direction focus if score is 2, use changed colors if score is 1
+            inversionScore = (avg1 < 0) + (avg2 < 0) # Compacts the signs of averages into 1 easy to check score
 
-            if inversionScore == 1: # Style the direct direction with alternative colors
-                reactionId = "F_" + reactionId
-                pass #TODO: encode alternative colors
-
-            elif inversionScore == 2: # Style the inverse direction with the opposite sign netValue
+            if inversionScore == 2: # Style the inverse direction with the opposite sign netValue
                 reactionId = "B_" + reactionId
-                color = ArrowColor.DownRegulated if foldChange > 0 else ArrowColor.UpRegulated # TODO: avoid repetition
+                foldChange *= -1
+            
+            else: reactionId = "F_" + reactionId # Style the forward direction
 
-            Arrow(width, color).styleReactionElements(metabMap, reactionId)
+            # If the score is 1 (opposite signs) we use alternative colors vvv
+            arrow = Arrow(width, ArrowColor.fromFoldChangeSign(foldChange, useAltColor = inversionScore == 1))
+            arrow.styleReactionElements(metabMap, reactionId)
         
         if not ARGS.using_RAS: # style the arrow body
-            Arrow(width, color).styleReactionElements(metabMap, reactionId, mindReactionDir = False)
+            arrow.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
 
 ############################ split class ######################################
 def split_class(classes :pd.DataFrame, resolve_rules :Dict[str, List[float]]) -> Dict[str, List[List[float]]]:
@@ -546,20 +559,24 @@ def split_class(classes :pd.DataFrame, resolve_rules :Dict[str, List[float]]) ->
     class_pat :Dict[str, List[List[float]]] = {}
     for i in range(len(classes)):
         classe :str = classes.iloc[i, 1]
-        if not pd.isnull(classe):
-            l :List[List[float]] = []
-            for j in range(i, len(classes)):
-                if classes.iloc[j, 1] == classe:
-                    pat_id :str = classes.iloc[j, 0]
-                    tmp = resolve_rules.get(pat_id, None)
-                    if tmp != None:
-                        l.append(tmp)
-                    classes.iloc[j, 1] = None
-            if l:
-                class_pat[classe] = list(map(list, zip(*l)))
-            else:
-                warning('Warning: no sample found in class ' + classe +
-                        ', the class has been disregarded\n')
+        if pd.isnull(classe): continue
+
+        l :List[List[float]] = []
+        for j in range(i, len(classes)):
+            if classes.iloc[j, 1] == classe:
+                pat_id :str = classes.iloc[j, 0]
+                tmp = resolve_rules.get(pat_id, None)
+                if tmp != None:
+                    l.append(tmp)
+                classes.iloc[j, 1] = None
+        
+        if l:
+            class_pat[classe] = list(map(list, zip(*l)))
+            continue
+        
+        utils.logWarning(
+            f"Warning: no sample found in class \"{classe}\", the class has been disregarded", ARGS.out_log)
+    
     return class_pat
 
 ############################ conversion ##############################################
@@ -672,31 +689,45 @@ def writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePa
                 fieldNames[2] : foldChange
             }) #TODO: if you know a prettier way go for it! :D
 
-def temp_enrichmentUpdate(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
+def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
+    # this function compiles the things always in common between comparison modes after enrichment.
+    # TODO: organize, name better.
     writeTabularResult(tmp, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
     
     if ras_enrichment:
         fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
+        return
 
     for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
     applyRpsEnrichmentToMap(tmp, core_map, max_F_C)
 
 def computePValue(dataset1Data :List[float], dataset2Data :List[float]) -> float:
-    return st.ks_2samp(dataset1Data, dataset2Data)[1]
-
-def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], ras_enrichment: bool) -> None:
     """
-    Compares clustered data based on a given comparison mode and generates metabolic maps visualizing the results.
+    Computes the statistical significance score (P-value) of the comparison between coherent data
+    from two datasets. The data is supposed to, in both datasets:
+    - be related to the same reaction ID;
+    - be ordered by sample, such that the item at position i in both lists is related to the
+      same sample or cell line.
 
     Args:
-        core_map : SVG map to modify
-        class_pat : the clustered data
-        ids : ids for data association
-        threshold_P_V : threshold for a p-value to be considered significant
-        threshold_F_C : threshold for a fold change value to be considered significant
-        comparison : comparison mode between clusters ("manyvsmany", "onevsrest", "onevsmany")
-        control : another frontend-derived input parameter, identifying (I assume) the control sample
-        ras_enrichment : whether to use RAS enrichment or not
+        dataset1Data : data from the 1st dataset.
+        dataset2Data : data from the 2nd dataset.
+
+    Returns:
+        float: P-value from a Kolmogorov-Smirnov test on the provided data.
+    """
+    return st.ks_2samp(dataset1Data, dataset2Data)[1]
+
+def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], *, fromRAS = True) -> None:
+    """
+    Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
+    provided metabolic map.
+
+    Args:
+        metabMap : SVG map to modify.
+        class_pat : the clustered data.
+        ids : ids for data association.
+        fromRAS : whether the data to enrich consists of RAS scores.
 
     Returns:
         None
@@ -708,8 +739,9 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
         core_map : mut (passed to fix_map)
     """
     class_pat = { k.strip() : v for k, v in class_pat.items() }
+    #TODO: simplfy this stuff vvv and stop using sys.exit (raise the correct utils error)
     if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
-    #TODO: below is some repeated col1de that should be abstracted out
+    #TODO: below is some repeated code that should be abstracted out
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
             tmp :Dict[str, List[Union[float, FoldChange]]] = {}
@@ -719,7 +751,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
             firstDatasetData = class_pat.get(i)
             secondDatasetData = class_pat.get(j)
             for l1, l2 in zip(firstDatasetData, secondDatasetData):
-                try:
+                try: #TODO: identify the source of these errors and minimize code in the try block
                     if ARGS.net or not ARGS.using_RAS:
                         reactId = ids[count]
                         reactDir = reactionIdIsDirectional(reactId)
@@ -752,7 +784,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, i, j, ras_enrichment)
+            temp_thingsInCommon(tmp, metabMap, max_F_C, i, j, fromRAS)
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
@@ -785,7 +817,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, single_cluster, ras_enrichment)
+            temp_thingsInCommon(tmp, metabMap, max_F_C, single_cluster, fromRAS)
                         
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
@@ -808,7 +840,7 @@ def maps(core_map :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids 
                 except (TypeError, ZeroDivisionError):
                     count += 1
             
-            temp_enrichmentUpdate(tmp, core_map, max_F_C, ARGS.control, otherDataset, ras_enrichment)
+            temp_thingsInCommon(tmp, metabMap, max_F_C, ARGS.control, otherDataset, fromRAS)
 
 def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
     svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details = "SVG Map", ext = utils.FileFormat.SVG)
@@ -822,24 +854,25 @@ def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementT
     if not ARGS.generate_svg: os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
-def getClassesAndIdsFromDatasets(datasets, dataset, names) -> Tuple[List[str], ClassPat]:
+def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, classPath :str, names :List[str]) -> Tuple[List[str], ClassPat]:
+    # TODO: I suggest creating dicts with ids as keys instead of keeping class_pat and ids separate,
+    # for the sake of everyone's sanity.
     class_pat :ClassPat = {}
     if ARGS.option == 'datasets':
-        num = 1
-        for i, j in zip(datasets, names):
-            name = name_dataset(j, num)
-            resolve_rules_float, ids = getDatasetValues(i, name)
-            print(resolve_rules_float, f"ids:{ids}")
+        num = 1 #TODO: the dataset naming function could be a generator
+        for path, name in zip(datasetsPaths, names):
+            name = name_dataset(name, num)
+            resolve_rules_float, ids = getDatasetValues(path, name)
             if resolve_rules_float != None:
                 class_pat[name] = list(map(list, zip(*resolve_rules_float.values())))
         
             num += 1
-      
+    
     elif ARGS.option == "dataset_class":
-        classes = read_dataset(ARGS.input_class, "class")
+        classes = read_dataset(classPath, "class")
         classes = classes.astype(str)
 
-        resolve_rules_float, ids = getDatasetValues(dataset, name)
+        resolve_rules_float, ids = getDatasetValues(datasetPath, "Dataset Class (not actual name)")
         if resolve_rules_float != None: class_pat = split_class(classes, resolve_rules_float)
     
     return ids, class_pat
@@ -875,7 +908,7 @@ def main() -> None:
         sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
     """
     global ARGS
-    ARGS = process_args(sys.argv)
+    ARGS = process_args()
 
     if os.path.isdir('result') == False: os.makedirs('result')
     
@@ -887,12 +920,12 @@ def main() -> None:
     # solution can be derived from my comment in FilePath.fromStrPath
 
     if ARGS.using_RAS:
-        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.names)
-        maps(core_map, class_pat, ids, True)
+        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
+        computeEnrichment(core_map, class_pat, ids)
     
     if ARGS.using_RPS:
-        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.names_rps)
-        maps(core_map, class_pat, ids, False)
+        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
+        computeEnrichment(core_map, class_pat, ids, fromRAS = False)
     
     # create output files: TODO: this is the same comparison happening in "maps", find a better way to organize this
     if ARGS.comparison == "manyvsmany":

@@ -1,13 +1,34 @@
 # This is a general-purpose "testing utilities" module for the MaREA tool.
+# This code was written entirely by m.ferrari133@campus.unimib.it and then (hopefully) many
+# more people contributed by writing tests for this tool's modules, feel free to send an email for
+# any questions.
+
+# How the testing module works:
+# The testing module allows you to easily set up unit tests for functions in a module, obtaining
+# information on what each method returns, when and how it fails and so on.
+
+# How do I test a module?
+# - create a function at the very bottom, before the __main__
+# - import the stuff you need
+# - create a UnitTester instance, follow the documentation
+# - fill it up with UnitTest instances, follow the documentation
+# - each UnitTest tests the function by passing specific parameters to it and by veryfing the correctness
+#   of the output via a CheckingMode instance
+# - call testModule() on the UnitTester
+
+# TODO(s):
+# - This module was written before the utilities were introduced, it may want to use some of those functions.
+# - I never got around to writing a CheckingMode for methods you WANT to fail in certain scenarios, I
+#   like the name "MustPanic".
+# - It's good practice to enforce boolean arguments of a function to be passed as kwargs and I did it a lot
+#   in the code I wrote for these tool's modules, but the current implementation of UnitTest doesn't allow
+#   you to pass kwargs to the functions you test.
+# - Implement integration tests as well, maybe!
 
 ## Imports:
 from typing import Dict, Callable, Type, List
 from enum import Enum, auto
 from collections.abc import Iterable
-
-# Imports needed by the modules I'm testing:
-import pickle as pk
-import math
 
 ## Generic utilities:
 class TestResult:
@@ -476,11 +497,31 @@ class UnitTester:
 ## Unit testing all the modules:
 def unit_marea() -> None:
     import marea as m
-    import pandas as pd
+    import math
+    import lxml.etree as ET
+    import utils.general_utils as utils
+
+    #m.ARGS = m.process_args()
+
+    ids = ["react1", "react2", "react3", "react4", "react5"]
+    metabMap = utils.Model.ENGRO2.getMap()
+    class_pat = {
+        "dataset1" :[
+            [2.3, 4, 7, 0, 0.01, math.nan, math.nan],
+            [math.nan, math.nan, math.nan, math.nan, math.nan, math.nan, math.nan],
+            [2.3, 4, 7, 0, 0.01, 5, 9],
+            [math.nan, math.nan, 2.3, 4, 7, 0, 0.01],
+            [2.3, 4, 7, math.nan, 2.3, 0, 0.01]],
+        
+        "dataset2" :[
+            [2.3, 4, 7, math.nan, 2.3, 0, 0.01],
+            [2.3, 4, 7, 0, 0.01, math.nan, math.nan],
+            [math.nan, math.nan, 2.3, 4, 7, 0, 0.01],
+            [2.3, 4, 7, 0, 0.01, 5, 9],
+            [math.nan, math.nan, math.nan, math.nan, math.nan, math.nan, math.nan]]
+    }
 
     unitTester = UnitTester("marea", LogMode.Pedantic, False,
-        UnitTest(m.read_dataset, ["", ""], IsOfType(pd.DataFrame)),
-
         UnitTest(m.name_dataset, ["customName", 12], ExactValue("customName")),
         UnitTest(m.name_dataset, ["Dataset", 12], ExactValue("Dataset_12")),
 
@@ -490,13 +531,54 @@ def unit_marea() -> None:
         UnitTest(m.fold_change, [0, 0], ExactValue(0)),
 
         UnitTest(
-            m.Arrow(m.Arrow.MAX_W, m.ArrowColor.DownRegulated, True).toStyleStr, [],
+            m.Arrow(m.Arrow.MAX_W, m.ArrowColor.DownRegulated, isDashed = True).toStyleStr, [],
             ExactValue(";stroke:#0000FF;stroke-width:12;stroke-dasharray:5,5")),
+        
+        UnitTest(m.computeEnrichment, [metabMap, class_pat, ids], ExactValue(None)),
+        
+        UnitTest(m.computePValue, [class_pat["dataset1"][0], class_pat["dataset2"][0]], SatisfiesPredicate(math.isnan)),
+        
+        UnitTest(m.reactionIdIsDirectional, ["reactId"], ExactValue(m.ReactionDirection.Unknown)),
+        UnitTest(m.reactionIdIsDirectional, ["reactId_F"], ExactValue(m.ReactionDirection.Direct)),
+        UnitTest(m.reactionIdIsDirectional, ["reactId_B"], ExactValue(m.ReactionDirection.Inverse)),
+
+        UnitTest(m.ArrowColor.fromFoldChangeSign, [-2], ExactValue(m.ArrowColor.DownRegulated)),
+        UnitTest(m.ArrowColor.fromFoldChangeSign, [2], ExactValue(m.ArrowColor.UpRegulated)),
+
+        UnitTest(
+            m.Arrow(m.Arrow.MAX_W, m.ArrowColor.UpRegulated).styleReactionElements,
+            [metabMap, "reactId"],
+            ExactValue(None)),
+        
+        UnitTest(m.getArrowBodyElementId, ["reactId"], ExactValue("R_reactId")),
+        UnitTest(m.getArrowBodyElementId, ["reactId_F"], ExactValue("R_reactId")),
+
+        UnitTest(
+            m.getArrowHeadElementId, ["reactId"],
+            Many(ExactValue("F_reactId"), ExactValue("B_reactId"))),
+        
+        UnitTest(
+            m.getArrowHeadElementId, ["reactId_F"],
+            Many(ExactValue("F_reactId"), ExactValue(""))),
+        
+        UnitTest(
+            m.getArrowHeadElementId, ["reactId_B"],
+            Many(ExactValue("B_reactId"), ExactValue(""))),
+        
+        UnitTest(
+            m.getElementById, ["reactId_F", metabMap],
+            SatisfiesPredicate(lambda res : res.isErr and isinstance(res.value, utils.Result.ResultErr))),
+        
+        UnitTest(
+            m.getElementById, ["F_tyr_L_t", metabMap],
+            SatisfiesPredicate(lambda res : res.isOk and res.unwrap().get("id") == "F_tyr_L_t")),
     ).testModule()
 
 def unit_rps_generator() -> None:
     import rps_generator as rps
+    import math
     import pandas as pd
+    import utils.general_utils as utils
     dataset = pd.DataFrame({
         "cell lines" : ["normal", "cancer"],
         "pyru_vate"  : [5.3, 7.01],
@@ -518,8 +600,8 @@ def unit_rps_generator() -> None:
         "atp"    : 7.05,
     }
 
-    with open('/home/vboxuser/galaxy/tools/marea/local/pickle files/synonyms.pickle', 'rb') as sd:
-        synsDict = pk.load(sd)
+    # TODO: this currently doesn't work due to "the pickle extension problem", see FileFormat class for details.
+    synsDict = utils.readPickle(utils.FilePath("synonyms", utils.FileFormat.PICKLE, prefix = "./local/pickle files"))
 
     reactionsDict = {
         "r1" : {

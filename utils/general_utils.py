@@ -28,7 +28,10 @@ class FileFormat(Enum):
     JSON   = ("json",) # this is the other
     
     PICKLE = ("pickle", "pk", "p") # this is how all runtime data structures are saved
-
+    #TODO: we're in a pickle (ba dum tss), there's no point in supporting many extensions internally. The
+    # issue will never be solved for user-uploaded files and those are saved as .dat by galaxy anyway so it
+    # doesn't matter as long as we CAN recognize these 3 names as valid pickle extensions. We must however
+    # agree on an internal standard and use only that one, otherwise constructing usable paths becomes a nightmare.
     @classmethod
     def fromExt(cls, ext :str) -> "FileFormat":
         """
@@ -342,8 +345,10 @@ class Result(Generic[T, E]):
     U = TypeVar("U")
     def map(self, mapper: Callable[[T], U]) -> "Result[U, E]":
         """
-        Pipes the Result value into the mapper operation if successful and it returns
-        the Result of that operation.
+        Maps the value of the current Result to whatever is returned by the mapper function.
+        If the Result contained an unsuccessful operation to begin with it remains unchanged
+        (a reference to the current instance is returned).
+        If the mapper function panics the returned result instance will be of the error kind.
 
         Args:
             mapper (Callable[[T], U]): The mapper operation to be applied to the Result value.
@@ -355,6 +360,23 @@ class Result(Generic[T, E]):
         try: return Result.Ok(mapper(self.value))
         except Exception as e: return Result.Err(e)
     
+    D = TypeVar("D", bound = "Result.ResultErr")
+    def mapErr(self, mapper :Callable[[E], D]) -> "Result[T, D]":
+        """
+        Maps the error of the current Result to whatever is returned by the mapper function.
+        If the Result contained a successful operation it remains unchanged
+        (a reference to the current instance is returned).
+        If the mapper function panics this method does as well.
+
+        Args:
+            mapper (Callable[[E], D]): The mapper operation to be applied to the Result error.
+
+        Returns:
+            Result[U, E]: The result of the mapper operation applied to the Result error.
+        """
+        if self.isOk: return self
+        return Result.Err(mapper(self.value))
+
     def __str__(self):
         return f"Result::{'Ok' if self.isOk else 'Err'}({self.value})"
 
@@ -521,7 +543,7 @@ class Model(Enum):
         self.__raiseMissingPathErr(path)
         return readPickle(path)
     
-    def getMap(self, toolDir :str, customPath :Optional[FilePath] = None) -> ET.ElementTree:
+    def getMap(self, toolDir = ".", customPath :Optional[FilePath] = None) -> ET.ElementTree:
         path = customPath if self is Model.Custom else FilePath(f"{self.name}_map", FileFormat.SVG, prefix = f"{toolDir}/local/svg metabolic maps/")
         self.__raiseMissingPathErr(path)
         return readSvg(path, customErr = DataErr(path, f"custom map in wrong format"))
