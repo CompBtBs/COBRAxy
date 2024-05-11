@@ -103,7 +103,7 @@ class RuleStack:
 
     def popForward(self) -> None:
         """
-        Moves the last "actual" item from the 2nd list to the beginning of the top list, as per
+        Moves the last "actual" item from the 2nd to last list to the beginning of the top list, as per
         the example below:
         stack  : [list_a, list_b]
         list_a : [item1, item2, list_b] --> [item1, list_b]
@@ -151,7 +151,7 @@ class RuleStack:
 
     def __updateCurrent(self) -> None:
         """
-        Updates the current OpList to the one on top of the stack.
+        (Private) Updates the current OpList to the one on top of the stack.
 
         Side Effects:
             self : mut
