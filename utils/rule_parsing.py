@@ -1,3 +1,4 @@
+from enum import Enum
 import utils.general_utils as utils
 from typing import List, Union, Optional
 
@@ -11,11 +12,24 @@ class RuleErr(utils.CustomErr):
             f"rule \"{rule}\" is malformed, {msg}",
             "please verify your input follows the validity guidelines")
 
+class RuleOp(Enum):
+    """
+    Encodes all operators valid in gene rules.
+    """
+    OR  = "or"
+    AND = "and"
+
+    @classmethod
+    def isOperator(cls, op :str) -> bool:
+        return op.upper() in cls.__members__
+
+    def __str__(self) -> str: return self.value
+
 class OpList(List[Union[str, "OpList"]]):
     """
     Represents a parsed rule and each of its nesting levels, including the operator that level uses.
     """
-    def __init__(self, op = "") -> None:
+    def __init__(self, op :Optional[RuleOp] = None) -> None:
         """
         (Private) Initializes an instance of OpList.
 
@@ -27,7 +41,7 @@ class OpList(List[Union[str, "OpList"]]):
         """
         self.op = op
 
-    def setOpIfMissing(self, op :str) -> None:
+    def setOpIfMissing(self, op :RuleOp) -> None:
         """
         Sets the operator of the OpList if it's missing.
 
@@ -126,7 +140,7 @@ class RuleStack:
         Returns:
             bool : True if the current OpList's assigned operator is "and", False otherwise.
         """
-        return self.current.op == "and"
+        return self.current.op is RuleOp.AND
 
     def obtain(self, err :Optional[utils.CustomErr] = None) -> Optional[OpList]:
         """
@@ -208,16 +222,22 @@ def parseRuleToNestedList(rule :str) -> OpList:
 
             # we proceed with operator:
             if not operator: break # there is no such thing as a double loop break.. yet
-            if operator == "or" and stack.currentIsAnd():
+            
+            if not RuleOp.isOperator(operator): raise RuleErr(
+                rule, f"found \"{operator}\" in unexpected position, expected operator")
+            
+            operator = RuleOp(operator)
+            if operator is RuleOp.OR and stack.currentIsAnd():
                 stack.pop()
 
-            elif operator == "and" and not stack.currentIsAnd():
+            elif operator is RuleOp.AND and not stack.currentIsAnd():
                 stack.push(operator)
                 stack.popForward()
 
             stack.current.setOpIfMissing(operator) # buffer now knows what operator its data had
 
-    except: raise nestingErr
+    except RuleErr as err: raise err # bubble up proper errors
+    except: raise nestingErr # everything else is interpreted as a nesting error.
 
     parsedRule = stack.obtain(nestingErr)
     return parsedRule[0] if len(parsedRule) == 1 and isinstance(parsedRule[0], list) else parsedRule

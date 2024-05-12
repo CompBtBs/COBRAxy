@@ -569,7 +569,7 @@ def ras_op_list(op_list: ruleUtils.OpList, dataset: Dict[str, Expr]) -> Ras:
     op = op_list.op
     ras_value :Ras = None
     if not op: return get_gene_expr(dataset, op_list[0])
-    if op == 'and' and not ARGS.none and None in op_list: return None
+    if op is ruleUtils.RuleOp.AND and not ARGS.none and None in op_list: return None
 
     for i in range(len(op_list)):
         item = op_list[i]
@@ -580,13 +580,13 @@ def ras_op_list(op_list: ruleUtils.OpList, dataset: Dict[str, Expr]) -> Ras:
           item = get_gene_expr(dataset, item)
 
         if item is None:
-          if op == 'and' and not ARGS.none: return None
+          if op is ruleUtils.RuleOp.AND and not ARGS.none: return None
           continue
 
         if ras_value is None:
           ras_value = item
         else:
-          ras_value = ras_value + item if op == 'or' else min(ras_value, item)
+          ras_value = ras_value + item if op is ruleUtils.RuleOp.OR else min(ras_value, item)
 
     return ras_value
 

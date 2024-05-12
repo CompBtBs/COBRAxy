@@ -727,14 +727,41 @@ def unit_utils() -> None:
         UnitTest(utils.Model.Custom.getRules, [".", ""], Exists(False)), # expected panic
 
         # rule utilities tests:
+        UnitTest(ruleUtils.parseRuleToNestedList, ["A"], Many(ExactValue("A"))),
+        UnitTest(ruleUtils.parseRuleToNestedList, ["A or B"],  Many(ExactValue("A"), ExactValue("B"))),
+        UnitTest(ruleUtils.parseRuleToNestedList, ["A and B"], Many(ExactValue("A"), ExactValue("B"))),
+        UnitTest(ruleUtils.parseRuleToNestedList, ["A foo B"], Exists(False)), # expected panic
+        UnitTest(ruleUtils.parseRuleToNestedList, ["A)"], Exists(False)), # expected panic
+
+        UnitTest(
+            ruleUtils.parseRuleToNestedList, ["A or B"],
+            MatchingShape({ "op" : ExactValue(ruleUtils.RuleOp.OR)})),
+        
+        UnitTest(
+            ruleUtils.parseRuleToNestedList, ["A and B"],
+            MatchingShape({ "op" : ExactValue(ruleUtils.RuleOp.AND)})),
+        
+        UnitTest(
+            ruleUtils.parseRuleToNestedList, ["A or B and C"],
+            MatchingShape({ "op" : ExactValue(ruleUtils.RuleOp.OR)})),
+
         UnitTest(
             ruleUtils.parseRuleToNestedList, ["A or B and C or (D and E)"],
             Many(
                 ExactValue("A"), 
                 Many(ExactValue("B"), ExactValue("C")),
                 Many(ExactValue("D"), ExactValue("E"))
-        )),
+            )),
 
+        UnitTest(lambda s : ruleUtils.RuleOp(s), ["or"],  ExactValue(ruleUtils.RuleOp.OR)),
+        UnitTest(lambda s : ruleUtils.RuleOp(s), ["and"], ExactValue(ruleUtils.RuleOp.AND)),
+        UnitTest(lambda s : ruleUtils.RuleOp(s), ["foo"], Exists(False)), # expected panic
+
+        UnitTest(ruleUtils.RuleOp.isOperator, ["or"],  ExactValue(True)),
+        UnitTest(ruleUtils.RuleOp.isOperator, ["and"], ExactValue(True)),
+        UnitTest(ruleUtils.RuleOp.isOperator, ["foo"], ExactValue(False)),
+
+        # reaction utilities tests:
         UnitTest(
             reactionUtils.create_reaction_dict,
             [{'shdgd': '2 pyruvate + 1 h2o <=> 1 h2o + 2 acetate', 'sgwrw': '2 co2 + 6 h2o --> 3 atp'}], 
@@ -756,6 +783,9 @@ def unit_utils() -> None:
             }, "reaction dict")),   
     ).testModule()
 
+    rule = "A and B or C or D and (E or F and G) or H"
+    print(f"rule \"{rule}\" should comes out as: {ruleUtils.parseRuleToNestedList(rule)}")
+
 def unit_ras_generator() -> None:
     import ras_generator as ras
     import utils.rule_parsing as ruleUtils
@@ -766,7 +796,7 @@ def unit_ras_generator() -> None:
         return ras.ras_op_list(op_list, dataset)
     
     ras.ARGS = ras.process_args()
-    rule = ruleUtils.OpList("and")
+    rule = ruleUtils.OpList(ruleUtils.RuleOp.AND)
     rule.extend(["foo", "bar", "baz"])
 
     dataset = { "foo" : 5, "bar" : 2, "baz" : None }
