@@ -493,7 +493,7 @@ class Bool:
         raise ArgsErr(self.argName, "boolean string (true or false, not case sensitive)", f"\"{s}\"")
 
 class Float:
-    def __init__(self, argName :str) -> None:
+    def __init__(self, argName = "Dataset values, not an argument") -> None:
         self.argName = argName
     
     def __call__(self, s :str) -> float: return self.check(s)
