@@ -161,13 +161,8 @@ def check_ensembl(l :str) -> bool:
     Returns:
         bool: True if the gene identifier follows the Ensembl format, False otherwise.
     """
-    if len(l) == 15:
-        if (l.upper()).startswith('ENS'):
-            return l[4:].isdigit()
-        else:  
-            return False 
-    else: 
-        return False 
+    return l.upper().startswith('ENS')
+ 
 
 def check_symbol(l :str) -> bool:
     """
@@ -219,8 +214,8 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
     args = process_args()    
     for i in range(len(gene)):
         tmp = gene.iloc[i, 0]
-        if tmp.startswith(' ') or tmp.endswith(' '):
-            gene.iloc[i, 0] = (tmp.lstrip()).rstrip()
+        gene.iloc[i, 0] = tmp.strip().split('.')[0]
+
     gene_dup = [item for item, count in 
                collections.Counter(gene[gene.columns[0]]).items() if count > 1]
     pat_dup = [item for item, count in 
@@ -681,7 +676,7 @@ def main() -> None:
     # This is the standard flow of the ras_generator program, for non-custom models.
     name = "RAS Dataset"
     type_gene = gene_type(dataset.iloc[0, 0], name)
-    
+
     rules      = model.getRules(ARGS.tool_dir)
     genes      = data_gene(dataset, type_gene, name, None)
     ids, rules = load_id_rules(rules.get(type_gene))
