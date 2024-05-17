@@ -682,7 +682,7 @@ def writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePa
         writer = csv.DictWriter(fd, fieldnames = fieldNames, delimiter = '\t')
         writer.writeheader()
 
-        for reactId, [pValue, foldChange] in enrichedScores.items():
+        for reactId, [pValue, foldChange, *_] in enrichedScores.items():
             writer.writerow({
                 fieldNames[0] : reactId,
                 fieldNames[1] : pValue,
