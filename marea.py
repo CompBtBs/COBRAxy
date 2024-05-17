@@ -751,12 +751,14 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
             firstDatasetData = class_pat.get(i)
             secondDatasetData = class_pat.get(j)
             for l1, l2 in zip(firstDatasetData, secondDatasetData):
+                reactId = ids[count]
+                count += 1
+
                 try: #TODO: identify the source of these errors and minimize code in the try block
                     if ARGS.net or not ARGS.using_RAS:
-                        reactId = ids[count]
                         reactDir = reactionIdIsDirectional(reactId)
                         
-                        try: position = ids.index(reactId[:-1] + ('B' if reactDir is ReactionDirection.Forward else 'F'))
+                        try: position = ids.index(reactId[:-1] + ('B' if reactDir is ReactionDirection.Direct else 'F'))
                         except ValueError: continue 
 
                         nets1 = np.subtract(l1, firstDatasetData[position])
@@ -767,14 +769,20 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
                         avg2 = sum(nets2)   / len(nets2)
                         net = (avg1 - avg2) / abs(avg2)
                        
-                        if net:
-                            tmp[reactId[:-1] + "RV"] = [p_value, net, avg1, avg2]
-                            
-                            if ARGS.net:
-                                del ids[position]
-                                continue
+                        if not net: continue
 
-                    p_value = computePValue(nets1, nets2)
+                        tmp[reactId[:-1] + "RV"] = [p_value, net, avg1, avg2]    
+                        if ARGS.net: del ids[position]
+                        continue
+
+                    p_value = computePValue(l1, l2)
+                    avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
+                    if not isinstance(avg, str) and max_F_C < abs(avg): max_F_C = abs(avg)
+                    tmp[reactId] = [float(p_value), avg]
+                
+                except (TypeError, ZeroDivisionError): continue
+            
+            temp_thingsInCommon(tmp, metabMap, max_F_C, i, j, fromRAS)
                     avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
                     if not isinstance(avg, str) and max_F_C < abs(avg): max_F_C = abs(avg)
 
