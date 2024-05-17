@@ -151,6 +151,8 @@ def process_args() -> argparse.Namespace:
         choices = [utils.Model.HMRcore, utils.Model.ENGRO2, utils.Model.Custom])
 
     args :argparse.Namespace = parser.parse_args()
+    if args.using_RAS and not args.using_RPS: args.net = False
+
     return args
           
 ############################ dataset input ####################################
@@ -345,11 +347,13 @@ class ReactionDirection(Enum):
         if s == ReactionDirection.Inverse.value: return ReactionDirection.Inverse
         return ReactionDirection.Unknown
 
-def reactionIdIsDirectional(reactionId :str) -> ReactionDirection:
-    return ReactionDirection.fromDir(reactionId[-2:])
+    @classmethod
+    def fromReactionId(cls, reactionId :str) -> "ReactionDirection":
+        return ReactionDirection.fromDir(reactionId[-2:])
 
 def getArrowBodyElementId(reactionId :str) -> str:
-    if reactionIdIsDirectional(reactionId) is not ReactionDirection.Unknown: reactionId = reactionId[:-2]
+    if reactionId.endswith("_RV"): reactionId = reactionId[:-3] #TODO: standardize _RV
+    elif ReactionDirection.fromReactionId(reactionId) is not ReactionDirection.Unknown: reactionId = reactionId[:-2]
     return f"R_{reactionId}"
 
 def getArrowHeadElementId(reactionId :str) -> Tuple[str, str]:
@@ -362,7 +366,8 @@ def getArrowHeadElementId(reactionId :str) -> Tuple[str, str]:
     Returns:
         Tuple[str, str]: either a single str ID for the correct arrow head followed by an empty string or both options to try.
     """
-    if reactionIdIsDirectional(reactionId) is not ReactionDirection.Unknown: return reactionId[:-3:-1] + reactionId[:-2], ""
+    if reactionId.endswith("_RV"): reactionId = reactionId[:-3] #TODO: standardize _RV
+    elif ReactionDirection.fromReactionId(reactionId) is not ReactionDirection.Unknown: return reactionId[:-3:-1] + reactionId[:-2], ""
     return f"F_{reactionId}", f"B_{reactionId}"
 
 class ArrowColor(Enum):
@@ -424,35 +429,6 @@ class Arrow:
         idOpt1, idOpt2 = getArrowHeadElementId(reactionId)
         self.applyTo(idOpt1, metabMap, self.toStyleStr())
         if idOpt2: self.applyTo(idOpt2, metabMap, self.toStyleStr())
-
-    def old_applyTo(self, metabMap :ET.ElementTree, reactionId :str, mindReactionDir = True) -> None:
-        """
-        Applies the Arrow's styles to the actual reaction arrow in the given metabolic map.
-
-        Args:
-            metabMap : the metabolic map to edit.
-            reactionId : the reaction ID associated with the arrow to style, as encoded in the dataset.
-            mindReactionDir: if True the arrow's tips corresponding to a specific direction in the reaction will be styled,
-            otherwise the body will.
-        
-        Side effects:
-            metabMap : mut
-        
-        Returns:
-            None
-        """
-        #TODO: this is sh*t but I don't know how to change it until I have the intended use clearer!
-        try: arrowEl = getElementById(self.getMapReactionId(reactionId, mindReactionDir), metabMap).unwrap()
-        except utils.Result.ResultErr:
-            ERRORS.append(reactionId)
-            return
-        
-        currentStyles :str = arrowEl.get("style", "")
-        if not re.search(r";stroke:[^;]+;stroke-width:[^;]+;stroke-dasharray:[^;]+$", currentStyles):
-            arrowEl.set("style", currentStyles + self.toStyleStr())
-            return # I don't bother to check much, as long as I don't extend the style tag at every edit
-        
-        arrowEl.set("style", ';'.join(currentStyles.split(';')[:-3]) + self.toStyleStr())
     
     def getMapReactionId(self, reactionId :str, mindReactionDir :bool) -> str:
         """
@@ -485,9 +461,9 @@ class Arrow:
 INVALID_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
 INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
 
-def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]], metabMap :ET.ElementTree, maxNumericFoldChange :float) -> None:
+def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericFoldChange :float) -> None:
     """
-    (Temporary) Applies RPS enrichment results to the provided metabolic map.
+    Applies RPS enrichment results to the provided metabolic map.
 
     Args:
         rpsEnrichmentRes : RPS enrichment results.
@@ -523,22 +499,19 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Tuple[float, FoldChange]
             continue
         
         reactionId = reactionId[:-3] # Remove "_RV"
-        if ARGS.net: # style the arrow head(s):
-            avg1 = values[2]
-            avg2 = values[3]
-            inversionScore = (avg1 < 0) + (avg2 < 0) # Compacts the signs of averages into 1 easy to check score
-
-            if inversionScore == 2: # Style the inverse direction with the opposite sign netValue
-                reactionId = "B_" + reactionId
-                foldChange *= -1
-            
-            else: reactionId = "F_" + reactionId # Style the forward direction
-
-            # If the score is 1 (opposite signs) we use alternative colors vvv
-            arrow = Arrow(width, ArrowColor.fromFoldChangeSign(foldChange, useAltColor = inversionScore == 1))
-            arrow.styleReactionElements(metabMap, reactionId)
         
-        if not ARGS.using_RAS: # style the arrow body
+        inversionScore = (values[2] < 0) + (values[3] < 0) # Compacts the signs of averages into 1 easy to check score
+        if inversionScore == 2: foldChange *= -1
+        # ^^^ Style the inverse direction with the opposite sign netValue
+        
+        # If the score is 1 (opposite signs) we use alternative colors vvv
+        arrow = Arrow(width, ArrowColor.fromFoldChangeSign(foldChange, useAltColor = inversionScore == 1))
+        
+        # vvv These 2 if statements can both be true and can both happen
+        if ARGS.net: # style arrow head(s):
+            arrow.styleReactionElements(metabMap, ("B_" if inversionScore == 2 else "F_") + reactionId)
+        
+        if not ARGS.using_RAS: # style arrow body
             arrow.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
 
 ############################ split class ######################################
@@ -718,6 +691,49 @@ def computePValue(dataset1Data :List[float], dataset2Data :List[float]) -> float
     """
     return st.ks_2samp(dataset1Data, dataset2Data)[1]
 
+def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
+    #TODO: the following code still suffers from "dumbvarnames-osis"
+    tmp :Dict[str, List[Union[float, FoldChange]]] = {}
+    count   = 0
+    max_F_C = 0
+    for l1, l2 in zip(dataset1Data, dataset2Data):
+        reactId = ids[count]
+        count += 1
+        if not reactId: continue # we skip ids that have already been processed
+
+        try: #TODO: identify the source of these errors and minimize code in the try block
+            reactDir = ReactionDirection.fromReactionId(reactId)
+            # Net score is computed only for reversible reactions when user wants it on arrow tips or when RAS datasets aren't used
+            if (ARGS.net or not ARGS.using_RAS) and reactDir is not ReactionDirection.Unknown:
+                try: position = ids.index(reactId[:-1] + ('B' if reactDir is ReactionDirection.Direct else 'F'))
+                except ValueError: continue # we look for the complementary id, if not found we skip
+
+                nets1 = np.subtract(l1, dataset1Data[position])
+                nets2 = np.subtract(l2, dataset2Data[position])
+
+                p_value = computePValue(nets1, nets2)
+                avg1 = sum(nets1)   / len(nets1)
+                avg2 = sum(nets2)   / len(nets2)
+                net = (avg1 - avg2) / abs(avg2)
+                
+                if math.isnan(net): continue
+                tmp[reactId[:-1] + "RV"] = [p_value, net, avg1, avg2]
+                
+                # vvv complementary directional ids are set to None once processed if net is to be applied to tips
+                if ARGS.net:
+                    ids[position] = None
+                    continue
+
+            # fallthrough is intended, regular scores need to be computed when tips aren't net but RAS datasets aren't used
+            p_value = computePValue(l1, l2)
+            avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
+            if not isinstance(avg, str) and max_F_C < abs(avg): max_F_C = abs(avg)
+            tmp[reactId] = [float(p_value), avg]
+        
+        except (TypeError, ZeroDivisionError): continue
+    
+    return tmp, max_F_C
+
 def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], *, fromRAS = True) -> None:
     """
     Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
@@ -736,53 +752,19 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
         sys.exit : if there are less than 2 classes for comparison
     
     Side effects:
-        core_map : mut (passed to fix_map)
+        metabMap : mut
+        ids : mut
     """
     class_pat = { k.strip() : v for k, v in class_pat.items() }
     #TODO: simplfy this stuff vvv and stop using sys.exit (raise the correct utils error)
     if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
-    #TODO: below is some repeated code that should be abstracted out
+
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            tmp :Dict[str, List[Union[float, FoldChange]]] = {}
-            count = 0
-            max_F_C = 0
-
-            firstDatasetData = class_pat.get(i)
-            secondDatasetData = class_pat.get(j)
-            for l1, l2 in zip(firstDatasetData, secondDatasetData):
-                reactId = ids[count]
-                count += 1
-
-                try: #TODO: identify the source of these errors and minimize code in the try block
-                    if ARGS.net or not ARGS.using_RAS:
-                        reactDir = reactionIdIsDirectional(reactId)
-                        
-                        try: position = ids.index(reactId[:-1] + ('B' if reactDir is ReactionDirection.Direct else 'F'))
-                        except ValueError: continue 
-
-                        nets1 = np.subtract(l1, firstDatasetData[position])
-                        nets2 = np.subtract(l2, secondDatasetData[position])
-
-                        p_value = computePValue(nets1, nets2)
-                        avg1 = sum(nets1)   / len(nets1)
-                        avg2 = sum(nets2)   / len(nets2)
-                        net = (avg1 - avg2) / abs(avg2)
-                       
-                        if not net: continue
-
-                        tmp[reactId[:-1] + "RV"] = [p_value, net, avg1, avg2]    
-                        if ARGS.net: del ids[position]
-                        continue
-
-                    p_value = computePValue(l1, l2)
-                    avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
-                    if not isinstance(avg, str) and max_F_C < abs(avg): max_F_C = abs(avg)
-                    tmp[reactId] = [float(p_value), avg]
-                
-                except (TypeError, ZeroDivisionError): continue
-            
-            temp_thingsInCommon(tmp, metabMap, max_F_C, i, j, fromRAS)
+            #TODO: these 2 functions are always called in pair and in this order and need common data,
+            # some clever refactoring would be appreciated.
+            comparisonDict, max_F_C = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
+            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, i, j, fromRAS)
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
@@ -795,50 +777,16 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
             for i in t:
                 rest = rest + i
             
-            tmp = {}
-            count = 0
-            max_F_C = 0
-            
-            primo = -1
-            for l1, l2 in zip(class_pat.get(single_cluster), rest):
-                try:
-                    stat_D, p_value = st.ks_2samp(l1, l2)
-                    avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
-                    if primo == -1:
-                        primo = 0
-                        print(avg)
-                    if not isinstance(avg, str):
-                        if max_F_C < abs(avg):
-                            max_F_C = abs(avg)
-                    tmp[ids[count]] = [float(p_value), avg]
-                    count += 1
-                except (TypeError, ZeroDivisionError):
-                    count += 1
-            
-            temp_thingsInCommon(tmp, metabMap, max_F_C, single_cluster, fromRAS)
-                        
+            comparisonDict, max_F_C = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
+            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, single_cluster, fromRAS)
+    
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
             if otherDataset == ARGS.control: continue
             
-            tmp = {}
-            count = 0
-            max_F_C = 0
-            for l1, l2 in zip(controlItems, class_pat.get(otherDataset)):
-                try:
-                    _, p_value = st.ks_2samp(l1, l2)
-                    #sum(l1) da errore secondo me perchè ha null
-                    avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
-                    if not isinstance(avg, str):
-                        if max_F_C < abs(avg):
-                            max_F_C = abs(avg)
-                    tmp[ids[count]] = [float(p_value), avg]
-                    count += 1
-                except (TypeError, ZeroDivisionError):
-                    count += 1
-            
-            temp_thingsInCommon(tmp, metabMap, max_F_C, ARGS.control, otherDataset, fromRAS)
+            comparisonDict, max_F_C = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, ARGS.control, otherDataset, fromRAS)
 
 def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
     svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details = "SVG Map", ext = utils.FileFormat.SVG)
