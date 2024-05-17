@@ -15,7 +15,8 @@ import utils.general_utils as utils
 import utils.reaction_parsing as reactionUtils
 
 ########################## argparse ##########################################
-def process_args(args :List[str]) -> argparse.Namespace:
+ARGS :argparse.Namespace
+def process_args() -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -130,55 +131,30 @@ def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
     
     return ""
 
-
-############################ update_metabolite_names ####################################
-def update_metabolite_names(abundances_dict: Dict[str, float], syn_dict: Dict[str, List[str]]) -> Dict[str, float]:
-    """
-    Update metabolite names in the abundance series based on synonyms provided in the synonym dictionary.
-
-    Args:
-        abundances_series (pandas.Series): A series containing metabolite names as index and abundance values as values.
-        syn_dict (dict): A dictionary where keys are general metabolite names and values are lists of possible synonyms.
-
-    Returns:
-        dict: An updated series where metabolite names have been replaced with their corresponding general names
-              according to the synonym dictionary. If a metabolite name doesn't have a synonym it is deleted, whereas 
-              if it has already the general name, it remains unchanged.
-    """
-    updated_abundances = {}
-    for name, abundance in abundances_dict.items():
-        id = get_metabolite_id(name, syn_dict)
-        if id: updated_abundances[id] = abundance
-
-    return updated_abundances
-
-
 ############################ check_missing_metab ####################################
-def check_missing_metab(reactions: Dict[str, Dict[str, int]], updated_abundances: Dict[str, float]) -> Tuple[Dict[str, float], List[str]]:
+def check_missing_metab(reactions: Dict[str, Dict[str, int]], dataset_by_rows: Dict[str, List[float]], cell_lines_amt :int) -> List[str]:
     """
     Check for missing metabolites in the abundances dictionary compared to the reactions dictionary and update abundances accordingly.
 
     Parameters:
         reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and stoichiometric coefficients as values.
-        updated_abundances (dict): A dictionary representing abundances where keys are metabolite names and values are their corresponding abundances.
+        dataset_by_rows (dict): A dictionary representing abundances where keys are metabolite names and values are their corresponding abundances for all cell lines.
+        cell_lines_amt : amount of cell lines, needed to add a new list of abundances for missing metabolites.
 
     Returns:
-        tuple[dict, list]: A tuple containing:
-            - A dictionary representing updated abundances where metabolite names have been added or set to 1 if missing in the original abundances dictionary.
-            - A list of metabolite names that were missing in the original abundances dictionary and thus their aboundances were set to 1.
+        list[str] : list of metabolite names that were missing in the original abundances dictionary and thus their aboundances were set to 1.
 
     Side effects:
-        The input updated_abundances is modified in place      
+        dataset_by_rows : mut
     """
-    missing_list=[]
+    missing_list = []
     for reaction in reactions.values():
         for metabolite in reaction.keys():
-          if metabolite not in updated_abundances:
-            updated_abundances[metabolite]= 1
+          if metabolite not in dataset_by_rows:
+            dataset_by_rows[metabolite] = [1] * cell_lines_amt
             missing_list.append(metabolite)
 
-    return updated_abundances, missing_list
-
+    return missing_list
 
 ############################ calculate_rps ####################################
 def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, float], black_list: List[str], missing_list: List[str]) -> Dict[str, float]:
@@ -213,35 +189,35 @@ def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, fl
 
 
 ############################ rps_for_cell_lines ####################################
-def rps_for_cell_lines(dataframe: pd.DataFrame, reactions: Dict[str, Dict[str, int]], black_list: List[str], syn_dict: Dict[str, List[str]], file: str, flag: bool) -> None:
+def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, int]], black_list: List[str], syn_dict: Dict[str, List[str]]) -> None:
     """
     Calculate Reaction Propensity Scores (RPS) for each cell line represented in the dataframe and creates an output file.
 
     Parameters:
-        dataframe (pandas.DataFrame): A DataFrame containing metabolite abundances for different cell lines.
+        dataset : the dataset's data, by rows
         reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and stoichiometric coefficients as values.
         black_list (list): A list containing metabolite names that should be excluded from the RPS calculation.
         syn_dict (dict): A dictionary where keys are general metabolite names and values are lists of possible synonyms.
-        file (str): Path to the output RPS file.
-        flag(bool): True if default reaction dict is being used, False otherwise.
 
     Returns:
         None
     """
-    rps_scores=[]
-    
-    for (_, series) in dataframe.iterrows(): #TODO: what is this iterating over?
-        updated_abundances = update_metabolite_names(series.to_dict(), syn_dict) if flag else series.to_dict()
-        abundances, missing_list = check_missing_metab(reactions, updated_abundances)
-        rps_scores.append(calculate_rps(reactions, abundances, black_list, missing_list))
-    
-    
-    output_rps = pd.DataFrame.from_dict(rps_scores)
-    output_to_csv = pd.DataFrame.to_csv(output_rps, sep = '\t', index = False)
+    cell_lines = dataset[0][1:]
+    abundances_dict = {}
 
-    with open(file, "w") as file:
-        file.write(output_to_csv)
-
+    translationIsApplied = ARGS.reaction_choice == "default"
+    for row in dataset[1:]:
+        id = get_metabolite_id(row[0], syn_dict) if translationIsApplied else row[0]
+        if id: abundances_dict[id] = list(map(utils.Float(), row[1:]))
+    
+    missing_list = check_missing_metab(reactions, abundances_dict, len((cell_lines)))
+    
+    rps_scores :Dict[Dict[str, float]] = {}
+    for pos, cell_line_name in enumerate(cell_lines):
+        abundances = { metab : abundances[pos] for metab, abundances in abundances_dict.items() }
+        rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list)
+    
+    pd.DataFrame.from_dict(rps_scores).to_csv(ARGS.rps_output, sep = '\t', index = True)
 
 ############################ main ####################################
 def main() -> None:
@@ -251,29 +227,26 @@ def main() -> None:
     Returns:
         None
     """
-    args = process_args(sys.argv)
-    # use utils functions vvv
-    with open(args.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
+    global ARGS
+    ARGS = process_args()
+
+    # TODO:use utils functions vvv
+    with open(ARGS.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
         black_list = pk.load(bl)
 
-    with open(args.tool_dir + '/local/pickle files/synonyms.pickle', 'rb') as sd:
+    with open(ARGS.tool_dir + '/local/pickle files/synonyms.pickle', 'rb') as sd:
         syn_dict = pk.load(sd)
 
-    dataset = utils.read_dataset(utils.FilePath.fromStrPath(args.input), "dataset")
-    #TODO: (trivial) grab actual name from UI and put into ARGS
+    dataset = utils.readCsv(utils.FilePath.fromStrPath(ARGS.input), '\t', skipHeader = False)
 
-    flag = True #TODO: better name pls
-    if args.reaction_choice == 'default':        
-        reactions = pk.load(open(args.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
-    elif args.reaction_choice == 'custom':
-        reactions = reactionUtils.parse_custom_reactions(args.custom)
-        flag = False
-      
-    rps_for_cell_lines(dataset, reactions, black_list, syn_dict, args.rps_output, flag)
+    if ARGS.reaction_choice == 'default':
+        reactions = pk.load(open(ARGS.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
     
+    elif ARGS.reaction_choice == 'custom':
+        reactions = reactionUtils.parse_custom_reactions(ARGS.custom)
+    
+    rps_for_cell_lines(dataset, reactions, black_list, syn_dict)
     print('Execution succeded')
-    return None
-
 
 ##############################################################################
 if __name__ == "__main__":

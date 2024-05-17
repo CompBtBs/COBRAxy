@@ -659,13 +659,6 @@ def unit_rps_generator() -> None:
 
         UnitTest(rps.get_abund_data, [dataset, -1], ExactValue(None)),
 
-        UnitTest(rps.update_metabolite_names, [abundancesNormalRaw, synsDict], MatchingShape({
-            "pyr"     : ExactValue(5.3),
-            "glc__D"  : ExactValue(8.2),
-            "atp"     : ExactValue(7.05),
-            "unknown" : Exists(False)
-        }, "abundance dict")),
-
         UnitTest(rps.check_missing_metab, [reactionsDict, abundancesNormal.copy()], Many(MatchingShape({
             "pyr"    : ExactValue(5.3),
             "glc__D" : ExactValue(8.2),
@@ -676,11 +669,6 @@ def unit_rps_generator() -> None:
         UnitTest(rps.clean_metabolite_name, ["4,4'-diphenylmethane diisocyanate"], ExactValue("44diphenylmethanediisocyanate")),
 
         UnitTest(rps.get_metabolite_id, ["tryptophan", synsDict], ExactValue("trp__L")),
-
-        UnitTest(rps.ReactionDir.fromReaction, ["atp <=> adp + pi"], ExactValue(rps.ReactionDir.REVERSIBLE)),
-        UnitTest(rps.ReactionDir.fromReaction, ["atp --> adp + pi"], ExactValue(rps.ReactionDir.FORWARD)),
-        UnitTest(rps.ReactionDir.fromReaction, ["atp <-- adp + pi"], ExactValue(rps.ReactionDir.BACKWARD)),
-        UnitTest(rps.ReactionDir.fromReaction, ["atp ??? adp + pi"], Exists(False)), # should panic
 
         UnitTest(rps.calculate_rps, [reactionsDict, abundancesNormalEdited, blackList, missingInDataset], normalRpsShape),
 
@@ -762,6 +750,11 @@ def unit_utils() -> None:
         UnitTest(ruleUtils.RuleOp.isOperator, ["foo"], ExactValue(False)),
 
         # reaction utilities tests:
+        UnitTest(reactionUtils.ReactionDir.fromReaction, ["atp <=> adp + pi"], ExactValue(reactionUtils.ReactionDir.REVERSIBLE)),
+        UnitTest(reactionUtils.ReactionDir.fromReaction, ["atp --> adp + pi"], ExactValue(reactionUtils.ReactionDir.FORWARD)),
+        UnitTest(reactionUtils.ReactionDir.fromReaction, ["atp <-- adp + pi"], ExactValue(reactionUtils.ReactionDir.BACKWARD)),
+        UnitTest(reactionUtils.ReactionDir.fromReaction, ["atp ??? adp + pi"], Exists(False)), # should panic
+
         UnitTest(
             reactionUtils.create_reaction_dict,
             [{'shdgd': '2 pyruvate + 1 h2o <=> 1 h2o + 2 acetate', 'sgwrw': '2 co2 + 6 h2o --> 3 atp'}], 
