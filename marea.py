@@ -783,16 +783,6 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
                 except (TypeError, ZeroDivisionError): continue
             
             temp_thingsInCommon(tmp, metabMap, max_F_C, i, j, fromRAS)
-                    avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
-                    if not isinstance(avg, str) and max_F_C < abs(avg): max_F_C = abs(avg)
-
-                    tmp[ids[count]] = [float(p_value), avg]
-                    count += 1
-                
-                except (TypeError, ZeroDivisionError):
-                    count += 1
-            
-            temp_thingsInCommon(tmp, metabMap, max_F_C, i, j, fromRAS)
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
@@ -902,7 +892,7 @@ def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List
     IDs = pd.Series.tolist(dataset.iloc[:, 0].astype(str))
 
     dataset = dataset.drop(dataset.columns[0], axis = "columns").to_dict("list")
-    return { id : list(map(utils.Float(), values)) for id, values in dataset.items() }, IDs
+    return { id : list(map(utils.Float("Dataset values, not an argument"), values)) for id, values in dataset.items() }, IDs
 
 ############################ MAIN #############################################
 def main() -> None:
