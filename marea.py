@@ -378,12 +378,12 @@ class ArrowColor(Enum):
     UpRegulated   = "#E41A1C" # red, up-regulated reaction
     DownRegulated = "#0000FF" # blue, down-regulated reaction
 
-    UpRegulatedInv = "#E40000"
-    # ^^^ different shade of red, up-regulated net value for a reversible reaction with
+    UpRegulatedInv = "#FF7A00"
+    # ^^^ different shade of red (actually orange), up-regulated net value for a reversible reaction with
     # conflicting enrichment in the two directions.
 
-    DownRegulatedInv = "#00FFFF"
-    # ^^^ different shade of blue, down-regulated net value for a reversible reaction with
+    DownRegulatedInv = "#B22CF1"
+    # ^^^ different shade of blue (actually purple), down-regulated net value for a reversible reaction with
     # conflicting enrichment in the two directions.
 
     @classmethod
