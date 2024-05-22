@@ -649,23 +649,45 @@ def buildOutputPath(dataset1Name :str, dataset2Name = "rest", *, details = "", e
         prefix = "result")
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
-def writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePath) -> None:
-    fieldNames = ("ids", "P_Value", "Log2(fold change)")
+def writeTabularResult(enrichedScores : OldEnrichedScores, avg1_list: List[float], avg2_list: List[float], ras_enrichment: bool, outPath :utils.FilePath) -> None:
     with open(outPath.show(), "w", newline = "") as fd:
-        writer = csv.DictWriter(fd, fieldnames = fieldNames, delimiter = '\t')
-        writer.writeheader()
+        if not ras_enrichment: 
+            fieldNames = ("ids","P_Value", "Log2(fold change)", "average_1", "average_2")
+            writer = csv.DictWriter(fd, fieldnames = fieldNames, delimiter = '\t')
+            writer.writeheader()
+            for reactId, [pValue, foldChange, *_] in enrichedScores.items():
+                try:
+                    avg1 = avg1_list.pop(0)
+                except IndexError:
+                    avg1 = math.nan
 
-        for reactId, [pValue, foldChange, *_] in enrichedScores.items():
-            writer.writerow({
-                fieldNames[0] : reactId,
-                fieldNames[1] : pValue,
-                fieldNames[2] : foldChange
-            }) #TODO: if you know a prettier way go for it! :D
+                try:
+                    avg2 = avg2_list.pop(0)
+                except IndexError:
+                    avg2 = math.nan
+                
+                writer.writerow({
+                    fieldNames[0]: reactId,
+                    fieldNames[1]: pValue,
+                    fieldNames[2]: foldChange,
+                    fieldNames[3]: avg1, 
+                    fieldNames[4]: avg2
+                    })  
+        else:
+            fieldNames = ("ids","P_Value", "Log2(fold change)")
+            writer = csv.DictWriter(fd, fieldnames = fieldNames, delimiter = '\t')
+            writer.writeheader()
+            for reactId, [pValue, foldChange, *_] in enrichedScores.items():
+                writer.writerow({
+                    fieldNames[0] : reactId,
+                    fieldNames[1] : pValue,
+                    fieldNames[2] : foldChange,
+                }) #TODO: if you know a prettier way go for it! :D
 
-def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
+def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, avg1_list: List[float], avg2_list: List[float], dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
     # this function compiles the things always in common between comparison modes after enrichment.
     # TODO: organize, name better.
-    writeTabularResult(tmp, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
+    writeTabularResult(tmp, avg1_list, avg2_list, ras_enrichment, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
     
     if ras_enrichment:
         fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
@@ -696,6 +718,9 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     tmp :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_F_C = 0
+    avg1_list = []
+    avg2_list = []
+
     for l1, l2 in zip(dataset1Data, dataset2Data):
         reactId = ids[count]
         count += 1
@@ -706,7 +731,10 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
             # Net score is computed only for reversible reactions when user wants it on arrow tips or when RAS datasets aren't used
             if (ARGS.net or not ARGS.using_RAS) and reactDir is not ReactionDirection.Unknown:
                 try: position = ids.index(reactId[:-1] + ('B' if reactDir is ReactionDirection.Direct else 'F'))
-                except ValueError: continue # we look for the complementary id, if not found we skip
+                except ValueError: 
+                    # facendo avg1_list.append('stringa a caso') si nota che effettivamente ci sono dei valori che vengono skippati
+                    # e per questo le due liste sono più corte della tabella, TODO: risolvere questa cosa
+                    continue # we look for the complementary id, if not found we skip
 
                 nets1 = np.subtract(l1, dataset1Data[position])
                 nets2 = np.subtract(l2, dataset2Data[position])
@@ -714,6 +742,10 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
                 p_value = computePValue(nets1, nets2)
                 avg1 = sum(nets1)   / len(nets1)
                 avg2 = sum(nets2)   / len(nets2)
+
+                avg1_list.append(avg1)
+                avg2_list.append(avg2)
+
                 net = (avg1 - avg2) / abs(avg2)
                 
                 if math.isnan(net): continue
@@ -731,8 +763,9 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
             tmp[reactId] = [float(p_value), avg]
         
         except (TypeError, ZeroDivisionError): continue
-    
-    return tmp, max_F_C
+        print(avg1_list)
+        print(avg2_list)
+    return tmp, max_F_C, avg1_list, avg2_list
 
 def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], *, fromRAS = True) -> None:
     """
@@ -763,8 +796,8 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
         for i, j in it.combinations(class_pat.keys(), 2):
             #TODO: these 2 functions are always called in pair and in this order and need common data,
             # some clever refactoring would be appreciated.
-            comparisonDict, max_F_C = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, i, j, fromRAS)
+            comparisonDict, max_F_C, avg1_list, avg2_list = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
+            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, avg1_list, avg2_list, i, j, fromRAS)
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
@@ -777,16 +810,16 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
             for i in t:
                 rest = rest + i
             
-            comparisonDict, max_F_C = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, single_cluster, fromRAS)
+            comparisonDict, max_F_C, avg1_list, avg2_list = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
+            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, avg1_list, avg2_list, single_cluster, fromRAS, avg1_list, avg2_list)
     
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
             if otherDataset == ARGS.control: continue
             
-            comparisonDict, max_F_C = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, ARGS.control, otherDataset, fromRAS)
+            comparisonDict, max_F_C, avg1_list, avg2_list = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, avg1_list, avg2_list, ARGS.control, otherDataset, fromRAS, avg1_list, avg2_list)
 
 def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
     svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details = "SVG Map", ext = utils.FileFormat.SVG)
