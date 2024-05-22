@@ -76,7 +76,7 @@
 			--net ${advanced.netRPS}
 		#else 
 			--pValue 0.05
-			--fChange 1.5
+			--fChange 1.2
 			--generate_svg false
 			--generate_pdf true
 			--net false
@@ -166,7 +166,7 @@
 			</param>
 
 			<when value="true">
-				<param name="pValue" argument="--pValue" type="float" size="20" value="0.01" max="1" min="0" label="P-value threshold:" help="min value 0" />
+				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
 				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
 				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
 				<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
