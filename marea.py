@@ -509,7 +509,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         
         # vvv These 2 if statements can both be true and can both happen
         if ARGS.net: # style arrow head(s):
-            arrow.styleReactionElements(metabMap, ("B_" if inversionScore == 2 else "F_") + reactionId)
+            arrow.styleReactionElements(metabMap, reactionId + ("_B" if inversionScore == 2 else "_F"))
         
         if not ARGS.using_RAS: # style arrow body
             arrow.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
@@ -665,7 +665,7 @@ def writeTabularResult(enrichedScores : OldEnrichedScores, ras_enrichment: bool,
     fieldNames = ["ids", "P_Value", "Log2(fold change)"]
     if not ras_enrichment: fieldNames.extend(["average_1", "average_2"])
 
-    writeToCsv([ [reactId, values] for reactId, values in enrichedScores.items() ], fieldNames, outPath)
+    writeToCsv([ [reactId] + values for reactId, values in enrichedScores.items() ], fieldNames, outPath)
 
 def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
     # this function compiles the things always in common between comparison modes after enrichment.
