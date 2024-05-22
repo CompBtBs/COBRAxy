@@ -427,8 +427,8 @@ class Arrow:
         
         # Now we style the arrow head(s):
         idOpt1, idOpt2 = getArrowHeadElementId(reactionId)
-        self.applyTo(idOpt1, metabMap, self.toStyleStr())
-        if idOpt2: self.applyTo(idOpt2, metabMap, self.toStyleStr())
+        self.applyTo(idOpt1, metabMap, self.toStyleStr(downSizedForTips = True))
+        if idOpt2: self.applyTo(idOpt2, metabMap, self.toStyleStr(downSizedForTips = True))
     
     def getMapReactionId(self, reactionId :str, mindReactionDir :bool) -> str:
         """
@@ -447,14 +447,16 @@ class Arrow:
         #TODO: this is clearly something we need to make consistent in RPS
         return (reactionId[:-3:-1] + reactionId[:-2]) if reactionId[:-2] in ["_F", "_B"] else f"F_{reactionId}" # "Pyr_F" --> "F_Pyr"
 
-    def toStyleStr(self) -> str:
+    def toStyleStr(self, *, downSizedForTips = False) -> str:
         """
         Collapses the styles of this Arrow into a str, ready to be applied as part of the "style" property on an svg element.
 
         Returns:
             str : the styles string.
         """
-        return f";stroke:{self.col};stroke-width:{self.w};stroke-dasharray:{'5,5' if self.dash else 'none'}"
+        width = self.w
+        if downSizedForTips: width *= 0.15
+        return f";stroke:{self.col};stroke-width:{width};stroke-dasharray:{'5,5' if self.dash else 'none'}"
 
 # vvv These constants could be inside the class itself a static properties, but python
 # was built by brainless organisms so here we are!
