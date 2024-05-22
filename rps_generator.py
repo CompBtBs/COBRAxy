@@ -217,7 +217,9 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
         abundances = { metab : abundances[pos] for metab, abundances in abundances_dict.items() }
         rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list)
     
-    pd.DataFrame.from_dict(rps_scores).to_csv(ARGS.rps_output, sep = '\t', index = True)
+    pd.DataFrame.from_dict(rps_scores) \
+                .rename(columns={'Unnamed: 0': 'Reactions'}, inplace=True) \
+                .to_csv(ARGS.rps_output, sep = '\t', na_rep = "None", index = False)
 
 ############################ main ####################################
 def main() -> None:
