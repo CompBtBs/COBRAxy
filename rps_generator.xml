@@ -26,7 +26,7 @@
         
         <conditional name="cond_reactions">
 			<param name="reaction_choice" argument="--reaction_choice" type="select" label="Choose reaction dataset:">
-                	<option value="default" selected="true">Default reaction dataset</option>
+                	<option value="default" selected="true">ENGRO2 reaction dataset </option>
                 	<option value="custom">Custom reaction dataset</option>
         	</param>
             <when value="custom">

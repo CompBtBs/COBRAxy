@@ -660,6 +660,9 @@ def main() -> None:
     dataset = read_dataset(ARGS.input, "dataset")
     dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
 
+    # remove versioning from gene names
+    dataset.iloc[:, 0] = dataset.iloc[:, 0].str.split('.').str[0]
+
     # handle custom models
     model :utils.Model = ARGS.rules_selector
     if model is utils.Model.Custom:
