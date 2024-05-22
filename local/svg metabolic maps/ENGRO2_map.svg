@@ -1,24 +1,46 @@
-<svg width="2632" height="2412" viewBox="0 0 2632 2412" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="2632" height="2412" fill="#F5F5F5"/>
+<svg width="2632" height="2473" viewBox="0 0 2632 2473" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="2632" height="2473" fill="#F5F5F5"/>
 <g id="ENGRO2_2">
 <g id="Legend">
-<text id="text39" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="32" font-weight="bold" letter-spacing="0em"><tspan x="98.2344" y="2289.59">Legend:</tspan></text>
-<g id="Legend body">
+<text id="text52" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="98.4258" y="2467.32">Thickness is proportional to fold change</tspan></text>
+<g id="Legend Body">
+<g id="Frame 1">
+<g id="Group 176">
 <text id="text35" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="220.246" y="2350.32">= Up regulated</tspan></text>
-<text id="text37" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="220.07" y="2405.32">= Down regulated</tspan></text>
-<path id="path6613-3" d="M98 2397H210" stroke="#0000FF" stroke-width="30"/>
 <path id="path6613-8-6" d="M98 2342H210" stroke="#E41A1C" stroke-width="30"/>
-<path id="path6613-8-1-0" d="M485 2397H597" stroke="#BEBEBE" stroke-width="30"/>
+</g>
+<g id="Group 179">
+<text id="text35_2" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="683.168" y="2350.32">= Up regulated (conflicting data)</tspan></text>
+<path id="path6613-8-6_2" d="M558 2342H670" stroke="#FF7A00" stroke-width="30"/>
+</g>
+<g id="Group 177">
+<path id="path6613-8-2-6" d="M1221 2342H1333" stroke="#BEBEBE" stroke-width="30" stroke-dasharray="30 30"/>
+<text id="text48" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="1345.25" y="2350.32">= Not significant</tspan></text>
+</g>
+<g id="Group 178">
 <g id="path6613-8-4-9">
-<path d="M1040 2342H1152H1040Z" fill="black"/>
-<path d="M1040 2342H1152" stroke="black" stroke-width="30"/>
+<path d="M1703 2342H1815H1703Z" fill="black"/>
+<path d="M1703 2342H1815" stroke="black" stroke-width="30"/>
 </g>
-<path id="path6613-8-2-6" d="M485 2342H597" stroke="#BEBEBE" stroke-width="30" stroke-dasharray="30 30"/>
-<text id="text46" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="1167.06" y="2350.32">= Not classified</tspan></text>
-<text id="text48" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="609.25" y="2350.32">= Not significant</tspan></text>
-<text id="text50" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="609.16" y="2405.32">= Fold change under threshold</tspan></text>
-<text id="text52" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="1038.43" y="2405.32">Thickness is proportional to fold change</tspan></text>
+<text id="text46" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="1830.06" y="2350.32">= Not classified</tspan></text>
 </g>
+</g>
+<g id="Frame 2">
+<g id="Group 179_2">
+<text id="text37" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="220.07" y="2408.32">= Down regulated</tspan></text>
+<path id="path6613-3" d="M98 2400H210" stroke="#0000FF" stroke-width="30"/>
+</g>
+<g id="Group 181">
+<text id="text37_2" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="683.492" y="2408.32">= Down regulated (conflicting data)</tspan></text>
+<path id="path6613-3_2" d="M558 2400H670" stroke="#B22CF1" stroke-width="30"/>
+</g>
+<g id="Group 180">
+<path id="path6613-8-1-0" d="M1222 2400H1334" stroke="#BEBEBE" stroke-width="30"/>
+<text id="text50" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="24" font-weight="bold" letter-spacing="0em"><tspan x="1346.16" y="2408.32">= Fold change under threshold</tspan></text>
+</g>
+</g>
+</g>
+<text id="Legend_2" fill="black" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="32" font-weight="bold" letter-spacing="0em"><tspan x="98.2344" y="2289.59">Legend:</tspan></text>
 </g>
 <g id="Group 141">
 <g id="R_t_Lcystin_leu__L">
@@ -51,7 +73,7 @@
 <text id="text1315" transform="translate(128 1489)" fill="#2B0000" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="0.09375" y="14.5469">CySS</tspan></text>
 <g id="Group 142">
 <g id="R_t_Lcystin_glu__L">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M89.3724 1435.09C96.8184 1433.25 95.2344 1418 95.2344 1418L89.3724 1435.09ZM47.0479 1436H122.048H47.0479ZM61.5716 1418.18C58.3934 1428.96 67.5947 1435.31 67.5947 1435.31L61.5716 1418.18Z" fill="#2B0000"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M89.3724 1435.09C96.8184 1433.25 95.2344 1418 95.2344 1418ZM47.0479 1436H122.048ZM61.5716 1418.18C58.3934 1428.96 67.5947 1435.31 67.5947 1435.31Z" fill="#2B0000"/>
 <path d="M89.3724 1435.09C96.8184 1433.25 95.2344 1418 95.2344 1418M47.0479 1436H122.048M61.5716 1418.18C58.3934 1428.96 67.5947 1435.31 67.5947 1435.31" stroke="black" stroke-width="1.48938"/>
 </g>
 <path id="F_t_Lcystin_glu__L" d="M113.239 1439.37C123.001 1436.59 123.001 1436.59 123.001 1436.59L113.296 1433.62L115.701 1436.52L113.239 1439.37ZM63.8049 1420.8C61.5888 1413.91 61.5887 1413.91 61.5887 1413.91L59.264 1420.77L61.5479 1419.06L63.8049 1420.8Z" fill="#2B0000" stroke="black" stroke-width="2.66667"/>
@@ -180,7 +202,7 @@
 <path id="B_tyr_L_t" d="M2542.1 628.975C2532.43 625.895 2532.43 625.895 2532.43 625.895L2542.22 623.224L2539.73 626.049L2542.1 628.975Z" stroke="black" stroke-width="2.66667"/>
 <g id="Group 174">
 <g id="R_THBPTt">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M2622.27 655.87H2541.32Z" fill="#2B0000"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M2622.27 655.87H2541.32H2622.27Z" fill="#2B0000"/>
 <path d="M2622.27 655.87H2541.32" stroke="black" stroke-width="2.27461"/>
 </g>
 <text id="text2553-3_2" fill="#2B0000" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="2494.48" y="659.547">BH4</tspan></text>
@@ -188,7 +210,7 @@
 </g>
 <g id="Group 175">
 <g id="R_CE2705t">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M2532.5 682.87H2618.95Z" fill="#2B0000"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M2532.5 682.87H2618.95H2532.5Z" fill="#2B0000"/>
 <path d="M2532.5 682.87H2618.95" stroke="black" stroke-width="2.27461"/>
 </g>
 <text id="text2553-3_3" fill="#2B0000" xml:space="preserve" style="white-space: pre" font-family="Arial" font-size="16" font-weight="bold" letter-spacing="0em"><tspan x="2494.48" y="688.547">BH2</tspan></text>
@@ -196,11 +218,11 @@
 </g>
 </g>
 <g id="Rectangle 4">
-<mask id="path-141-outside-1_498_2" maskUnits="userSpaceOnUse" x="75" y="49" width="2514" height="2192" fill="black">
+<mask id="path-145-outside-1_498_2" maskUnits="userSpaceOnUse" x="75" y="49" width="2514" height="2192" fill="black">
 <rect fill="white" x="75" y="49" width="2514" height="2192"/>
 <path d="M81 67C81 60.3726 86.3726 55 93 55H2571C2577.63 55 2583 60.3726 2583 67V2223C2583 2229.63 2577.63 2235 2571 2235H93C86.3725 2235 81 2229.63 81 2223V67Z"/>
 </mask>
-<path d="M81 67C81 60.3726 86.3726 55 93 55H2571C2577.63 55 2583 60.3726 2583 67V2223C2583 2229.63 2577.63 2235 2571 2235H93C86.3725 2235 81 2229.63 81 2223V67Z" stroke="black" stroke-width="12" mask="url(#path-141-outside-1_498_2)"/>
+<path d="M81 67C81 60.3726 86.3726 55 93 55H2571C2577.63 55 2583 60.3726 2583 67V2223C2583 2229.63 2577.63 2235 2571 2235H93C86.3725 2235 81 2229.63 81 2223V67Z" stroke="black" stroke-width="12" mask="url(#path-145-outside-1_498_2)"/>
 </g>
 <g id="Group 136">
 <g id="Group 140">
