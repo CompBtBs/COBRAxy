@@ -861,8 +861,6 @@ def main() -> None:
     Raises:
         sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
     """
-
-    print('PROVA')
     global ARGS
     ARGS = process_args()
 

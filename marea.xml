@@ -24,37 +24,37 @@
         #if $cond.type_selector == 'datasets':
 			#if $cond.using_RAS.check == 'true':
 				--input_datas
-				#for $data in $cond.input_Datasets:
+				#for $data in $using_RAS.input_Datasets:
 					${data.input}
 				#end for
 
 				--names
-				#for $data in $cond.input_Datasets:
+				#for $data in $using_RAS.input_Datasets:
 					${data.input_name}
 				#end for
 			#end if
 
 			#if $cond.using_RPS.check == 'true':
 				--input_datas_rps
-				#for $data in $cond.input_Datasets_RPS:
+				#for $data in $using_RPS.input_Datasets_RPS:
 					${data.input_rps}
 				#end for
 
 				--names_rps
-				#for $data in $cond.input_Datasets_RPS:
+				#for $data in $using_RPS.input_Datasets_RPS:
 					${data.input_name_rps}
 				#end for
 			#end if
         
         #elif $cond.type_selector == 'dataset_class':
 			#if $cond.using_RAS.check == 'true':
-				--input_data ${input_data}
-				--input_class ${input_class}
+				--input_data ${using_RAS.input_data}
+				--input_class ${using_RAS.input_class}
 			#end if
 
 			#if $cond.using_RPS.check == 'true':
-				--input_data_rps ${input_data_rps}
-				--input_class_rps ${input_class_rps}
+				--input_data_rps ${using_RPS.input_data_rps}
+				--input_class_rps ${using_RPS.input_class_rps}
 			#end if
         #end if
 
