@@ -48,13 +48,13 @@
         
         #elif $cond.type_selector == 'dataset_class':
 			#if $cond.using_RAS.check == 'true':
-				--input_data ${input_data}
-				--input_class ${input_class}
+				--input_data ${cond.input_data}
+				--input_class ${cond.input_class}
 			#end if
 
 			#if $cond.using_RPS.check == 'true':
-				--input_data_rps ${input_data_rps}
-				--input_class_rps ${input_class_rps}
+				--input_data_rps ${cond.input_data_rps}
+				--input_class_rps ${cond.input_class_rps}
 			#end if
         #end if
 
