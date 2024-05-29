@@ -1,4 +1,4 @@
-<tool id="MaREA" name="Metabolic Reaction Enrichment Analysis" version="1.1.7">
+<tool id="MaREA" name="Metabolic Reaction Enrichment Analysis" version="1.1.8">
 	<macros>
 		<import>marea_macros.xml</import>
 	</macros>
@@ -9,6 +9,9 @@
 		<requirement type="package" version="4.9.3">lxml</requirement>
 		<requirement type="package" version="1.1.0">svglib</requirement>
 		<requirement type="package" version="4.1.0">reportlab</requirement>
+		<requirement type="package" version="2.2.3">pyvips</requirement>
+		<requirement type="package" version="2.7.1">cairosvg</requirement>
+		<requirement type="package" version="1.21.6">numpy</requirement>
 	</requirements>
 	
 	<command detect_errors="exit_code">
@@ -17,44 +20,50 @@
 
       	--tool_dir $__tool_directory__
       	--option $cond.type_selector
-		--using_RAS $cond.using_RAS.check
-		--using_RPS $cond.using_RPS.check
         --out_log $log
 	
         #if $cond.type_selector == 'datasets':
-			#if $cond.using_RAS.check == 'true':
+
+			--using_RAS $cond.using_ras.check
+			--using_RPS $cond.using_rps.check
+
+			#if $cond.using_ras.check == 'true':
 				--input_datas
-				#for $data in $cond.input_Datasets:
+				#for $data in $cond.using_ras.input_datasets:
 					${data.input}
 				#end for
 
 				--names
-				#for $data in $cond.input_Datasets:
+				#for $data in $cond.using_ras.input_datasets:
 					${data.input_name}
 				#end for
 			#end if
 
-			#if $cond.using_RPS.check == 'true':
+			#if $cond.using_rps.check == 'true':
 				--input_datas_rps
-				#for $data in $cond.input_Datasets_RPS:
+				#for $data in $cond.using_rps.input_datasets_rps:
 					${data.input_rps}
 				#end for
 
 				--names_rps
-				#for $data in $cond.input_Datasets_RPS:
+				#for $data in $cond.using_rps.input_datasets_rps:
 					${data.input_name_rps}
 				#end for
 			#end if
         
         #elif $cond.type_selector == 'dataset_class':
-			#if $cond.using_RAS.check == 'true':
-				--input_data ${cond.input_data}
-				--input_class ${cond.input_class}
+
+			--using_RAS $cond.using_ras_all.check
+			--using_RPS $cond.using_rps_all.check
+
+			#if $cond.using_ras_all.check == 'true':
+				--input_data ${cond.using_ras_all.input_data}
+				--input_class ${cond.using_ras_all.input_class}
 			#end if
 
-			#if $cond.using_RPS.check == 'true':
-				--input_data_rps ${cond.input_data_rps}
-				--input_class_rps ${cond.input_class_rps}
+			#if $cond.using_rps_all.check == 'true':
+				--input_data_rps ${cond.using_rps_all.input_data_rps}
+				--input_class_rps ${cond.using_rps_all.input_class_rps}
 			#end if
         #end if
 
@@ -92,22 +101,22 @@
 			</param>
 
 			<when value="datasets">
-				<conditional name = "using_RAS">
-					<param name = "check" argument = "--using_RAS" type = "boolean" checked = "true" label = "Using RAS datasets." />
+				<conditional name = "using_ras">
+					<param name = "check" argument = "--using_ras" type = "boolean" checked = "true" label = "Using RAS datasets." />
 
 					<when value = "true">
-						<repeat name="input_Datasets" title="RAS dataset" min="2">
+						<repeat name="input_datasets" title="RAS dataset" min="2">
 							<param name="input" argument="--input_datas" type="data" format="tabular, csv, tsv" label="add dataset" />
 							<param name="input_name" argument="--names" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
 						</repeat>
 					</when>
 				</conditional>
 
-				<conditional name = "using_RPS">
-					<param name = "check" argument = "--using_RPS" type = "boolean" checked = "false" label = "Using RPS datasets." />
+				<conditional name = "using_rps">
+					<param name = "check" argument = "--using_rps" type = "boolean" checked = "false" label = "Using RPS datasets." />
 
 					<when value = "true">
-						<repeat name="input_Datasets_RPS" title="RPS dataset" min="2">
+						<repeat name="input_datasets_rps" title="RPS dataset" min="2">
 							<param name="input_rps" argument="--input_datas_rps" type="data" format="tabular, csv, tsv" label="add dataset" />
 							<param name="input_name_rps" argument="--names_rps" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
 						</repeat>
@@ -116,8 +125,8 @@
 			</when>
 
 			<when value="dataset_class">
-				<conditional name = "using_RAS">
-					<param name = "check" argument = "--using_RAS" type = "boolean" checked = "true" label = "Using RAS datasets." />
+				<conditional name = "using_ras_all">
+					<param name = "check" argument = "--using_ras_all" type = "boolean" checked = "true" label = "Using RAS datasets." />
 
 					<when value = "true">
 						<param name="input_data" argument="--input_data" type="data" format="tabular, csv, tsv" label="RAS of all samples" />
@@ -125,8 +134,8 @@
 					</when>
 				</conditional>
 
-				<conditional name = "using_RPS">
-					<param name = "check" argument = "--using_RPS" type = "boolean" checked = "false" label = "Using RPS datasets." />
+				<conditional name = "using_rps_all">
+					<param name = "check" argument = "--using_rps_all" type = "boolean" checked = "false" label = "Using RPS datasets." />
 
 					<when value = "true">
 						<param name="input_data_rps" argument="--input_data_rps" type="data" format="tabular, csv, tsv" label="RPS of all samples" />
