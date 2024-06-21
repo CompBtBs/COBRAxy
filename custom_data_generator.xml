@@ -1,11 +1,14 @@
-<tool id="MaREA Custom Data Generator" name="CustomDataGenerator" version="1.0.0">
-    <description>- Custom Data Generator for RAS and RPS modules</description>
+<tool id="CustomDataGenerator" name="MaREA Custom Data Generator" version="1.0.1">
+    
     <macros>
         <import>marea_macros.xml</import>
     </macros>
-    <requirements>
-        
-    </requirements>
+
+	<requirements>
+        <requirement type="package" version="0.29.0">cobra</requirement>
+        <requirement type="package" version="4.9.3">lxml</requirement>
+	</requirements>
+
     <command detect_errors="exit_code">
         <![CDATA[
       	python $__tool_directory__/custom_data_generator.py
