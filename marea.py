@@ -676,10 +676,10 @@ def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map
     
     if ras_enrichment:
         fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
-        return
-
-    for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
-    applyRpsEnrichmentToMap(tmp, core_map, max_F_C)
+    else:
+        for reactId, enrichData in tmp.items(): 
+            tmp[reactId] = tuple(enrichData)
+        applyRpsEnrichmentToMap(tmp, core_map, max_F_C)
 
 def computePValue(dataset1Data :List[float], dataset2Data :List[float]) -> float:
     """
