@@ -218,7 +218,7 @@ def fold_change(avg1 :float, avg2 :float) -> FoldChange:
     elif avg2 == 0:
         return 'INF'
     else:
-        return math.log(avg1 / avg2, 2)
+        return (avg1 - avg2) / abs(avg2)
     
 def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
     """
@@ -722,7 +722,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
                 p_value = computePValue(nets1, nets2)
                 avg1 = sum(nets1)   / len(nets1)
                 avg2 = sum(nets2)   / len(nets2)
-                net = (avg1 - avg2) / abs(avg2)
+                net = fold_change(avg1, avg2)
                 
                 if math.isnan(net): continue
                 tmp[reactId[:-1] + "RV"] = [p_value, net, avg1, avg2]
