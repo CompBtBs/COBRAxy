@@ -307,11 +307,11 @@ Fold-Change threshold: threshold of the fold-change between the average RAS of t
 
 .. class:: infomark
 
-**TIP**: If your dataset is not split into classes, use MaREA cluster analysis.
+**TIP**: If your dataset is not split into classes, use `MaREA cluster analysis`_.
 
 .. class:: infomark
 
-**TIP**: This tool using the RAS scores computed by Ras generator tool.
+**TIP**: This tool using the RAS scores computed by `Ras tool`_.
 
 @REFERENCE@
 

@@ -15,12 +15,11 @@ import os
 import argparse
 import pyvips
 from typing import Tuple, Union, Optional, List, Dict
-import copy
 
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args(args:List[str] = None) -> argparse.Namespace:
+def process_args() -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
 
@@ -147,17 +146,11 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         help='custom map to use')
     
     parser.add_argument(
-        '-idop', '--output_path', 
-        type = str,
-        default='result',
-        help = 'output path for maps')
-    
-    parser.add_argument(
         '-mc',  '--choice_map',
         type = utils.Model, default = utils.Model.HMRcore,
         choices = [utils.Model.HMRcore, utils.Model.ENGRO2, utils.Model.Custom])
 
-    args :argparse.Namespace = parser.parse_args(args)
+    args :argparse.Namespace = parser.parse_args()
     if args.using_RAS and not args.using_RPS: args.net = False
 
     return args
@@ -657,7 +650,7 @@ def buildOutputPath(dataset1Name :str, dataset2Name = "rest", *, details = "", e
         # all output files: I don't care, this was never the performance bottleneck of the tool and
         # there is no other net gain in saving and re-using the built string.
         ext,
-        prefix = ARGS.output_path)
+        prefix = "result")
 
 FIELD_NOT_AVAILABLE = '/'
 def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath) -> None:
@@ -768,60 +761,70 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     
     return tmp, max_z_score
 
-def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
+def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], *, fromRAS = True) -> None:
     """
     Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
     provided metabolic map.
 
     Args:
+        metabMap : SVG map to modify.
         class_pat : the clustered data.
         ids : ids for data association.
         fromRAS : whether the data to enrich consists of RAS scores.
 
     Returns:
-        List[Tuple[str, str, dict, float]]: List of tuples with pairs of dataset names, comparison dictionary, and max z-score.
-        
+        None
+
     Raises:
         sys.exit : if there are less than 2 classes for comparison
-    """
-    class_pat = {k.strip(): v for k, v in class_pat.items()}
-    if (not class_pat) or (len(class_pat.keys()) < 2):
-        sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
     
-    enrichment_results = []
+    Side effects:
+        metabMap : mut
+        ids : mut
+    """
+    class_pat = { k.strip() : v for k, v in class_pat.items() }
+    #TODO: simplfy this stuff vvv and stop using sys.exit (raise the correct utils error)
+    if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
 
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
+            #TODO: these 2 functions are always called in pair and in this order and need common data,
+            # some clever refactoring would be appreciated.
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
-            enrichment_results.append((i, j, comparisonDict, max_z_score))
+            temp_thingsInCommon(comparisonDict, metabMap, max_z_score, i, j, fromRAS)
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
-            rest = [item for k, v in class_pat.items() if k != single_cluster for item in v]
+            t :List[List[List[float]]] = []
+            for k in class_pat.keys():
+                if k != single_cluster:
+                   t.append(class_pat.get(k))
+            
+            rest :List[List[float]] = []
+            for i in t:
+                rest = rest + i
+            
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
-            enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
+            temp_thingsInCommon(comparisonDict, metabMap, max_z_score, single_cluster, fromRAS)
     
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
-            if otherDataset == ARGS.control:
-                continue
+            if otherDataset == ARGS.control: continue
+            
             comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
-    
-    return enrichment_results
+            temp_thingsInCommon(comparisonDict, metabMap, max_z_score, ARGS.control, otherDataset, fromRAS)
 
-def createOutputMaps(dataset1Name: str, dataset2Name: str, core_map: ET.ElementTree) -> None:
-    svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details="SVG Map", ext=utils.FileFormat.SVG)
+def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
+    svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details = "SVG Map", ext = utils.FileFormat.SVG)
     utils.writeSvg(svgFilePath, core_map)
 
     if ARGS.generate_pdf:
-        pngPath = buildOutputPath(dataset1Name, dataset2Name, details="PNG Map", ext=utils.FileFormat.PNG)
-        pdfPath = buildOutputPath(dataset1Name, dataset2Name, details="PDF Map", ext=utils.FileFormat.PDF)
-        convert_to_pdf(svgFilePath, pngPath, pdfPath)
+        pngPath = buildOutputPath(dataset1Name, dataset2Name, details = "PNG Map", ext = utils.FileFormat.PNG)
+        pdfPath = buildOutputPath(dataset1Name, dataset2Name, details = "PDF Map", ext = utils.FileFormat.PDF)
+        convert_to_pdf(svgFilePath, pngPath, pdfPath)                     
 
-    if not ARGS.generate_svg:
-        os.remove(svgFilePath.show())
+    if not ARGS.generate_svg: os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
 def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, classPath :str, names :List[str]) -> Tuple[List[str], ClassPat]:
@@ -867,7 +870,7 @@ def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List
     return { id : list(map(utils.Float("Dataset values, not an argument"), values)) for id, values in dataset.items() }, IDs
 
 ############################ MAIN #############################################
-def main(args:List[str] = None) -> None:
+def main() -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
@@ -877,33 +880,46 @@ def main(args:List[str] = None) -> None:
     Raises:
         sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
     """
-    global ARGS
-    ARGS = process_args(args)
 
-    if not os.path.isdir(ARGS.output_path):
-        os.makedirs(ARGS.output_path)
+    global ARGS
+    ARGS = process_args()
+
+    if os.path.isdir('result') == False: os.makedirs('result')
     
-    core_map: ET.ElementTree = ARGS.choice_map.getMap(
+    core_map :ET.ElementTree = ARGS.choice_map.getMap(
         ARGS.tool_dir,
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
-    
+    # TODO: ^^^ ugly but fine for now, the argument is None if the model isn't custom because no file was given.
+    # getMap will None-check the customPath and panic when the model IS custom but there's no file (good). A cleaner
+    # solution can be derived from my comment in FilePath.fromStrPath
+
     if ARGS.using_RAS:
         ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
-        enrichment_results = computeEnrichment(class_pat, ids)
-        for i, j, comparisonDict, max_z_score in enrichment_results:
-            map_copy = copy.deepcopy(core_map)
-            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=True)
-            createOutputMaps(i, j, map_copy)
+        computeEnrichment(core_map, class_pat, ids)
     
     if ARGS.using_RPS:
         ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-        enrichment_results = computeEnrichment(class_pat, ids, fromRAS=False)
-        for i, j, comparisonDict, max_z_score in enrichment_results:
-            map_copy = copy.deepcopy(core_map)
-            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=False)
-            createOutputMaps(i, j, map_copy)
+        computeEnrichment(core_map, class_pat, ids, fromRAS = False)
+    
+    # create output files: TODO: this is the same comparison happening in "maps", find a better way to organize this
+    if ARGS.comparison == "manyvsmany":
+        for i, j in it.combinations(class_pat.keys(), 2): createOutputMaps(i, j, core_map)
+        return
+    
+    if ARGS.comparison == "onevsrest":
+        for single_cluster in class_pat.keys(): createOutputMaps(single_cluster, "rest", core_map)
+        return
+    
+    for otherDataset in class_pat.keys():
+        if otherDataset != ARGS.control: createOutputMaps(i, j, core_map)
 
-    print('Execution succeeded')
+    if not ERRORS: return
+    utils.logWarning(
+        f"The following reaction IDs were mentioned in the dataset but weren't found in the map: {ERRORS}",
+        ARGS.out_log)
+    
+    print('Execution succeded')
+
 ###############################################################################
 if __name__ == "__main__":
     main()

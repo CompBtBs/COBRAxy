@@ -138,100 +138,14 @@
            letter-spacing="0em"><tspan
              x="220.246"
              y="2350.3201"
-             id="tspan2">= Up regulated</tspan></text>
-        <text
-           id="text37"
-           fill="#000000"
-           xml:space="preserve"
-           style="white-space:pre"
-           font-family="Arial"
-           font-size="24px"
-           font-weight="bold"
-           letter-spacing="0em"><tspan
-             x="220.07001"
-             y="2405.3201"
-             id="tspan3">= Down regulated</tspan></text>
-        <path
-           id="path6613-3"
-           d="M 98,2397 H 210"
-           stroke="#0000ff"
-           stroke-width="30" />
+             id="tspan2">= Blocked</tspan></text>
+
         <path
            id="path6613-8-6"
            d="M 98,2342 H 210"
-           stroke="#e41a1c"
-           stroke-width="30" />
-        <path
-           id="path6613-8-1-0"
-           d="M 485,2397 H 597"
            stroke="#bebebe"
            stroke-width="30" />
-        <g
-           id="path6613-8-4-9">
-          <path
-             d="m 1040,2342 h 112 z"
-             fill="#000000"
-             id="path3" />
-          <path
-             d="m 1040,2342 h 112"
-             stroke="#000000"
-             stroke-width="30"
-             id="path4" />
-        </g>
-        <path
-           id="path6613-8-2-6"
-           d="M 485,2342 H 597"
-           stroke="#bebebe"
-           stroke-width="30"
-           stroke-dasharray="30, 30" />
-        <text
-           id="text46"
-           fill="#000000"
-           xml:space="preserve"
-           style="white-space:pre"
-           font-family="Arial"
-           font-size="24px"
-           font-weight="bold"
-           letter-spacing="0em"><tspan
-             x="1167.0601"
-             y="2350.3201"
-             id="tspan4">= Not classified</tspan></text>
-        <text
-           id="text48"
-           fill="#000000"
-           xml:space="preserve"
-           style="white-space:pre"
-           font-family="Arial"
-           font-size="24px"
-           font-weight="bold"
-           letter-spacing="0em"><tspan
-             x="609.25"
-             y="2350.3201"
-             id="tspan5">= Not significant</tspan></text>
-        <text
-           id="text50"
-           fill="#000000"
-           xml:space="preserve"
-           style="white-space:pre"
-           font-family="Arial"
-           font-size="24px"
-           font-weight="bold"
-           letter-spacing="0em"><tspan
-             x="609.15997"
-             y="2405.3201"
-             id="tspan6">= Fold change under threshold</tspan></text>
-        <text
-           id="text52"
-           fill="#000000"
-           xml:space="preserve"
-           style="white-space:pre"
-           font-family="Arial"
-           font-size="24px"
-           font-weight="bold"
-           letter-spacing="0em"><tspan
-             x="1038.4301"
-             y="2405.3201"
-             id="tspan7">Thickness is proportional to fold change</tspan></text>
+
       </g>
     </g>
     <g

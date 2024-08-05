@@ -140,56 +140,7 @@ This tool is developed by the `BIMIB`_ at the `Department of Informatics, System
               url = {https://doi.org/10.1016/j.csbj.2020.04.008},
               }
             </citation>
-            <citation type="bibtex">
-              @article{ebrahim2013cobrapy,
-                title={COBRApy: constraints-based reconstruction and analysis for python},
-                author={Ebrahim, Ali and Lerman, Joshua A and Palsson, Bernhard O and Hyduke, Daniel R},
-                journal={BMC systems biology},
-                volume={7},
-                pages={1--6},
-                year={2013},
-                publisher={Springer}
-                }
-            </citation>
         </citations>
     </xml>
-
-    <xml name="citations_fluxes">
-        <citations>
-        <citation type="bibtex">
-                @article{galuzzi2024adjusting,
-                title={Adjusting for false discoveries in constraint-based differential metabolic flux analysis},
-                author={Galuzzi, Bruno G and Milazzo, Luca and Damiani, Chiara},
-                journal={Journal of Biomedical Informatics},
-                volume={150},
-                pages={104597},
-                year={2024},
-                publisher={Elsevier}
-                }
-            </citation>
-            <citation type="bibtex">
-                @inproceedings{galuzzi2022best,
-                title={Best practices in flux sampling of constrained-based models},
-                author={Galuzzi, Bruno G and Milazzo, Luca and Damiani, Chiara},
-                booktitle={International Conference on Machine Learning, Optimization, and Data Science},
-                pages={234--248},
-                year={2022},
-                organization={Springer}
-                }
-            </citation>
-            <citation type="bibtex">
-                @article{ebrahim2013cobrapy,
-                    title={COBRApy: constraints-based reconstruction and analysis for python},
-                    author={Ebrahim, Ali and Lerman, Joshua A and Palsson, Bernhard O and Hyduke, Daniel R},
-                    journal={BMC systems biology},
-                    volume={7},
-                    pages={1--6},
-                    year={2013},
-                    publisher={Springer}
-                    }
-            </citation>
-        </citations>
-    </xml>
-
 
 </macros>

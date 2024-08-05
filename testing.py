@@ -1,4 +1,4 @@
-# This is a general-purpose "testing utilities" module for the COBRAxy tool.
+# This is a general-purpose "testing utilities" module for the MaREA tool.
 # This code was written entirely by m.ferrari133@campus.unimib.it and then (hopefully) many
 # more people contributed by writing tests for this tool's modules, feel free to send an email for
 # any questions.
@@ -495,8 +495,8 @@ class UnitTester:
         # ^^^ Manually applied an extra newline of space.
 
 ## Unit testing all the modules:
-def unit_cobraxy() -> None:
-    import cobraxy as m
+def unit_marea() -> None:
+    import marea as m
     import math
     import lxml.etree as ET
     import utils.general_utils as utils
@@ -521,7 +521,7 @@ def unit_cobraxy() -> None:
             [math.nan, math.nan, math.nan, math.nan, math.nan, math.nan, math.nan]]
     }
 
-    unitTester = UnitTester("cobraxy", LogMode.Pedantic, False,
+    unitTester = UnitTester("marea", LogMode.Pedantic, False,
         UnitTest(m.name_dataset, ["customName", 12], ExactValue("customName")),
         UnitTest(m.name_dataset, ["Dataset", 12], ExactValue("Dataset_12")),
 
@@ -800,7 +800,7 @@ def unit_ras_generator() -> None:
     ).testModule()
 
 if __name__ == "__main__":
-    unit_cobraxy()
+    unit_marea()
     unit_custom_data_generator()
     unit_utils()
     unit_ras_generator()

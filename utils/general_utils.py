@@ -10,6 +10,7 @@ from itertools import count
 from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 import pandas as pd
+import cobra
 
 # FILES
 class FileFormat(Enum):
@@ -515,7 +516,9 @@ class Model(Enum):
 
     Recon   = "Recon"
     ENGRO2  = "ENGRO2"
+    ENGRO2_no_legend = "ENGRO2_no_legend"
     HMRcore = "HMRcore"
+    HMRcore_no_legend = "HMRcore_no_legend"
     Custom  = "Custom" # Exists as a valid variant in the UI, but doesn't point to valid file paths.
 
     def __raiseMissingPathErr(self, path :Optional[FilePath]) -> None:
@@ -547,5 +550,24 @@ class Model(Enum):
         path = customPath if self is Model.Custom else FilePath(f"{self.name}_map", FileFormat.SVG, prefix = f"{toolDir}/local/svg metabolic maps/")
         self.__raiseMissingPathErr(path)
         return readSvg(path, customErr = DataErr(path, f"custom map in wrong format"))
+    
+    def getCOBRAmodel(self, toolDir = ".", customPath :Optional[FilePath] = None, customExtension :Optional[FilePath]=None)->cobra.Model:
+        if(self is Model.Custom):
+            return self.load_custom_model(customPath, customExtension)
+        else:
+            return cobra.io.read_sbml_model(FilePath(f"{self.name}", FileFormat.XML, prefix = f"{toolDir}/local/models/").show())
+        
+    def load_custom_model(self, file_path :FilePath, ext :Optional[FileFormat] = None) -> cobra.Model:
+        ext = ext if ext else file_path.ext
+        try:
+            if ext is FileFormat.XML:
+                return cobra.io.read_sbml_model(file_path.show())
+            
+            if ext is FileFormat.JSON:
+                return cobra.io.load_json_model(file_path.show())
+
+        except Exception as e: raise DataErr(file_path, e.__str__())
+        raise DataErr(file_path,
+            f"Fomat \"{file_path.ext}\" is not recognized, only JSON and XML files are supported.")
 
     def __str__(self) -> str: return self.value

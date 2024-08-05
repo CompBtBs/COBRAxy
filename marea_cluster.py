@@ -20,7 +20,7 @@ import matplotlib.cm as cm
 from typing import Optional, Dict, List
 
 ################################# process args ###############################
-def process_args(args_in :List[str] = None) -> argparse.Namespace:
+def process_args(args :List[str]) -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -86,14 +86,10 @@ def process_args(args_in :List[str] = None) -> argparse.Namespace:
                         type = str,
                         help = 'output of best cluster tsv')
     				
-    parser.add_argument(
-        '-idop', '--output_path', 
-        type = str,
-        default='result',
-        help = 'output path for maps')
     
-    args_in = parser.parse_args(args_in)
-    return args_in
+    
+    args = parser.parse_args()
+    return args
 
 ########################### warning ###########################################
 def warning(s :str) -> None:
@@ -135,7 +131,7 @@ def read_dataset(dataset :str) -> pd.DataFrame:
     return dataset
 
 ############################ rewrite_input ###################################
-def rewrite_input(dataset :Dict) -> Dict[str, List[Optional[float]]]:
+def rewrite_input(dataset :pd.DataFrame) -> Dict[str, List[Optional[float]]]:
     """
     Rewrite the dataset as a dictionary of lists instead of as a dictionary of dictionaries.
 
@@ -147,7 +143,8 @@ def rewrite_input(dataset :Dict) -> Dict[str, List[Optional[float]]]:
     """
     #Riscrivo il dataset come dizionario di liste, 
     #non come dizionario di dizionari
-    #dataset.pop('Reactions', None)
+    
+    dataset.pop('Reactions', None)
     
     for key, val in dataset.items():
         l = []
@@ -220,8 +217,8 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
     Returns:
         None
     """
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path)
+    if not os.path.exists('clustering'):
+        os.makedirs('clustering')
     
         
     if elbow == 'true':
@@ -262,7 +259,7 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
         if (i + k_min == best):
             prefix = '_BEST'
             
-        write_to_csv(dataset, all_labels[i], f'{args.output_path}/kmeans_with_' + str(i + k_min) + prefix + '_clusters.tsv')
+        write_to_csv(dataset, all_labels[i], 'clustering/kmeans_with_' + str(i + k_min) + prefix + '_clusters.tsv')
         
         
         if (prefix == '_BEST'):
@@ -275,7 +272,7 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
         
        
         if silhouette:
-            silhouette_draw(dataset, all_labels[i], i + k_min, f'{args.output_path}/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, all_labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
         
         
     if elbow:
@@ -306,7 +303,7 @@ def elbow_plot (distortions: List[float], k_min: int, k_max: int) -> None:
     plt.plot(x, distortions, marker = 'o')
     plt.xlabel('Number of clusters (k)')
     plt.ylabel('Distortion')
-    s = f'{args.output_path}/elbow_plot.png'
+    s = 'clustering/elbow_plot.png'
     fig = plt.gcf()
     fig.set_size_inches(18.5, 10.5, forward = True)
     fig.savefig(s, dpi=100)
@@ -409,8 +406,8 @@ def dbscan(dataset: pd.DataFrame, eps: float, min_samples: float, best_cluster: 
     Returns:
         None
     """
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path)
+    if not os.path.exists('clustering'):
+        os.makedirs('clustering')
         
     if eps is not None:
         clusterer = DBSCAN(eps = eps, min_samples = min_samples)
@@ -448,14 +445,14 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
     Returns:
         None
     """
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path)
+    if not os.path.exists('clustering'):
+        os.makedirs('clustering')
     
     plt.figure(figsize=(10, 7))  
     plt.title("Customer Dendograms")  
     shc.dendrogram(shc.linkage(dataset, method='ward'), labels=dataset.index.values.tolist())  
     fig = plt.gcf()
-    fig.savefig(f'{args.output_path}/dendogram.png', dpi=200)
+    fig.savefig('clustering/dendogram.png', dpi=200)
     
     range_n_clusters = [i for i in range(k_min, k_max+1)]
 
@@ -469,7 +466,7 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
         cluster.fit_predict(dataset)  
         cluster_labels = cluster.labels_
         labels.append(cluster_labels)
-        write_to_csv(dataset, cluster_labels, f'{args.output_path}/hierarchical_with_' + str(n_clusters) + '_clusters.tsv')
+        write_to_csv(dataset, cluster_labels, 'clustering/hierarchical_with_' + str(n_clusters) + '_clusters.tsv')
         
     best = max_index(scores) + k_min
     
@@ -478,7 +475,7 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
         if (i + k_min == best):
             prefix = '_BEST'
         if silhouette == 'true':
-            silhouette_draw(dataset, labels[i], i + k_min, f'{args.output_path}/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
      
     for i in range(len(labels)):
         if (i + k_min == best):
@@ -489,30 +486,31 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
             
     
 ############################# main ###########################################
-def main(args_in:List[str] = None) -> None:
+def main() -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
     Returns:
         None
     """
-    global args
-    args = process_args(args_in)
+    if not os.path.exists('clustering'):
+        os.makedirs('clustering')
 
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path)
+    args = process_args(sys.argv)
     
     #Data read
     
     X = read_dataset(args.input)
-    X = X.iloc[:, 1:]
     X = pd.DataFrame.to_dict(X, orient='list')
     X = rewrite_input(X)
     X = pd.DataFrame.from_dict(X, orient = 'index')
     
     for i in X.columns:
-        if any(val is None for val in X[i]):
+        tmp = X[i][0]
+        if tmp == None:
             X = X.drop(columns=[i])
+
+    ## NAN TO HANLDE
             
     if args.k_max != None:
        numero_classi = X.shape[0]

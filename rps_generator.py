@@ -16,7 +16,7 @@ import utils.reaction_parsing as reactionUtils
 
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args(args:List[str] = None) -> argparse.Namespace:
+def process_args() -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -51,7 +51,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
                         required = True,
                         help = 'rps output')
     
-    args = parser.parse_args(args)
+    args = parser.parse_args()
     return args
 
 ############################ dataset name #####################################
@@ -222,7 +222,7 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     df.to_csv(ARGS.rps_output, sep = '\t', na_rep = "None", index = False)
 
 ############################ main ####################################
-def main(args:List[str] = None) -> None:
+def main() -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
@@ -230,7 +230,7 @@ def main(args:List[str] = None) -> None:
         None
     """
     global ARGS
-    ARGS = process_args(args)
+    ARGS = process_args()
 
     # TODO:use utils functions vvv
     with open(ARGS.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
