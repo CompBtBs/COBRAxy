@@ -1,16 +1,11 @@
-# Official repository for the MaREA toolset
-> MaREA (Metabolic Reaction Enrichment Analysis) is a user-friendly tool that allows a user to characterize and to graphically compare groups of samples with different transcriptional regulation of metabolism,
-as estimated from cross-sectional RNA-seq data. The tool is available as plug-in for the widely-used Galaxy platform for comparative genomics and bioinformatics analyses.
+# Official repository for the COBRAxy toolset
+> COBRAxy (COBRApy in Galaxy) is a user-friendly tool that allows a user to user to characterize and to graphically compare simulated fluxomics coming from groups of samples with different transcriptional regulation of metabolism. 
+It extends the MaREA 2 (Metabolic Reaction Enrichment Analysis) tool that enables users to compare groups in terms of RAS and RPS only. The tool is available as plug-in for the widely-used Galaxy platform for comparative genomics and bioinformatics analyses.
 
 ## Useful links:
-- Paper: https://pubmed.ncbi.nlm.nih.gov/32373287/
+- COBRAxy Google Summer of Code 2024: https://summerofcode.withgoogle.com/programs/2024/projects/LSrCKfq7
+- COBRApy: https://opencobra.github.io/cobrapy/
 - MaREA4Galaxy: https://galaxyproject.org/use/marea4galaxy/
 - Galaxy project: https://usegalaxy.org/
 
 ## Documentation:
-- marea : https://colab.research.google.com/drive/1E77uGwqimuTioP7Ss_2yyXZ82XTGnA4i
-- ras_generator : https://colab.research.google.com/drive/1J3jQxe4DveDC59ZHTgt6n1BpX_g3FLLB
-- rps_generator : https://colab.research.google.com/drive/1MTLXhqceZNvis0El3Wh2vjRbWL6vpOW7
-- marea_cluster : https://colab.research.google.com/drive/15tLssgX9UHsbptNaBMwhAkfuyPdenxQX
-- testing : https://colab.research.google.com/drive/1QQZNwClUT8gvDMg8F9HIhS-Nmq6FvSzE
-- custom_data_generator : https://colab.research.google.com/drive/1mkbCjf4w7fcB9Qbtp7Y_N9wYLvD3S54b

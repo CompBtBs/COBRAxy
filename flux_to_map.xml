@@ -144,22 +144,17 @@
 What it does
 -------------
 
-This tool analyzes and visualizes differences in the Reaction Activity Scores (RASs) of groups of samples, as computed by the Expression2RAS tool, of groups of samples.
+This tool analyzes and visualizes differences in reactions fluxes of groups of samples, returned by the Flux Simulation tool, of groups of samples.
 
 Accepted files are: 
-    - option 1) two or more RAS datasets, each referring to samples in a given group. The user can specify a label for each group (as e.g. "classA" and "classB");
-    - option 2) one RAS dataset and one group-file specifying the group each sample belongs to.
-    
-RAS datasets format: tab-separated text files, reporting the RAS value of each reaction (row) for a given sample (column).
-
-Column header: sample ID.
-Row header: reaction ID. 
+    - option 1) two or more fluxes datasets, each referring to samples in a given group. The user can specify a label for each group;
+    - option 2) one fluxes dataset and one group-file specifying the group each sample belongs to (e.g. the accepted group file is thought to be the one returned by the Clustering tool).
 
 Optional files:
     - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.
 
 The tool generates:
-    - 1) a tab-separated file: reporting fold-change and p-values of reaction activity scores (RASs) between a pair of conditions/classes;
+    - 1) a tab-separated file: reporting fold-change and p-values of fluxes between a pair of conditions/classes;
     - 2) a metabolic map file (downloadable as .svg): visualizing up- and down-regulated reactions between a pair of conditions/classes;
     - 3) a log file (.txt).
     
@@ -175,25 +170,9 @@ Output files will be named as classA_vs_classB. Reactions will conventionally be
 Example input
 -------------
 
-"RAS of group 1 + RAS of group 2 + ... + RAS of group N" option:
+"Fluxes of group 1 + Fluxes of group 2 + ... + Fluxes of group N" option:
 
-RAS Dataset 1:
-
-+------------+----------------+----------------+----------------+ 
-| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
-+============+================+================+================+
-| r1642      |    0.523167    |    0.371355    |    0.925661    |  
-+------------+----------------+----------------+----------------+    
-| r1643      |    0.568765    |    0.765567    |    0.456789    |    
-+------------+----------------+----------------+----------------+    
-| r1640      |    0.876545    |    0.768933    |    0.987654    |  
-+------------+----------------+----------------+----------------+
-| r1641      |    0.456788    |    0.876543    |    0.876542    |    
-+------------+----------------+----------------+----------------+    
-| r1646      |    0.876543    |    0.786543    |    0.897654    |   
-+------------+----------------+----------------+----------------+
-
-RAS Dataset 2:
+Fluxes Dataset 1:
 
 +------------+----------------+----------------+----------------+ 
 | Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
@@ -209,9 +188,25 @@ RAS Dataset 2:
 | r1646      |    0.876543    |    0.786543    |    0.897654    |   
 +------------+----------------+----------------+----------------+
 
-"RAS of all samples + sample group specification" option:
+Fluxes Dataset 2:
 
-RAS Dataset:
++------------+----------------+----------------+----------------+ 
+| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| r1642      |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| r1643      |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| r1640      |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| r1641      |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| r1646      |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+"Fluxes of all samples + sample group specification" option:
+
+Fluxes Dataset:
 
 +------------+----------------+----------------+----------------+ 
 | Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
@@ -239,31 +234,9 @@ Group-file
 | TCGAA62672    |    MSI    |
 +---------------+-----------+
 
-Advanced options
-----------------
 
-P-Value threshold: the threshold used for significance Kolmogorov-Smirnov (KS) test, to verify whether the distributions of RASs over the samples in two sets are significantly different
+**TIP**: If your dataset is not split into classes, use MaREA cluster analysis.
 
-Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the KS test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map;
-
-
-.. class:: infomark
-
-**TIP**: If your data is not TAB delimited, use `Convert delimiters to TAB`_.
-
-.. class:: infomark
-
-**TIP**: If your dataset is not split into classes, use `MaREA cluster analysis`_.
-
-.. class:: infomark
-
-**TIP**: This tool using the RAS scores computed by `Ras tool`_.
-
-@REFERENCE@
-
-.. _Ras tool: http://bimib.disco.unimib.it:5555/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fbimib%2Fmarea%2FMaREA+RAS+Generator%2F1.0.6&version=1.0.6&__identifer=auulv6gbp76
-.. _Convert delimiters to TAB: http://bimib.disco.unimib.it:5555/?tool_id=Convert+characters1&version=1.0.0&__identifer=76g7trea4j6
-.. _MaREA cluster analysis: http://bimib.disco.unimib.it:5555/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fbimib%2Fmarea%2FMaREA_cluester%2F1.1.2&version=1.1.2&__identifer=lxbyzn2me9
 
 ]]>
 	</help>

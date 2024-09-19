@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Summer of Code 2024 - COBRAxy: COBRA and MaREA4Galaxy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container my-5">
+        <h1 class="text-center mb-4">Google Summer of Code 2024</h1>
+        <h2 class="text-center mb-4">COBRAxy: COBRA and MaREA4Galaxy</h2>
+        <p><strong>National Resource for Network Biology (NRNB)</strong></p>
+        <p><strong>Mentors:</strong></p>
+        <ul>
+            <li>Alex Graudenzi, alex.graudenzi@unimib.it</li>
+            <li>Chiara Damiani, chiara.damiani@unimib.it</li>
+            <li>Marco Antoniotti, marco.antoniotti@unimib.it</li>
+        </ul>
+        <p><strong>Contributor:</strong></p>
+        <ul>
+            <li>Luca Milazzo (University of Milano-Bicocca) – lucmil2000@gmail.com, luca.milazzo@epfl.ch</li>
+        </ul>
+
+        <h3 class="mt-4">Project Description</h3>
+        <p>
+            The project focused on developing an advanced Galaxy tool that enhances the data mapping capabilities of MaREA4Galaxy. The extension of this framework includes the analysis of fluxomics data, starting from a metabolic model and progressing to the representation of up-regulated fluxes on a metabolic map. This tool enables users to perform constraint-based enrichment analysis of metabolic pathways.
+        </p>
+        <p>The primary goals of the project were:</p>
+        <ul>
+            <li>Create a flux sampling and analysis interface to allow users to work with constraint-based metabolic models (e.g., sampling algorithms, FBA, pFBA, and FVA).</li>
+            <li>Adapt the existing clustering module to clusterize fluxomics data and implement additional clustering algorithms (e.g., Leiden and Louvain).</li>
+            <li>Build upon the existing module for visualizing enriched reactions based on RAS to create a new module for enrichment analysis of metabolic pathways based on simulated fluxomics data, and visualize the results on the metabolic map.</li>
+        </ul>
+
+        <h3 class="mt-4">What I Did</h3>
+        <ul>
+            <li>Updated all existing modules of MaREA4Galaxy to use recent versions of Python libraries, ensuring greater future compatibility.</li>
+            <li>Modified the "Custom Data Generator" tool to extract rules, reactions, bounds, and medium information from a COBRA model.</li>
+            <li>Developed the "RAS to Bound" tool, which generates metabolic reaction bounds based on the RAS matrix and a growth medium (either custom or one of 26 pre-defined settings), enabling the creation of cell-specific bounds from a generic metabolic model (e.g., ENGRO2 or a custom model).</li>
+            <li>Developed the "Flux Simulation" tool, allowing users to sample multiple metabolic models using cell-specific bounds, employing the CBS and OPTGP algorithms. This tool also supports flux analysis using FBA, pFBA, FVA, and biomass sensitivity analysis.</li>
+            <li>Developed the "Metabolic Flux Enrichment Analysis" tool, which visualizes up-regulated fluxes identified by the "Flux Simulation" tool, compares different sub-classes identified by the clustering tool over fluxomics data, and visualizes all results on the metabolic map.</li>
+        </ul>
+
+        <h3 class="mt-4">Current State and Future Extensions</h3>
+        <p>
+            Currently, the updated MaREA4Galaxy tool allows users to perform constraint-based enrichment analysis of metabolic pathways using RNA-seq profiles by simulating fluxomics. Additionally, users can compare different sub-populations identified by the clustering tool. The architecture minimizes computational costs by handling cell-specific models through a set of bounds, without storing complete COBRA models, which would contain a large amount of redundant information.
+        </p>
+        <p>
+            The implementation of the "Metabolic Flux Enrichment Analysis" tool did not leave enough time to extend the clustering module to new algorithms such as HDBSCAN, Leiden, and Louvain. This is a potential future extension to consider. Moreover, implementing a more advanced clustering grid search could further optimize clustering results.
+        </p>
+
+        <h3 class="mt-4">About the Code</h3>
+        <p>
+            I worked on the Mercurial repository of MaREA4Galaxy, where this document is stored. I committed all my changes, as shown by the repository history, though without using any Git-like merge operations due to the limitations of the Mercurial interface.
+        </p>
+
+        <h3 class="mt-4">Conclusions</h3>
+        <p>
+            Over the past years, I have focused on biology-related subjects, particularly metabolic fluxes and other omics data such as gene expression datasets. Through this project, I was able to apply the knowledge I have gained in constraint-based modeling, flux sampling, and omics enrichment analysis by expanding the MaREA4Galaxy tool. This experience not only enhanced my programming skills but also deepened my understanding of the real needs of biologists when working with such omics data.
+        </p>
+    </div>
+</body>
+</html>
+
