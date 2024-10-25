@@ -231,7 +231,9 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
             
             elif args.rules_selector == 'ENGRO2':
                 gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
-            
+            print(f"{args.tool_dir}'/local/pickle files/ENGRO2_genes.p'")
+            utils.logWarning(f"{args.tool_dir}'/local/pickle files/ENGRO2_genes.p'", ARGS.out_log)
+            print(args.rules_selector)
             gene_in_rule = gene_in_rule.get(type_gene)
         
         else:
@@ -655,7 +657,7 @@ def main() -> None:
     # get args from frontend (related xml)
     global ARGS
     ARGS = process_args()
-    
+    print(ARGS.rules_selector)
     # read dataset
     dataset = read_dataset(ARGS.input, "dataset")
     dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
