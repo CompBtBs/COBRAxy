@@ -9,6 +9,45 @@
         </param>
     </xml>
 
+    <xml name="options_ras_to_bounds_model">
+        <param name="model_selector" argument="--model_selector" type="select" label="Model:">
+            <option value="ENGRO2">ENGRO 2</option>
+            <option value="Custom">Custom model</option>
+        </param>
+    </xml>
+
+    <xml name="options_ras_to_bounds_medium">
+        <param name="medium_selector" argument="--medium_selector" type="select" label="Medium:">
+            <option value="allOpen">Open</option>
+            <option value="Custom">Custom medium</option>
+            <option value="RPMI_1640">RPMI 1640</option>
+            <option value="DMEM">DMEM</option>
+            <option value="EMEM">EMEM</option>
+            <option value="DMEM:F12_=_1:1">DMEM:F12 = 1:1</option>
+            <option value="McCoy's_5A">McCoy's 5A</option>
+            <option value="IMDM">IMDM</option>
+            <option value="MEM">MEM</option>
+            <option value="GMEM">GMEM</option>
+            <option value="Leibovitz's_L-15">Leibovitz's L-15</option>
+            <option value="F12">F12</option>
+            <option value="F10">F10</option>
+            <option value="AMEM">AMEM</option>
+            <option value="Waymouth_MB_7521_medium">Waymouth MB 7521 medium</option>
+            <option value="F12K">F12K</option>
+            <option value="William's_E_Medium">William's E Medium</option>
+            <option value="Medium_199">Medium 199</option>
+            <option value="MCDB_105">MCDB 105</option>
+            <option value="NEAA">NEAA</option>
+            <option value="RPMI:F12_=_1:1">RPMI:F12 = 1:1</option>
+            <option value="RPMI:MEM_=_1:1">RPMI:MEM = 1:1</option>
+            <option value="RPMI:EMEM_=_1:1">RPMI:EMEM = 1:1</option>
+            <option value="EMEM:F12_=_1:1">EMEM:F12 = 1:1</option>
+            <option value="DMEM:RPMI_=_2:1">DMEM:RPMI = 2:1</option>
+            <option value="DMEM:IMDM_=_1:1">DMEM:IMDM = 1:1</option>
+            <option value="MCDB_105:Medium_199_=_1:1">MCDB 105:Medium 199 = 1:1</option>
+        </param>
+    </xml>
+
    <token name="@CUSTOM_RULES_EXEMPLE@">
 
 +--------------------+-------------------------------+
@@ -101,7 +140,56 @@ This tool is developed by the `BIMIB`_ at the `Department of Informatics, System
               url = {https://doi.org/10.1016/j.csbj.2020.04.008},
               }
             </citation>
+            <citation type="bibtex">
+              @article{ebrahim2013cobrapy,
+                title={COBRApy: constraints-based reconstruction and analysis for python},
+                author={Ebrahim, Ali and Lerman, Joshua A and Palsson, Bernhard O and Hyduke, Daniel R},
+                journal={BMC systems biology},
+                volume={7},
+                pages={1--6},
+                year={2013},
+                publisher={Springer}
+                }
+            </citation>
         </citations>
     </xml>
+
+    <xml name="citations_fluxes">
+        <citations>
+        <citation type="bibtex">
+                @article{galuzzi2024adjusting,
+                title={Adjusting for false discoveries in constraint-based differential metabolic flux analysis},
+                author={Galuzzi, Bruno G and Milazzo, Luca and Damiani, Chiara},
+                journal={Journal of Biomedical Informatics},
+                volume={150},
+                pages={104597},
+                year={2024},
+                publisher={Elsevier}
+                }
+            </citation>
+            <citation type="bibtex">
+                @inproceedings{galuzzi2022best,
+                title={Best practices in flux sampling of constrained-based models},
+                author={Galuzzi, Bruno G and Milazzo, Luca and Damiani, Chiara},
+                booktitle={International Conference on Machine Learning, Optimization, and Data Science},
+                pages={234--248},
+                year={2022},
+                organization={Springer}
+                }
+            </citation>
+            <citation type="bibtex">
+                @article{ebrahim2013cobrapy,
+                    title={COBRApy: constraints-based reconstruction and analysis for python},
+                    author={Ebrahim, Ali and Lerman, Joshua A and Palsson, Bernhard O and Hyduke, Daniel R},
+                    journal={BMC systems biology},
+                    volume={7},
+                    pages={1--6},
+                    year={2013},
+                    publisher={Springer}
+                    }
+            </citation>
+        </citations>
+    </xml>
+
 
 </macros>

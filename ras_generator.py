@@ -12,7 +12,7 @@ from typing import Union, Optional, List, Dict, Tuple, TypeVar
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args() -> argparse.Namespace:
+def process_args(args:List[str] = None) -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -61,8 +61,9 @@ def process_args() -> argparse.Namespace:
         '-ra', '--ras_output',
         type = str,
         required = True, help = 'ras output')
+
     
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 ############################ dataset input ####################################
 def read_dataset(data :str, name :str) -> pd.DataFrame:
@@ -231,7 +232,9 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
             
             elif args.rules_selector == 'ENGRO2':
                 gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
-            
+            print(f"{args.tool_dir}'/local/pickle files/ENGRO2_genes.p'")
+            utils.logWarning(f"{args.tool_dir}'/local/pickle files/ENGRO2_genes.p'", ARGS.out_log)
+            print(args.rules_selector)
             gene_in_rule = gene_in_rule.get(type_gene)
         
         else:
@@ -645,7 +648,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     # csv rules need to be parsed, those in a pickle format are taken to be pre-parsed.
     return { line[0] : ruleUtils.parseRuleToNestedList(line[1]) for line in utils.readCsv(datFilePath) }
 
-def main() -> None:
+def main(args:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
     
@@ -654,8 +657,8 @@ def main() -> None:
     """
     # get args from frontend (related xml)
     global ARGS
-    ARGS = process_args()
-    
+    ARGS = process_args(args)
+    print(ARGS.rules_selector)
     # read dataset
     dataset = read_dataset(ARGS.input, "dataset")
     dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)

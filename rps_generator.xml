@@ -1,12 +1,14 @@
-<tool id="MaREA RPS Generator" name="Expression2RPS" version="1.0.0">
+<tool id="MaREA RPS Generator" name="Expression2RPS" version="2.0.0">
     <description>- Reaction Propensity Scores computation</description>
     <macros>
         <import>marea_macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.25.3">pandas</requirement>
-        <requirement type="package" version="4.6.3">lxml</requirement>
-    </requirements>
+        <requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2.0.3">pandas</requirement>
+        <requirement type="package" version="5.2.2">lxml</requirement>
+		<requirement type="package" version="0.29.0">cobra</requirement>
+	</requirements>
     <command detect_errors="exit_code">
         <![CDATA[
       	python $__tool_directory__/rps_generator.py
@@ -22,7 +24,7 @@
     </command>
     <inputs>
         <param name="input" argument="--input" type="data" format="tabular, tsv, csv" label="Abundance dataset:" />
-        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset_RPS" help="Default: Dataset_RPS. Do not use white spaces." />
         
         <conditional name="cond_reactions">
 			<param name="reaction_choice" argument="--reaction_choice" type="select" label="Choose reaction dataset:">
@@ -37,7 +39,7 @@
 
     <outputs>
         <data format="txt" name="log" label="Expression2RPS - $name - Log" />
-        <data format="tabular" name="rps_output" label="$name RPS"/>
+        <data format="tabular" name="rps_output" label="$name"/>
     </outputs>
 
     <help>

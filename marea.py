@@ -9,17 +9,18 @@ import itertools as it
 import scipy.stats as st
 import lxml.etree as ET
 import math
+import utils.general_utils as utils
+from PIL import Image
 import os
 import argparse
 import pyvips
-import utils.general_utils as utils
-from PIL import Image
 from typing import Tuple, Union, Optional, List, Dict
+import copy
 
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args() -> argparse.Namespace:
+def process_args(args:List[str] = None) -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
 
@@ -146,11 +147,17 @@ def process_args() -> argparse.Namespace:
         help='custom map to use')
     
     parser.add_argument(
+        '-idop', '--output_path', 
+        type = str,
+        default='result',
+        help = 'output path for maps')
+    
+    parser.add_argument(
         '-mc',  '--choice_map',
         type = utils.Model, default = utils.Model.HMRcore,
         choices = [utils.Model.HMRcore, utils.Model.ENGRO2, utils.Model.Custom])
 
-    args :argparse.Namespace = parser.parse_args()
+    args :argparse.Namespace = parser.parse_args(args)
     if args.using_RAS and not args.using_RPS: args.net = False
 
     return args
@@ -217,8 +224,8 @@ def fold_change(avg1 :float, avg2 :float) -> FoldChange:
         return '-INF'
     elif avg2 == 0:
         return 'INF'
-    else:
-        return (avg1 - avg2) / abs(avg2)
+    else: # (threshold_F_C - 1) / (abs(threshold_F_C) + 1) con threshold_F_C > 1
+        return (avg1 - avg2) / (abs(avg1) + abs(avg2))
     
 def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
     """
@@ -256,7 +263,7 @@ def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
     return ';'.join(tmp)
 
 # The type of d values is collapsed, losing precision, because the dict containst lists instead of tuples, please fix!
-def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_F_C :float) -> ET.ElementTree:
+def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_z_score :float) -> ET.ElementTree:
     """
     Edits the selected SVG map based on the p-value and fold change data (d) and some significance thresholds also passed as inputs.
 
@@ -265,7 +272,7 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
         core_map : SVG map to modify
         threshold_P_V : threshold for a p-value to be considered significant
         threshold_F_C : threshold for a fold change value to be considered significant
-        max_F_C : highest fold change (absolute value)
+        max_z_score : highest z-score (absolute value)
     
     Returns:
         ET.ElementTree : the modified core_map
@@ -276,8 +283,8 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
     maxT = 12
     minT = 2
     grey = '#BEBEBE'
-    blue = '#0000FF'
-    red = '#E41A1C'
+    blue = '#6495ed'
+    red = '#ecac68'
     for el in core_map.iter():
         el_id = str(el.get('id'))
         if el_id.startswith('R_'):
@@ -285,9 +292,10 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
             if tmp != None:
                 p_val :float = tmp[0]
                 f_c = tmp[1]
+                z_score = tmp[2]
                 if p_val < threshold_P_V:
                     if not isinstance(f_c, str):
-                        if abs(f_c) < math.log(threshold_F_C, 2):
+                        if abs(f_c) < ((threshold_F_C - 1) / (abs(threshold_F_C) + 1)): # 
                             col = grey
                             width = str(minT)
                         else:
@@ -295,7 +303,7 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                                 col = blue
                             elif f_c > 0:
                                 col = red
-                            width = str(max((abs(f_c) * maxT) / max_F_C, minT))
+                            width = str(max((abs(z_score) * maxT) / max_z_score, minT))
                     else:
                         if f_c == '-INF':
                             col = blue
@@ -375,14 +383,14 @@ class ArrowColor(Enum):
     Encodes possible arrow colors based on their meaning in the enrichment process.
     """
     Invalid       = "#BEBEBE" # gray, fold-change under treshold
-    UpRegulated   = "#E41A1C" # red, up-regulated reaction
-    DownRegulated = "#0000FF" # blue, down-regulated reaction
+    UpRegulated   = "#ecac68" # red, up-regulated reaction
+    DownRegulated = "#6495ed" # blue, down-regulated reaction
 
-    UpRegulatedInv = "#FF7A00"
+    UpRegulatedInv = "#FF0000"
     # ^^^ different shade of red (actually orange), up-regulated net value for a reversible reaction with
     # conflicting enrichment in the two directions.
 
-    DownRegulatedInv = "#B22CF1"
+    DownRegulatedInv = "#0000FF"
     # ^^^ different shade of blue (actually purple), down-regulated net value for a reversible reaction with
     # conflicting enrichment in the two directions.
 
@@ -455,7 +463,7 @@ class Arrow:
             str : the styles string.
         """
         width = self.w
-        if downSizedForTips: width *= 0.15
+        if downSizedForTips: width *= 0.8
         return f";stroke:{self.col};stroke-width:{width};stroke-dasharray:{'5,5' if self.dash else 'none'}"
 
 # vvv These constants could be inside the class itself a static properties, but python
@@ -463,14 +471,14 @@ class Arrow:
 INVALID_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
 INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
 
-def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericFoldChange :float) -> None:
+def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float) -> None:
     """
     Applies RPS enrichment results to the provided metabolic map.
 
     Args:
         rpsEnrichmentRes : RPS enrichment results.
         metabMap : the metabolic map to edit.
-        maxNumericFoldChange : biggest finite fold-change value found.
+        maxNumericZScore : biggest finite z-score value found.
     
     Side effects:
         metabMap : mut
@@ -481,19 +489,20 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
     for reactionId, values in rpsEnrichmentRes.items():
         pValue = values[0]
         foldChange = values[1]
+        z_score = values[2]
 
         if isinstance(foldChange, str): foldChange = float(foldChange)
         if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
             INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId)
             continue
 
-        if abs(foldChange) < math.log(ARGS.fChange, 2):
+        if abs(foldChange) <  (ARGS.fChange - 1) / (abs(ARGS.fChange) + 1):
             INVALID_ARROW.styleReactionElements(metabMap, reactionId)
             continue
         
         width = Arrow.MAX_W
         if not math.isinf(foldChange):
-            try: width = max(abs(foldChange * Arrow.MAX_W) / maxNumericFoldChange, Arrow.MIN_W)
+            try: width = max(abs(z_score * Arrow.MAX_W) / maxNumericZScore, Arrow.MIN_W)
             except ZeroDivisionError: pass
         
         if not reactionId.endswith("_RV"): # RV stands for reversible reactions
@@ -502,7 +511,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         
         reactionId = reactionId[:-3] # Remove "_RV"
         
-        inversionScore = (values[2] < 0) + (values[3] < 0) # Compacts the signs of averages into 1 easy to check score
+        inversionScore = (values[3] < 0) + (values[4] < 0) # Compacts the signs of averages into 1 easy to check score
         if inversionScore == 2: foldChange *= -1
         # ^^^ Style the inverse direction with the opposite sign netValue
         
@@ -648,7 +657,7 @@ def buildOutputPath(dataset1Name :str, dataset2Name = "rest", *, details = "", e
         # all output files: I don't care, this was never the performance bottleneck of the tool and
         # there is no other net gain in saving and re-using the built string.
         ext,
-        prefix = "result")
+        prefix = ARGS.output_path)
 
 FIELD_NOT_AVAILABLE = '/'
 def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath) -> None:
@@ -664,24 +673,24 @@ def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath)
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
 def writeTabularResult(enrichedScores : OldEnrichedScores, ras_enrichment: bool, outPath :utils.FilePath) -> None:
-    fieldNames = ["ids", "P_Value", "Log2(fold change)"]
+    fieldNames = ["ids", "P_Value", "fold change"]
     if not ras_enrichment: fieldNames.extend(["average_1", "average_2"])
 
     writeToCsv([ [reactId] + values for reactId, values in enrichedScores.items() ], fieldNames, outPath)
 
-def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_F_C :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
+def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
     # this function compiles the things always in common between comparison modes after enrichment.
     # TODO: organize, name better.
     writeTabularResult(tmp, ras_enrichment, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
     
     if ras_enrichment:
-        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_F_C)
-    else:
-        for reactId, enrichData in tmp.items(): 
-            tmp[reactId] = tuple(enrichData)
-        applyRpsEnrichmentToMap(tmp, core_map, max_F_C)
+        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_z_score)
+        return
 
-def computePValue(dataset1Data :List[float], dataset2Data :List[float]) -> float:
+    for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
+    applyRpsEnrichmentToMap(tmp, core_map, max_z_score)
+
+def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple[float, float]:
     """
     Computes the statistical significance score (P-value) of the comparison between coherent data
     from two datasets. The data is supposed to, in both datasets:
@@ -694,15 +703,32 @@ def computePValue(dataset1Data :List[float], dataset2Data :List[float]) -> float
         dataset2Data : data from the 2nd dataset.
 
     Returns:
-        float: P-value from a Kolmogorov-Smirnov test on the provided data.
+        tuple: (P-value, Z-score)
+            - P-value from a Kolmogorov-Smirnov test on the provided data.
+            - Z-score of the difference between means of the two datasets.
     """
-    return st.ks_2samp(dataset1Data, dataset2Data)[1]
+    # Perform Kolmogorov-Smirnov test
+    ks_statistic, p_value = st.ks_2samp(dataset1Data, dataset2Data)
+    
+    # Calculate means and standard deviations
+    mean1 = np.mean(dataset1Data)
+    mean2 = np.mean(dataset2Data)
+    std1 = np.std(dataset1Data, ddof=1)
+    std2 = np.std(dataset2Data, ddof=1)
+    
+    n1 = len(dataset1Data)
+    n2 = len(dataset2Data)
+    
+    # Calculate Z-score
+    z_score = (mean1 - mean2) / np.sqrt((std1**2 / n1) + (std2**2 / n2))
+    
+    return p_value, z_score
 
 def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
     #TODO: the following code still suffers from "dumbvarnames-osis"
     tmp :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
-    max_F_C = 0
+    max_z_score = 0
 
     for l1, l2 in zip(dataset1Data, dataset2Data):
         reactId = ids[count]
@@ -719,13 +745,13 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
                 nets1 = np.subtract(l1, dataset1Data[position])
                 nets2 = np.subtract(l2, dataset2Data[position])
 
-                p_value = computePValue(nets1, nets2)
+                p_value, z_score = computePValue(nets1, nets2)
                 avg1 = sum(nets1)   / len(nets1)
                 avg2 = sum(nets2)   / len(nets2)
                 net = fold_change(avg1, avg2)
                 
                 if math.isnan(net): continue
-                tmp[reactId[:-1] + "RV"] = [p_value, net, avg1, avg2]
+                tmp[reactId[:-1] + "RV"] = [p_value, net, z_score, avg1, avg2]
                 
                 # vvv complementary directional ids are set to None once processed if net is to be applied to tips
                 if ARGS.net:
@@ -733,16 +759,16 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
                     continue
 
             # fallthrough is intended, regular scores need to be computed when tips aren't net but RAS datasets aren't used
-            p_value = computePValue(l1, l2)
+            p_value, z_score = computePValue(l1, l2)
             avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
-            if not isinstance(avg, str) and max_F_C < abs(avg): max_F_C = abs(avg)
-            tmp[reactId] = [float(p_value), avg]
+            if not isinstance(z_score, str) and max_z_score < abs(z_score): max_z_score = abs(z_score)
+            tmp[reactId] = [float(p_value), avg, z_score]
         
         except (TypeError, ZeroDivisionError): continue
     
-    return tmp, max_F_C
+    return tmp, max_z_score
 
-def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str], *, fromRAS = True) -> None:
+def computeEnrichment(metabMap: ET.ElementTree, class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
     """
     Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
     provided metabolic map.
@@ -754,58 +780,52 @@ def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[f
         fromRAS : whether the data to enrich consists of RAS scores.
 
     Returns:
-        None
-
+        List[Tuple[str, str, dict, float]]: List of tuples with pairs of dataset names, comparison dictionary, and max z-score.
+        
     Raises:
         sys.exit : if there are less than 2 classes for comparison
     
     Side effects:
-        metabMap : mut
-        ids : mut
+        metabMap : mutates based on calculated enrichment
     """
-    class_pat = { k.strip() : v for k, v in class_pat.items() }
-    #TODO: simplfy this stuff vvv and stop using sys.exit (raise the correct utils error)
-    if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
+    class_pat = {k.strip(): v for k, v in class_pat.items()}
+    if (not class_pat) or (len(class_pat.keys()) < 2):
+        sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
+    
+    enrichment_results = []
 
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            #TODO: these 2 functions are always called in pair and in this order and need common data,
-            # some clever refactoring would be appreciated.
-            comparisonDict, max_F_C = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, i, j, fromRAS)
+            comparisonDict, max_z_score = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
+            enrichment_results.append((i, j, comparisonDict, max_z_score))
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
-            t :List[List[List[float]]] = []
-            for k in class_pat.keys():
-                if k != single_cluster:
-                   t.append(class_pat.get(k))
-            
-            rest :List[List[float]] = []
-            for i in t:
-                rest = rest + i
-            
-            comparisonDict, max_F_C = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, single_cluster, fromRAS)
+            rest = [item for k, v in class_pat.items() if k != single_cluster for item in v]
+            comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
+            enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
     
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
-            if otherDataset == ARGS.control: continue
-            
-            comparisonDict, max_F_C = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_F_C, ARGS.control, otherDataset, fromRAS)
+            if otherDataset == ARGS.control:
+                continue
+            comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+            enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
+    
+    return enrichment_results
 
-def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
-    svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details = "SVG Map", ext = utils.FileFormat.SVG)
+def createOutputMaps(dataset1Name: str, dataset2Name: str, core_map: ET.ElementTree) -> None:
+    svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details="SVG Map", ext=utils.FileFormat.SVG)
     utils.writeSvg(svgFilePath, core_map)
 
     if ARGS.generate_pdf:
-        pngPath = buildOutputPath(dataset1Name, dataset2Name, details = "PNG Map", ext = utils.FileFormat.PNG)
-        pdfPath = buildOutputPath(dataset1Name, dataset2Name, details = "PDF Map", ext = utils.FileFormat.PDF)
-        convert_to_pdf(svgFilePath, pngPath, pdfPath)                     
+        pngPath = buildOutputPath(dataset1Name, dataset2Name, details="PNG Map", ext=utils.FileFormat.PNG)
+        pdfPath = buildOutputPath(dataset1Name, dataset2Name, details="PDF Map", ext=utils.FileFormat.PDF)
+        convert_to_pdf(svgFilePath, pngPath, pdfPath)
 
-    if not ARGS.generate_svg: os.remove(svgFilePath.show())
+    if not ARGS.generate_svg:
+        os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
 def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, classPath :str, names :List[str]) -> Tuple[List[str], ClassPat]:
@@ -851,7 +871,7 @@ def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List
     return { id : list(map(utils.Float("Dataset values, not an argument"), values)) for id, values in dataset.items() }, IDs
 
 ############################ MAIN #############################################
-def main() -> None:
+def main(args:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
@@ -862,44 +882,32 @@ def main() -> None:
         sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
     """
     global ARGS
-    ARGS = process_args()
+    ARGS = process_args(args)
 
-    if os.path.isdir('result') == False: os.makedirs('result')
+    if not os.path.isdir(ARGS.output_path):
+        os.makedirs(ARGS.output_path)
     
-    core_map :ET.ElementTree = ARGS.choice_map.getMap(
+    core_map: ET.ElementTree = ARGS.choice_map.getMap(
         ARGS.tool_dir,
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
-    # TODO: ^^^ ugly but fine for now, the argument is None if the model isn't custom because no file was given.
-    # getMap will None-check the customPath and panic when the model IS custom but there's no file (good). A cleaner
-    # solution can be derived from my comment in FilePath.fromStrPath
-
+    
     if ARGS.using_RAS:
         ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
-        computeEnrichment(core_map, class_pat, ids)
+        enrichment_results = computeEnrichment(core_map, class_pat, ids)
+        for i, j, comparisonDict, max_z_score in enrichment_results:
+            map_copy = copy.deepcopy(core_map)
+            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=True)
+            createOutputMaps(i, j, map_copy)
     
     if ARGS.using_RPS:
         ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-        computeEnrichment(core_map, class_pat, ids, fromRAS = False)
-    
-    # create output files: TODO: this is the same comparison happening in "maps", find a better way to organize this
-    if ARGS.comparison == "manyvsmany":
-        for i, j in it.combinations(class_pat.keys(), 2): createOutputMaps(i, j, core_map)
-        return
-    
-    if ARGS.comparison == "onevsrest":
-        for single_cluster in class_pat.keys(): createOutputMaps(single_cluster, "rest", core_map)
-        return
-    
-    for otherDataset in class_pat.keys():
-        if otherDataset != ARGS.control: createOutputMaps(i, j, core_map)
+        enrichment_results = computeEnrichment(core_map, class_pat, ids, fromRAS=False)
+        for i, j, comparisonDict, max_z_score in enrichment_results:
+            map_copy = copy.deepcopy(core_map)
+            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=False)
+            createOutputMaps(i, j, map_copy)
 
-    if not ERRORS: return
-    utils.logWarning(
-        f"The following reaction IDs were mentioned in the dataset but weren't found in the map: {ERRORS}",
-        ARGS.out_log)
-    
-    print('Execution succeded')
-
+    print('Execution succeeded')
 ###############################################################################
 if __name__ == "__main__":
     main()

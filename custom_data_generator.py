@@ -3,13 +3,14 @@ import csv
 import cobra
 import pickle
 import argparse
+import pandas as pd
 import utils.general_utils as utils
 import utils.rule_parsing  as rulesUtils
-from typing import Optional, Tuple, Union, Dict
+from typing import Optional, Tuple, Union, List, Dict
 import utils.reaction_parsing as reactionUtils
 
 ARGS : argparse.Namespace
-def process_args() -> argparse.Namespace:
+def process_args(args:List[str] = None) -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for
     various parameters available as values in code.
@@ -25,20 +26,17 @@ def process_args() -> argparse.Namespace:
         description = "generate custom data from a given model")
     
     parser.add_argument("-ol", "--out_log", type = str, required = True, help = "Output log")
+
+    parser.add_argument("-orules", "--out_rules", type = str, required = True, help = "Output rules")
+    parser.add_argument("-orxns", "--out_reactions", type = str, required = True, help = "Output reactions")
+    parser.add_argument("-omedium", "--out_medium", type = str, required = True, help = "Output medium")
+    parser.add_argument("-obnds", "--out_bounds", type = str, required = True, help = "Output bounds")
+
     parser.add_argument("-id", "--input",   type = str, required = True, help = "Input model")
     parser.add_argument("-mn", "--name",    type = str, required = True, help = "Input model name")
     # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
-
-    parser.add_argument(
-        "-of", "--output_format",
-        # vvv I have to use .fromExt because enums in python are the plague and have been implemented by a chimpanzee.
-        type = utils.FileFormat.fromExt, default = utils.FileFormat.PICKLE,
-        choices = [utils.FileFormat.CSV, utils.FileFormat.PICKLE],
-        # ^^^ Not all variants are valid here, otherwise list(utils.FileFormat) would be best.
-        required = True, help = "Extension of all output files")
-    
-    argsNamespace = parser.parse_args()
-    argsNamespace.out_dir = "result"
+    parser.add_argument('-idop', '--output_path', type = str, default='result', help = 'output path for maps')
+    argsNamespace = parser.parse_args(args)
     # ^ can't get this one to work from xml, there doesn't seem to be a way to get the directory attribute from the collection
 
     return argsNamespace
@@ -118,10 +116,37 @@ def generate_reactions(model :cobra.Model, *, asParsed = True) -> Dict[ReactionI
     
     return reactionUtils.create_reaction_dict(unparsedReactions)
 
+def get_medium(model:cobra.Model) -> pd.DataFrame:
+    trueMedium=[]
+    for r in model.reactions:
+        positiveCoeff=0
+        for m in r.metabolites:
+            if r.get_coefficient(m.id)>0:
+                positiveCoeff=1;
+        if (positiveCoeff==0 and r.lower_bound<0):
+            trueMedium.append(r.id)
+
+    df_medium = pd.DataFrame()
+    df_medium["reaction"] = trueMedium
+    return df_medium
+
+def generate_bounds(model:cobra.Model) -> pd.DataFrame:
+
+    rxns = []
+    for reaction in model.reactions:
+        rxns.append(reaction.id)
+
+    bounds = pd.DataFrame(columns = ["lower_bound", "upper_bound"], index=rxns)
+
+    for reaction in model.reactions:
+        bounds.loc[reaction.id] = [reaction.lower_bound, reaction.upper_bound]
+    return bounds
+
+
 ###############################- FILE SAVING -################################
-def save_as_csv(data :dict, file_path :utils.FilePath, fieldNames :Tuple[str, str]) -> None:
+def save_as_csv_filePath(data :dict, file_path :utils.FilePath, fieldNames :Tuple[str, str]) -> None:
     """
-    Saves any dictionary-shaped data in a .csv file created at the given file_path.
+    Saves any dictionary-shaped data in a .csv file created at the given file_path as FilePath.
 
     Args:
         data : the data to be written to the file.
@@ -132,14 +157,33 @@ def save_as_csv(data :dict, file_path :utils.FilePath, fieldNames :Tuple[str, st
         None
     """
     with open(file_path.show(), 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames = fieldNames)
+        writer = csv.DictWriter(csvfile, fieldnames = fieldNames, dialect="excel-tab")
+        writer.writeheader()
+
+        for key, value in data.items():
+            writer.writerow({ fieldNames[0] : key, fieldNames[1] : value })
+
+def save_as_csv(data :dict, file_path :str, fieldNames :Tuple[str, str]) -> None:
+    """
+    Saves any dictionary-shaped data in a .csv file created at the given file_path as string.
+
+    Args:
+        data : the data to be written to the file.
+        file_path : the path to the .csv file.
+        fieldNames : the names of the fields (columns) in the .csv file.
+    
+    Returns:
+        None
+    """
+    with open(file_path, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames = fieldNames, dialect="excel-tab")
         writer.writeheader()
 
         for key, value in data.items():
             writer.writerow({ fieldNames[0] : key, fieldNames[1] : value })
 
 ###############################- ENTRY POINT -################################
-def main() -> None:
+def main(args:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
     
@@ -148,33 +192,26 @@ def main() -> None:
     """
     # get args from frontend (related xml)
     global ARGS
-    ARGS = process_args()
+    ARGS = process_args(args)
 
     # this is the worst thing I've seen so far, congrats to the former MaREA devs for suggesting this!
-    if os.path.isdir(ARGS.out_dir) == False: os.makedirs(ARGS.out_dir)
+    if os.path.isdir(ARGS.output_path) == False: os.makedirs(ARGS.output_path)
 
     # load custom model
     model = load_custom_model(
         utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.name).ext)
-    
-    # generate data and save it in the desired format and in a location galaxy understands
-    # (it should show up as a collection in the history)
-    rulesPath     = utils.FilePath("rules",     ARGS.output_format, prefix = ARGS.out_dir)
-    reactionsPath = utils.FilePath("reactions", ARGS.output_format, prefix = ARGS.out_dir)
 
-    if ARGS.output_format is utils.FileFormat.PICKLE:
-        rules = generate_rules(model, asParsed = True)
-        reactions = generate_reactions(model, asParsed = True)
-        utils.writePickle(rulesPath,     rules)
-        utils.writePickle(reactionsPath, reactions)
-    
-    elif ARGS.output_format is utils.FileFormat.CSV:
-        rules = generate_rules(model, asParsed = False)
-        reactions = generate_reactions(model, asParsed = False)
-        save_as_csv(rules,     rulesPath,     ("ReactionID", "Rule"))
-        save_as_csv(reactions, reactionsPath, ("ReactionID", "Reaction"))
+    # generate data
+    rules = generate_rules(model, asParsed = False)
+    reactions = generate_reactions(model, asParsed = False)
+    bounds = generate_bounds(model)
+    medium = get_medium(model)
 
-    # ^ Please if anyone works on this after updating python to 3.12 change the if/elif into a match statement!!
+    # save files out of collection: path coming from xml
+    save_as_csv(rules, ARGS.out_rules, ("ReactionID", "Rule"))
+    save_as_csv(reactions, ARGS.out_reactions, ("ReactionID", "Reaction"))
+    bounds.to_csv(ARGS.out_bounds, sep = '\t')
+    medium.to_csv(ARGS.out_medium, sep = '\t')
 
 if __name__ == '__main__':
     main()

@@ -7,6 +7,8 @@ Created on Mon Jun 3 19:51:00 2019
 import sys
 import argparse
 import os
+import numpy as np
+import pandas as pd
 from sklearn.datasets import make_blobs
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.metrics import silhouette_samples, silhouette_score, cluster
@@ -15,12 +17,10 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import scipy.cluster.hierarchy as shc   
 import matplotlib.cm as cm
-import numpy as np
-import pandas as pd
 from typing import Optional, Dict, List
 
 ################################# process args ###############################
-def process_args(args :List[str]) -> argparse.Namespace:
+def process_args(args :List[str] = None) -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -86,9 +86,13 @@ def process_args(args :List[str]) -> argparse.Namespace:
                         type = str,
                         help = 'output of best cluster tsv')
     				
+    parser.add_argument(
+        '-idop', '--output_path', 
+        type = str,
+        default='result',
+        help = 'output path for maps')
     
-    
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     return args
 
 ########################### warning ###########################################
@@ -217,8 +221,8 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
     Returns:
         None
     """
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
     
         
     if elbow == 'true':
@@ -259,7 +263,7 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
         if (i + k_min == best):
             prefix = '_BEST'
             
-        write_to_csv(dataset, all_labels[i], 'clustering/kmeans_with_' + str(i + k_min) + prefix + '_clusters.tsv')
+        write_to_csv(dataset, all_labels[i], f'{args.output_path}/kmeans_with_' + str(i + k_min) + prefix + '_clusters.tsv')
         
         
         if (prefix == '_BEST'):
@@ -272,7 +276,7 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
         
        
         if silhouette:
-            silhouette_draw(dataset, all_labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, all_labels[i], i + k_min, f'{args.output_path}/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
         
         
     if elbow:
@@ -303,7 +307,7 @@ def elbow_plot (distortions: List[float], k_min: int, k_max: int) -> None:
     plt.plot(x, distortions, marker = 'o')
     plt.xlabel('Number of clusters (k)')
     plt.ylabel('Distortion')
-    s = 'clustering/elbow_plot.png'
+    s = f'{args.output_path}/elbow_plot.png'
     fig = plt.gcf()
     fig.set_size_inches(18.5, 10.5, forward = True)
     fig.savefig(s, dpi=100)
@@ -406,8 +410,8 @@ def dbscan(dataset: pd.DataFrame, eps: float, min_samples: float, best_cluster: 
     Returns:
         None
     """
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
         
     if eps is not None:
         clusterer = DBSCAN(eps = eps, min_samples = min_samples)
@@ -445,14 +449,14 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
     Returns:
         None
     """
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
     
     plt.figure(figsize=(10, 7))  
     plt.title("Customer Dendograms")  
     shc.dendrogram(shc.linkage(dataset, method='ward'), labels=dataset.index.values.tolist())  
     fig = plt.gcf()
-    fig.savefig('clustering/dendogram.png', dpi=200)
+    fig.savefig(f'{args.output_path}/dendogram.png', dpi=200)
     
     range_n_clusters = [i for i in range(k_min, k_max+1)]
 
@@ -466,7 +470,7 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
         cluster.fit_predict(dataset)  
         cluster_labels = cluster.labels_
         labels.append(cluster_labels)
-        write_to_csv(dataset, cluster_labels, 'clustering/hierarchical_with_' + str(n_clusters) + '_clusters.tsv')
+        write_to_csv(dataset, cluster_labels, f'{args.output_path}/hierarchical_with_' + str(n_clusters) + '_clusters.tsv')
         
     best = max_index(scores) + k_min
     
@@ -475,7 +479,7 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
         if (i + k_min == best):
             prefix = '_BEST'
         if silhouette == 'true':
-            silhouette_draw(dataset, labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, labels[i], i + k_min, f'{args.output_path}/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
      
     for i in range(len(labels)):
         if (i + k_min == best):
@@ -486,17 +490,18 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
             
     
 ############################# main ###########################################
-def main() -> None:
+def main(args_in:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
     Returns:
         None
     """
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
+    global args
+    args = process_args(args_in)
 
-    args = process_args(sys.argv)
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
     
     #Data read
     
@@ -509,6 +514,8 @@ def main() -> None:
         tmp = X[i][0]
         if tmp == None:
             X = X.drop(columns=[i])
+
+    ## NAN TO HANLDE
             
     if args.k_max != None:
        numero_classi = X.shape[0]

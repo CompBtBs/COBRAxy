@@ -16,7 +16,7 @@ import utils.reaction_parsing as reactionUtils
 
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args() -> argparse.Namespace:
+def process_args(args:List[str] = None) -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -51,7 +51,7 @@ def process_args() -> argparse.Namespace:
                         required = True,
                         help = 'rps output')
     
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     return args
 
 ############################ dataset name #####################################
@@ -217,12 +217,12 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
         abundances = { metab : abundances[pos] for metab, abundances in abundances_dict.items() }
         rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list)
     
-    pd.DataFrame.from_dict(rps_scores) \
-                .rename(columns={'Unnamed: 0': 'Reactions'}, inplace=True) \
-                .to_csv(ARGS.rps_output, sep = '\t', na_rep = "None", index = False)
+    df = pd.DataFrame.from_dict(rps_scores)
+    df.rename(columns={'Unnamed: 0': 'Reactions'}, inplace=True)
+    df.to_csv(ARGS.rps_output, sep = '\t', na_rep = "None", index = False)
 
 ############################ main ####################################
-def main() -> None:
+def main(args:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
@@ -230,7 +230,7 @@ def main() -> None:
         None
     """
     global ARGS
-    ARGS = process_args()
+    ARGS = process_args(args)
 
     # TODO:use utils functions vvv
     with open(ARGS.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:

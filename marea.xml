@@ -1,17 +1,17 @@
-<tool id="MaREA" name="Metabolic Reaction Enrichment Analysis" version="1.1.8">
+<tool id="MaREA" name="Metabolic Reaction Enrichment Analysis" version="2.0.0">
 	<macros>
 		<import>marea_macros.xml</import>
 	</macros>
 	
 	<requirements>
-		<requirement type="package" version="0.25.3">pandas</requirement>
-		<requirement type="package" version="1.6.3">scipy</requirement>
-		<requirement type="package" version="4.9.3">lxml</requirement>
-		<requirement type="package" version="1.1.0">svglib</requirement>
-		<requirement type="package" version="4.1.0">reportlab</requirement>
+		<requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2.0.3">pandas</requirement>
+        <requirement type="package" version="5.2.2">lxml</requirement>
+        <requirement type="package" version="1.10.1">scipy</requirement>
+		<requirement type="package" version="1.5.1">svglib</requirement>
 		<requirement type="package" version="2.2.3">pyvips</requirement>
 		<requirement type="package" version="2.7.1">cairosvg</requirement>
-		<requirement type="package" version="1.21.6">numpy</requirement>
+		<requirement type="package" version="0.29.0">cobra</requirement>
 	</requirements>
 	
 	<command detect_errors="exit_code">
@@ -307,11 +307,11 @@ Fold-Change threshold: threshold of the fold-change between the average RAS of t
 
 .. class:: infomark
 
-**TIP**: If your dataset is not split into classes, use `MaREA cluster analysis`_.
+**TIP**: If your dataset is not split into classes, use MaREA cluster analysis.
 
 .. class:: infomark
 
-**TIP**: This tool using the RAS scores computed by `Ras tool`_.
+**TIP**: This tool using the RAS scores computed by Ras generator tool.
 
 @REFERENCE@
 
