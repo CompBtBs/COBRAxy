@@ -32,13 +32,13 @@
             </when>
         </conditional>
         <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Gene Expression dataset:" />
-        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset_RAS" help="Default: Dataset_RAS. Do not use white spaces." />
         <param name="none" argument="--none" type="boolean" checked="true" label="(A and NaN) solved as (A)?" /> 
     </inputs>
 
     <outputs>
         <data format="txt" name="log" label="Expression2RAS - $name - Log" />
-        <data format="tabular" name="ras_output" label="$name RAS"/>
+        <data format="tabular" name="ras_output" label='$name'/>
     </outputs>
 
     <help>

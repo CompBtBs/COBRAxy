@@ -10,7 +10,7 @@ import csv
 from joblib import Parallel, delayed, cpu_count
 
 ################################# process args ###############################
-def process_args(args :List[str]) -> argparse.Namespace:
+def process_args(args :List[str] = None) -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -66,9 +66,14 @@ def process_args(args :List[str]) -> argparse.Namespace:
     parser.add_argument('-cc', '--cell_class',
                     type = str,
                     help = 'output of cell class')
+    parser.add_argument(
+        '-idop', '--output_path', 
+        type = str,
+        default='ras_to_bounds/',
+        help = 'output path for maps')
     
     
-    ARGS = parser.parse_args()
+    ARGS = parser.parse_args(args)
     return ARGS
 
 ########################### warning ###########################################
@@ -201,7 +206,7 @@ def generate_bounds(model: cobra.Model, medium: dict, ras=None, output_folder='o
 
 
 ############################# main ###########################################
-def main() -> None:
+def main(args:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
@@ -213,9 +218,7 @@ def main() -> None:
 
 
     global ARGS
-    ARGS = process_args(sys.argv)
-
-    ARGS.output_folder = 'ras_to_bounds/'
+    ARGS = process_args(args)
 
     if(ARGS.ras_selector == True):
         ras_file_list = ARGS.input_ras.split(",")
@@ -269,10 +272,10 @@ def main() -> None:
         medium = medium[ARGS.medium_selector].to_dict()
 
     if(ARGS.ras_selector == True):
-        generate_bounds(model, medium, ras = ras_combined, output_folder=ARGS.output_folder)
+        generate_bounds(model, medium, ras = ras_combined, output_folder=ARGS.output_path)
         class_assignments.to_csv(ARGS.cell_class, sep = '\t', index = False)
     else:
-        generate_bounds(model, medium, output_folder=ARGS.output_folder)
+        generate_bounds(model, medium, output_folder=ARGS.output_path)
 
     pass
         

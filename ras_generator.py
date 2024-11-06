@@ -12,7 +12,7 @@ from typing import Union, Optional, List, Dict, Tuple, TypeVar
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args() -> argparse.Namespace:
+def process_args(args:List[str] = None) -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -61,8 +61,9 @@ def process_args() -> argparse.Namespace:
         '-ra', '--ras_output',
         type = str,
         required = True, help = 'ras output')
+
     
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 ############################ dataset input ####################################
 def read_dataset(data :str, name :str) -> pd.DataFrame:
@@ -647,7 +648,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     # csv rules need to be parsed, those in a pickle format are taken to be pre-parsed.
     return { line[0] : ruleUtils.parseRuleToNestedList(line[1]) for line in utils.readCsv(datFilePath) }
 
-def main() -> None:
+def main(args:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
     
@@ -656,7 +657,7 @@ def main() -> None:
     """
     # get args from frontend (related xml)
     global ARGS
-    ARGS = process_args()
+    ARGS = process_args(args)
     print(ARGS.rules_selector)
     # read dataset
     dataset = read_dataset(ARGS.input, "dataset")

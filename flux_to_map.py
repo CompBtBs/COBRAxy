@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
-def process_args() -> argparse.Namespace:
+def process_args(args:List[str] = None) -> argparse.Namespace:
     """
     Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
 
@@ -119,8 +119,14 @@ def process_args() -> argparse.Namespace:
         '-colorm',  '--color_map',
         type = str,
         choices = ["jet", "viridis"])
+    
+    parser.add_argument(
+        '-idop', '--output_path', 
+        type = str,
+        default='result',
+        help = 'output path for maps')
 
-    args :argparse.Namespace = parser.parse_args()
+    args :argparse.Namespace = parser.parse_args(args)
     args.net = True
 
     return args
@@ -643,7 +649,7 @@ def buildOutputPath(dataset1Name :str, dataset2Name = "rest", *, details = "", e
         # all output files: I don't care, this was never the performance bottleneck of the tool and
         # there is no other net gain in saving and re-using the built string.
         ext,
-        prefix = "result")
+        prefix = ARGS.output_path)
 
 FIELD_NOT_AVAILABLE = '/'
 def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath) -> None:
@@ -922,8 +928,8 @@ def computeEnrichmentMeanMedian(metabMap: ET.ElementTree, class_pat: Dict[str, L
     medians = {key: median/max_flux_medians for key, median in medians.items()}
     means = {key: mean/max_flux_means for key, mean in means.items()}
 
-    save_colormap_image(min_flux_medians, max_flux_medians, utils.FilePath("Color map median", ext=utils.FileFormat.PNG, prefix="result"), colormap)
-    save_colormap_image(min_flux_means, max_flux_means, utils.FilePath("Color map mean", ext=utils.FileFormat.PNG, prefix="result"), colormap)
+    save_colormap_image(min_flux_medians, max_flux_medians, utils.FilePath("Color map median", ext=utils.FileFormat.PNG, prefix=ARGS.output_path), colormap)
+    save_colormap_image(min_flux_means, max_flux_means, utils.FilePath("Color map mean", ext=utils.FileFormat.PNG, prefix=ARGS.output_path), colormap)
 
     cmap = plt.get_cmap(colormap)
 
@@ -981,11 +987,11 @@ def save_and_convert(metabMap, map_type, key):
     Returns:
         None
     """
-    svgFilePath = utils.FilePath(f"SVG Map {map_type} - {key}", ext=utils.FileFormat.SVG, prefix="result")
+    svgFilePath = utils.FilePath(f"SVG Map {map_type} - {key}", ext=utils.FileFormat.SVG, prefix=ARGS.output_path)
     utils.writeSvg(svgFilePath, metabMap)
     if ARGS.generate_pdf:
-        pngPath = utils.FilePath(f"PNG Map {map_type} - {key}", ext=utils.FileFormat.PNG, prefix="result")
-        pdfPath = utils.FilePath(f"PDF Map {map_type} - {key}", ext=utils.FileFormat.PDF, prefix="result")
+        pngPath = utils.FilePath(f"PNG Map {map_type} - {key}", ext=utils.FileFormat.PNG, prefix=ARGS.output_path)
+        pdfPath = utils.FilePath(f"PDF Map {map_type} - {key}", ext=utils.FileFormat.PDF, prefix=ARGS.output_path)
         convert_to_pdf(svgFilePath, pngPath, pdfPath)
     if not ARGS.generate_svg:
         os.remove(svgFilePath.show())
@@ -994,7 +1000,7 @@ def save_and_convert(metabMap, map_type, key):
 
     
 ############################ MAIN #############################################
-def main() -> None:
+def main(args:List[str] = None) -> None:
     """
     Initializes everything and sets the program in motion based on the fronted input arguments.
 
@@ -1006,9 +1012,9 @@ def main() -> None:
     """
 
     global ARGS
-    ARGS = process_args()
+    ARGS = process_args(args)
 
-    if os.path.isdir('result') == False: os.makedirs('result')
+    if os.path.isdir(ARGS.output_path) == False: os.makedirs(ARGS.output_path)
     
     core_map :ET.ElementTree = ARGS.choice_map.getMap(
         ARGS.tool_dir,
