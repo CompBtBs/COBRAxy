@@ -768,13 +768,12 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     
     return tmp, max_z_score
 
-def computeEnrichment(metabMap: ET.ElementTree, class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
+def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
     """
     Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
     provided metabolic map.
 
     Args:
-        metabMap : SVG map to modify.
         class_pat : the clustered data.
         ids : ids for data association.
         fromRAS : whether the data to enrich consists of RAS scores.
@@ -784,9 +783,6 @@ def computeEnrichment(metabMap: ET.ElementTree, class_pat: Dict[str, List[List[f
         
     Raises:
         sys.exit : if there are less than 2 classes for comparison
-    
-    Side effects:
-        metabMap : mutates based on calculated enrichment
     """
     class_pat = {k.strip(): v for k, v in class_pat.items()}
     if (not class_pat) or (len(class_pat.keys()) < 2):
@@ -893,7 +889,7 @@ def main(args:List[str] = None) -> None:
     
     if ARGS.using_RAS:
         ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
-        enrichment_results = computeEnrichment(core_map, class_pat, ids)
+        enrichment_results = computeEnrichment(class_pat, ids)
         for i, j, comparisonDict, max_z_score in enrichment_results:
             map_copy = copy.deepcopy(core_map)
             temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=True)
@@ -901,7 +897,7 @@ def main(args:List[str] = None) -> None:
     
     if ARGS.using_RPS:
         ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-        enrichment_results = computeEnrichment(core_map, class_pat, ids, fromRAS=False)
+        enrichment_results = computeEnrichment(class_pat, ids, fromRAS=False)
         for i, j, comparisonDict, max_z_score in enrichment_results:
             map_copy = copy.deepcopy(core_map)
             temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=False)

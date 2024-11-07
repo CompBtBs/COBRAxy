@@ -155,7 +155,8 @@ Optional files:
 
 The tool generates:
     - 1) a tab-separated file: reporting fold-change and p-values of fluxes between a pair of conditions/classes;
-    - 2) a metabolic map file (downloadable as .svg): visualizing up- and down-regulated reactions between a pair of conditions/classes;
+    - 2) a metabolic map file (downloadable as .svg and .png): visualizing up- and down-regulated reactions between a pair of conditions/classes;
+	- 3) two metabolic maps to visualize the mean and median fluxes normalized amongst all classes. The associated color map with values bounds is also generated.
     - 3) a log file (.txt).
     
 Output options:

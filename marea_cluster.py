@@ -511,11 +511,8 @@ def main(args_in:List[str] = None) -> None:
     X = pd.DataFrame.from_dict(X, orient = 'index')
     
     for i in X.columns:
-        tmp = X[i][0]
-        if tmp == None:
+        if any(val is None for val in X[i]):
             X = X.drop(columns=[i])
-
-    ## NAN TO HANLDE
             
     if args.k_max != None:
        numero_classi = X.shape[0]

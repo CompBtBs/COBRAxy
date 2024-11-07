@@ -733,70 +733,61 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     
     return tmp, max_z_score
 
-def computeEnrichment(metabMap :ET.ElementTree, class_pat :Dict[str, List[List[float]]], ids :List[str]) -> None:
+def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -> List[Tuple[str, str, dict, float]]:
     """
     Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
     provided metabolic map.
 
     Args:
-        metabMap : SVG map to modify.
         class_pat : the clustered data.
         ids : ids for data association.
         
 
     Returns:
-        None
+        List[Tuple[str, str, dict, float]]: List of tuples with pairs of dataset names, comparison dictionary, and max z-score.
 
     Raises:
         sys.exit : if there are less than 2 classes for comparison
-    
-    Side effects:
-        metabMap : mut
-        ids : mut
+
     """
     class_pat = { k.strip() : v for k, v in class_pat.items() }
     #TODO: simplfy this stuff vvv and stop using sys.exit (raise the correct utils error)
     if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
 
+    enrichment_results = []
+
+    
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            #TODO: these 2 functions are always called in pair and in this order and need common data,
-            # some clever refactoring would be appreciated.
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_z_score, i, j)
+            enrichment_results.append((i, j, comparisonDict, max_z_score))
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
-            t :List[List[List[float]]] = []
-            for k in class_pat.keys():
-                if k != single_cluster:
-                   t.append(class_pat.get(k))
-            
-            rest :List[List[float]] = []
-            for i in t:
-                rest = rest + i
-            
+            rest = [item for k, v in class_pat.items() if k != single_cluster for item in v]
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_z_score, single_cluster)
+            enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
     
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
-            if otherDataset == ARGS.control: continue
-            
+            if otherDataset == ARGS.control:
+                continue
             comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            temp_thingsInCommon(comparisonDict, metabMap, max_z_score, ARGS.control, otherDataset)
+            enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
+    return enrichment_results
 
 def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
-    svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details = "SVG Map", ext = utils.FileFormat.SVG)
+    svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details="SVG Map", ext=utils.FileFormat.SVG)
     utils.writeSvg(svgFilePath, core_map)
 
     if ARGS.generate_pdf:
-        pngPath = buildOutputPath(dataset1Name, dataset2Name, details = "PNG Map", ext = utils.FileFormat.PNG)
-        pdfPath = buildOutputPath(dataset1Name, dataset2Name, details = "PDF Map", ext = utils.FileFormat.PDF)
-        convert_to_pdf(svgFilePath, pngPath, pdfPath)                     
+        pngPath = buildOutputPath(dataset1Name, dataset2Name, details="PNG Map", ext=utils.FileFormat.PNG)
+        pdfPath = buildOutputPath(dataset1Name, dataset2Name, details="PDF Map", ext=utils.FileFormat.PDF)
+        convert_to_pdf(svgFilePath, pngPath, pdfPath)
 
-    if not ARGS.generate_svg: os.remove(svgFilePath.show())
+    if not ARGS.generate_svg:
+        os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
 def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, classPath :str, names :List[str]) -> Tuple[List[str], ClassPat]:
@@ -996,8 +987,6 @@ def save_and_convert(metabMap, map_type, key):
     if not ARGS.generate_svg:
         os.remove(svgFilePath.show())
 
-
-
     
 ############################ MAIN #############################################
 def main(args:List[str] = None) -> None:
@@ -1033,22 +1022,14 @@ def main(args:List[str] = None) -> None:
         computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
     else:
         computeEnrichmentMeanMedian(core_map, class_pat, ids, ARGS.color_map)
-    
 
-    computeEnrichment(core_map, class_pat, ids)
-    
-    # create output files: TODO: this is the same comparison happening in "maps", find a better way to organize this
-    if ARGS.comparison == "manyvsmany":
-        for i, j in it.combinations(class_pat.keys(), 2): createOutputMaps(i, j, core_map)
-        return
-    
-    if ARGS.comparison == "onevsrest":
-        for single_cluster in class_pat.keys(): createOutputMaps(single_cluster, "rest", core_map)
-        return
-    
-    for otherDataset in class_pat.keys():
-        if otherDataset != ARGS.control: createOutputMaps(i, j, core_map)
 
+    enrichment_results = computeEnrichment(class_pat, ids)
+    for i, j, comparisonDict, max_z_score in enrichment_results:
+        map_copy = copy.deepcopy(core_map)
+        temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j)
+        createOutputMaps(i, j, map_copy)
+    
     if not ERRORS: return
     utils.logWarning(
         f"The following reaction IDs were mentioned in the dataset but weren't found in the map: {ERRORS}",
@@ -1059,3 +1040,4 @@ def main(args:List[str] = None) -> None:
 ###############################################################################
 if __name__ == "__main__":
     main()
+
