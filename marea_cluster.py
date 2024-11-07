@@ -147,8 +147,8 @@ def rewrite_input(dataset :pd.DataFrame) -> Dict[str, List[Optional[float]]]:
     """
     #Riscrivo il dataset come dizionario di liste, 
     #non come dizionario di dizionari
-    
-    dataset.pop('Reactions', None)
+    dataset = dataset.iloc[:, 1:]
+    #dataset.pop('Reactions', None)
     
     for key, val in dataset.items():
         l = []
