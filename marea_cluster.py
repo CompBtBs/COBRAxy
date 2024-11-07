@@ -135,7 +135,7 @@ def read_dataset(dataset :str) -> pd.DataFrame:
     return dataset
 
 ############################ rewrite_input ###################################
-def rewrite_input(dataset :pd.DataFrame) -> Dict[str, List[Optional[float]]]:
+def rewrite_input(dataset :Dict) -> Dict[str, List[Optional[float]]]:
     """
     Rewrite the dataset as a dictionary of lists instead of as a dictionary of dictionaries.
 
@@ -147,7 +147,6 @@ def rewrite_input(dataset :pd.DataFrame) -> Dict[str, List[Optional[float]]]:
     """
     #Riscrivo il dataset come dizionario di liste, 
     #non come dizionario di dizionari
-    dataset = dataset.iloc[:, 1:]
     #dataset.pop('Reactions', None)
     
     for key, val in dataset.items():
@@ -506,6 +505,7 @@ def main(args_in:List[str] = None) -> None:
     #Data read
     
     X = read_dataset(args.input)
+    X = X.iloc[:, 1:]
     X = pd.DataFrame.to_dict(X, orient='list')
     X = rewrite_input(X)
     X = pd.DataFrame.from_dict(X, orient = 'index')
