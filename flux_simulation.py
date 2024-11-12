@@ -88,11 +88,10 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
                         required = False,
                         help = 'output type analysis')
     
-    parser.add_argument(
-        '-idop', '--output_path', 
-        type = str,
-        default='result',
-        help = 'output path for maps')
+    parser.add_argument('-idop', '--output_path', 
+                        type = str,
+                        default='flux_simulation',
+                        help = 'output path for maps')
     
     ARGS = parser.parse_args(args)
     return ARGS
@@ -115,7 +114,7 @@ def warning(s :str) -> None:
 
 def write_to_file(dataset: pd.DataFrame, name: str, keep_index:bool=False)->None:
     dataset.index.name = 'Reactions'
-    dataset.to_csv(ARGS.output_path + name + ".csv", sep = '\t', index = keep_index)
+    dataset.to_csv(ARGS.output_path + "/" + name + ".csv", sep = '\t', index = keep_index)
 
 ############################ dataset input ####################################
 def read_dataset(data :str, name :str) -> pd.DataFrame:
@@ -162,17 +161,17 @@ def OPTGP_sampler(model:cobra.Model, model_name:str, n_samples:int=1000, thinnin
     for i in range(0, n_batches):
         optgp = OptGPSampler(model, thinning, seed)
         samples = optgp.sample(n_samples)
-        samples.to_csv(ARGS.output_path +  model_name + '_'+ str(i)+'_OPTGP.csv', index=False)
+        samples.to_csv(ARGS.output_path + "/" +  model_name + '_'+ str(i)+'_OPTGP.csv', index=False)
         seed+=1
     samplesTotal = pd.DataFrame()
     for i in range(0, n_batches):
-        samples_batch = pd.read_csv(ARGS.output_path  +  model_name + '_'+ str(i)+'_OPTGP.csv')
+        samples_batch = pd.read_csv(ARGS.output_path + "/"  +  model_name + '_'+ str(i)+'_OPTGP.csv')
         samplesTotal = pd.concat([samplesTotal, samples_batch], ignore_index = True)
 
     write_to_file(samplesTotal.T, model_name, True)
 
     for i in range(0, n_batches):
-        os.remove(ARGS.output_path +   model_name + '_'+ str(i)+'_OPTGP.csv')
+        os.remove(ARGS.output_path + "/" +   model_name + '_'+ str(i)+'_OPTGP.csv')
     pass
 
 
@@ -205,18 +204,18 @@ def CBS_sampler(model:cobra.Model, model_name:str, n_samples:int=1000, n_batches
             ARGS.out_log)
             CBS_backend.randomObjectiveFunctionSampling_cobrapy(model, n_samples, df_coefficients.iloc[:,i*n_samples:(i+1)*n_samples], 
                                                     samples)
-        utils.logWarning(ARGS.output_path +  model_name + '_'+ str(i)+'_CBS.csv', ARGS.out_log)
-        samples.to_csv(ARGS.output_path +  model_name + '_'+ str(i)+'_CBS.csv', index=False)
+        utils.logWarning(ARGS.output_path + "/" +  model_name + '_'+ str(i)+'_CBS.csv', ARGS.out_log)
+        samples.to_csv(ARGS.output_path + "/" +  model_name + '_'+ str(i)+'_CBS.csv', index=False)
 
     samplesTotal = pd.DataFrame()
     for i in range(0, n_batches):
-        samples_batch = pd.read_csv(ARGS.output_path  +  model_name + '_'+ str(i)+'_CBS.csv')
+        samples_batch = pd.read_csv(ARGS.output_path + "/"  +  model_name + '_'+ str(i)+'_CBS.csv')
         samplesTotal = pd.concat([samplesTotal, samples_batch], ignore_index = True)
 
     write_to_file(samplesTotal.T, model_name, True)
 
     for i in range(0, n_batches):
-        os.remove(ARGS.output_path +   model_name + '_'+ str(i)+'_CBS.csv')
+        os.remove(ARGS.output_path + "/" + model_name + '_'+ str(i)+'_CBS.csv')
     pass
 
 
@@ -239,7 +238,7 @@ def model_sampler(model_input_original:cobra.Model, bounds_path:str, cell_name:s
         model_input.reactions.get_by_id(rxn_index).lower_bound = row.lower_bound
         model_input.reactions.get_by_id(rxn_index).upper_bound = row.upper_bound
     
-    name = cell_name
+    name = cell_name.split('.')[0]
     
     if ARGS.algorithm == 'OPTGP':
         OPTGP_sampler(model_input, name, ARGS.n_samples, ARGS.thinning, ARGS.n_batches, ARGS.seed)
@@ -250,7 +249,7 @@ def model_sampler(model_input_original:cobra.Model, bounds_path:str, cell_name:s
     df_mean, df_median, df_quantiles = fluxes_statistics(name, ARGS.output_types)
 
     if("fluxes" not in ARGS.output_types):
-        os.remove(ARGS.output_path  +  name + '.csv')
+        os.remove(ARGS.output_path + "/"  +  name + '.csv')
 
     returnList = []
     returnList.append(df_mean)
@@ -284,7 +283,7 @@ def fluxes_statistics(model_name: str,  output_types:List)-> List[pd.DataFrame]:
     df_median= pd.DataFrame()
     df_quantiles= pd.DataFrame()
 
-    df_samples = pd.read_csv(ARGS.output_path  +  model_name + '.csv', sep = '\t', index_col = 0).T
+    df_samples = pd.read_csv(ARGS.output_path + "/"  +  model_name + '.csv', sep = '\t', index_col = 0).T
     df_samples = df_samples.round(8)
 
     for output_type in output_types:
@@ -376,14 +375,14 @@ def main(args :List[str] = None) -> None:
     Returns:
         None
     """
-    if not os.path.exists('flux_simulation/'):
-        os.makedirs('flux_simulation/')
 
     num_processors = cpu_count()
 
     global ARGS
     ARGS = process_args(args)
-  
+
+    if not os.path.exists(ARGS.output_path):
+        os.makedirs(ARGS.output_path)
     
     model_type :utils.Model = ARGS.model_selector
     if model_type is utils.Model.Custom:
