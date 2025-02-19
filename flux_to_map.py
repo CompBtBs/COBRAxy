@@ -868,12 +868,12 @@ def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List
         where=dataset.loc['EX_gln__L_e'].to_numpy() != 0
     )
 
-    # Controllo e sostituzione dei NaN con 0 se necessario
+
     values = {'lact_glc': lact_glc, 'lact_gln': lact_gln, 'lact_o2': lact_o2, 'glu_gln': glu_gln}
    
     # Sostituzione di inf e NaN con 0 se necessario
-    for key, value in values.items():
-        values[key] = np.where(np.isinf(value) | np.isnan(value), 0, value)
+    for key in values:
+        values[key] = np.nan_to_num(values[key], nan=0.0, posinf=0.0, neginf=0.0)
 
     # Creazione delle nuove righe da aggiungere al dataset
     new_rows = pd.DataFrame({
