@@ -27,6 +27,8 @@ class FileFormat(Enum):
 
     XML    = ("xml",) # this is one main way cobra models appear in
     JSON   = ("json",) # this is the other
+
+    TXT = ("txt",) # this is how most output data is written
     
     PICKLE = ("pickle", "pk", "p") # this is how all runtime data structures are saved
     #TODO: we're in a pickle (ba dum tss), there's no point in supporting many extensions internally. The
