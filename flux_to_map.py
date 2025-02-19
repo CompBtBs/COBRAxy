@@ -882,6 +882,8 @@ def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List
            for i, col in enumerate(dataset.columns)}
     })
 
+    print(new_rows)
+
     # Ritorna il dataset originale con le nuove righe
     dataset.reset_index(inplace=True)
     dataset = pd.concat([dataset, new_rows], ignore_index=True)
