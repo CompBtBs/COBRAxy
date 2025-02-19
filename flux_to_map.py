@@ -127,7 +127,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         help = 'output path for maps')
 
     args :argparse.Namespace = parser.parse_args(args)
-    args.net = True
+    args.net = True # TODO SICCOME I FLUSSI POSSONO ESSERE ANCHE NEGATIVI SONO SEMPRE CONSIDERATI NETTI
 
     return args
           
@@ -252,8 +252,8 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
     maxT = 12
     minT = 2
     grey = '#BEBEBE'
-    blue = '#6495ed'
-    red = '#ecac68'
+    blue = '#6495ed' # azzurrino
+    red = '#ecac68' # arancione
     for el in core_map.iter():
         el_id = str(el.get('id'))
         if el_id.startswith('R_'):
@@ -495,10 +495,10 @@ def applyFluxesEnrichmentToMap(fluxesEnrichmentRes :Dict[str, Union[Tuple[float,
                 width = max(abs(z_score * Arrow.MAX_W) / maxNumericZScore, Arrow.MIN_W) 
 
             except ZeroDivisionError: pass
-        
+        # TODO CHECK RV
         #if not reactionId.endswith("_RV"): # RV stands for reversible reactions
-        #    Arrow(width, ArrowColor.fromFoldChangeSign(foldChange)).styleReactionElements(metabMap, reactionId)
-        #    continue
+        #   Arrow(width, ArrowColor.fromFoldChangeSign(foldChange)).styleReactionElements(metabMap, reactionId)
+        #   continue
         
         #reactionId = reactionId[:-3] # Remove "_RV"
         
@@ -665,7 +665,7 @@ def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath)
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
 def writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePath) -> None:
-    fieldNames = ["ids", "P_Value", "fold change"]
+    fieldNames = ["ids", "P_Value", "fold change", "z-score"]
     fieldNames.extend(["average_1", "average_2"])
 
     writeToCsv([ [reactId] + values for reactId, values in enrichedScores.items() ], fieldNames, outPath)
@@ -698,10 +698,10 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
     ks_statistic, p_value = st.ks_2samp(dataset1Data, dataset2Data)
     
     # Calculate means and standard deviations
-    mean1 = np.mean(dataset1Data)
-    mean2 = np.mean(dataset2Data)
-    std1 = np.std(dataset1Data, ddof=1)
-    std2 = np.std(dataset2Data, ddof=1)
+    mean1 = np.nanmean(dataset1Data)
+    mean2 = np.nanmean(dataset2Data)
+    std1 = np.nanstd(dataset1Data, ddof=1)
+    std2 = np.nanstd(dataset2Data, ddof=1)
     
     n1 = len(dataset1Data)
     n2 = len(dataset2Data)
@@ -716,7 +716,6 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     tmp :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_z_score = 0
-
     for l1, l2 in zip(dataset1Data, dataset2Data):
         reactId = ids[count]
         count += 1
@@ -726,9 +725,10 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
             p_value, z_score = computePValue(l1, l2)
             avg1 = sum(l1) / len(l1)
             avg2 = sum(l2) / len(l2)
-            avg = fold_change(avg1, avg2)
+            f_c = fold_change(avg1, avg2)
             if not isinstance(z_score, str) and max_z_score < abs(z_score): max_z_score = abs(z_score)
-            tmp[reactId] = [float(p_value), avg, z_score, avg1, avg2]
+            
+            tmp[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
         except (TypeError, ZeroDivisionError): continue
     
     return tmp, max_z_score
@@ -765,6 +765,7 @@ def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
             rest = [item for k, v in class_pat.items() if k != single_cluster for item in v]
+
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
             enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
     
@@ -807,8 +808,11 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
     elif ARGS.option == "dataset_class":
         classes = read_dataset(classPath, "class")
         classes = classes.astype(str)
-
         resolve_rules_float, ids = getDatasetValues(datasetPath, "Dataset Class (not actual name)")
+        #check if classes have mathc on ids
+        if not all(classes.iloc[:, 0].isin(ids)):
+            utils.logWarning(
+            "No match between classes and sample IDs", ARGS.out_log)
         if resolve_rules_float != None: class_pat = split_class(classes, resolve_rules_float)
     
     return ids, class_pat
@@ -827,6 +831,61 @@ def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List
         Tuple[ClassPat, List[str]]: values and IDs extracted from the dataset
     """
     dataset = read_dataset(datasetPath, datasetName)
+    
+    # Ensure the first column is treated as the reaction name
+    dataset = dataset.set_index(dataset.columns[0])
+
+    # Check if required reactions exist in the dataset
+    required_reactions = ['EX_lac__L_e', 'EX_glc__D_e', 'EX_gln__L_e', 'EX_glu__L_e']
+    missing_reactions = [reaction for reaction in required_reactions if reaction not in dataset.index]
+
+    if missing_reactions:
+        sys.exit(f'Execution aborted: Missing required reactions {missing_reactions} in {datasetName}\n')
+
+    # Calculate new rows using safe division
+    lact_glc = np.divide(
+        np.clip(dataset.loc['EX_lac__L_e'].to_numpy(), a_min=0, a_max=None),
+        np.clip(dataset.loc['EX_glc__D_e'].to_numpy(), a_min=None, a_max=0),
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan),  # Prepara un array con NaN come output di default
+        where=dataset.loc['EX_glc__D_e'].to_numpy() != 0  # Condizione per evitare la divisione per zero
+    )
+    lact_gln = np.divide(
+        np.clip(dataset.loc['EX_lac__L_e'].to_numpy(), a_min=0, a_max=None),
+        np.clip(dataset.loc['EX_gln__L_e'].to_numpy(), a_min=None, a_max=0),
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan), 
+        where=dataset.loc['EX_gln__L_e'].to_numpy() != 0
+    )
+    lact_o2 = np.divide(
+        np.clip(dataset.loc['EX_lac__L_e'].to_numpy(), a_min=0, a_max=None),
+        np.clip(dataset.loc['EX_o2_e'].to_numpy(), a_min=None, a_max=0),
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan), 
+        where=dataset.loc['EX_o2_e'].to_numpy() != 0
+    )
+    glu_gln = np.divide(
+        dataset.loc['EX_glu__L_e'].to_numpy(),
+        np.clip(dataset.loc['EX_gln__L_e'].to_numpy(), a_min=None, a_max=0), 
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan),
+        where=dataset.loc['EX_gln__L_e'].to_numpy() != 0
+    )
+
+    # Controllo e sostituzione dei NaN con 0 se necessario
+    values = {'lact_glc': lact_glc, 'lact_gln': lact_gln, 'lact_o2': lact_o2, 'glu_gln': glu_gln}
+   
+    # Sostituzione di inf e NaN con 0 se necessario
+    for key, value in values.items():
+        values[key] = np.where(np.isinf(value) | np.isnan(value), 0, value)
+
+    # Creazione delle nuove righe da aggiungere al dataset
+    new_rows = pd.DataFrame({
+        dataset.index.name: ['LactGlc', 'LactGln', 'LactO2', 'GluGln'],
+        **{col: [values['lact_glc'][i], values['lact_gln'][i], values['lact_o2'][i], values['glu_gln'][i]] 
+           for i, col in enumerate(dataset.columns)}
+    })
+
+    # Ritorna il dataset originale con le nuove righe
+    dataset.reset_index(inplace=True)
+    dataset = pd.concat([dataset, new_rows], ignore_index=True)
+
     IDs = pd.Series.tolist(dataset.iloc[:, 0].astype(str))
 
     dataset = dataset.drop(dataset.columns[0], axis = "columns").to_dict("list")
@@ -906,8 +965,8 @@ def computeEnrichmentMeanMedian(metabMap: ET.ElementTree, class_pat: Dict[str, L
     metabMap_median = copy.deepcopy(metabMap)
 
     # Compute medians and means
-    medians = {key: np.round(np.median(np.array(value), axis=1), 6) for key, value in class_pat.items()}
-    means = {key: np.round(np.mean(np.array(value), axis=1),6) for key, value in class_pat.items()}
+    medians = {key: np.round(np.nanmedian(np.array(value), axis=1), 6) for key, value in class_pat.items()}
+    means = {key: np.round(np.nanmean(np.array(value), axis=1),6) for key, value in class_pat.items()}
 
     # Normalize medians and means
     max_flux_medians = max(np.max(np.abs(arr)) for arr in medians.values())
@@ -924,6 +983,9 @@ def computeEnrichmentMeanMedian(metabMap: ET.ElementTree, class_pat: Dict[str, L
 
     cmap = plt.get_cmap(colormap)
 
+    min_width = 2.0  # Minimum arrow width
+    max_width = 15.0  # Maximum arrow width
+
     for key in class_pat:
         # Create color mappings for median and mean
         colors_median = {
@@ -937,20 +999,21 @@ def computeEnrichmentMeanMedian(metabMap: ET.ElementTree, class_pat: Dict[str, L
         }
 
         for i, rxn_id in enumerate(ids):
+            # Calculate arrow width for median
+            width_median = np.interp(abs(medians[key][i]), [0, 1], [min_width, max_width])
             isNegative = medians[key][i] < 0
+            apply_arrow(metabMap_median, rxn_id, colors_median[rxn_id], isNegative, width_median)
 
-            # Apply median arrows
-            apply_arrow(metabMap_median, rxn_id, colors_median[rxn_id], isNegative)
-
+            # Calculate arrow width for mean
+            width_mean = np.interp(abs(means[key][i]), [0, 1], [min_width, max_width])
             isNegative = means[key][i] < 0
-            # Apply mean arrows
-            apply_arrow(metabMap_mean, rxn_id, colors_mean[rxn_id], isNegative)
+            apply_arrow(metabMap_mean, rxn_id, colors_mean[rxn_id], isNegative, width_mean)
 
         # Save and convert the SVG files
         save_and_convert(metabMap_mean, "mean", key)
         save_and_convert(metabMap_median, "median", key)
 
-def apply_arrow(metabMap, rxn_id, color, isNegative):
+def apply_arrow(metabMap, rxn_id, color, isNegative, width=5):
     """
     Apply an arrow to a specific reaction in the metabolic map with a given color.
 
@@ -958,11 +1021,13 @@ def apply_arrow(metabMap, rxn_id, color, isNegative):
         metabMap (ET.ElementTree): An XML tree representing the metabolic map.
         rxn_id (str): The ID of the reaction to which the arrow will be applied.
         color (str): The color of the arrow in hexadecimal format.
+        isNegative (bool): A boolean indicating if the arrow represents a negative value.
+        width (int): The width of the arrow.
 
     Returns:
         None
     """
-    arrow = Arrow(width=5, col=color)
+    arrow = Arrow(width=width, col=color)
     arrow.styleReactionElementsMeanMedian(metabMap, rxn_id, isNegative)
     pass
 
@@ -1002,6 +1067,9 @@ def main(args:List[str] = None) -> None:
 
     global ARGS
     ARGS = process_args(args)
+
+    if ARGS.custom_map == 'None':
+        ARGS.custom_map = None
 
     if os.path.isdir(ARGS.output_path) == False: os.makedirs(ARGS.output_path)
     
