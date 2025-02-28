@@ -12,10 +12,12 @@ import math
 import utils.general_utils as utils
 from PIL import Image
 import os
+import copy
 import argparse
 import pyvips
+from PIL import Image, ImageDraw, ImageFont
 from typing import Tuple, Union, Optional, List, Dict
-import copy
+import matplotlib.pyplot as plt
 
 ERRORS = []
 ########################## argparse ##########################################
@@ -63,83 +65,45 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         default = 1.5, 
         help = 'Fold-Change threshold (default: %(default)s)')
     
-    parser.add_argument(
-        "-ne", "--net",
-        type = utils.Bool("net"), default = False,
-        help = "choose if you want net enrichment for RPS")
 
     parser.add_argument(
         '-op', '--option',
         type = str, 
         choices = ['datasets', 'dataset_class'],
         help='dataset or dataset and class')
-    
-    #RAS:
-    parser.add_argument(
-        "-ra", "--using_RAS",
-        type = utils.Bool("using_RAS"), default = True,
-        help = "choose whether to use RAS datasets.")
 
     parser.add_argument(
-        '-id', '--input_data',
+        '-idf', '--input_data_fluxes',
         type = str,
-        help = 'input dataset')
+        help = 'input dataset fluxes')
     
     parser.add_argument(
-        '-ic', '--input_class',
-        type = str, 
-        help = 'sample group specification')
-    
-    parser.add_argument(
-        '-ids', '--input_datas',
+        '-icf', '--input_class_fluxes', 
         type = str,
-        nargs = '+', 
-        help = 'input datasets')
+        help = 'sample group specification fluxes')
     
     parser.add_argument(
-        '-na', '--names',
+        '-idsf', '--input_datas_fluxes', 
         type = str,
         nargs = '+', 
-        help = 'input names')
-    
-    #RPS:
-    parser.add_argument(
-        "-rp", "--using_RPS",
-        type = utils.Bool("using_RPS"), default = False,
-        help = "choose whether to use RPS datasets.")
+        help = 'input datasets fluxes')
     
     parser.add_argument(
-        '-idr', '--input_data_rps',
-        type = str,
-        help = 'input dataset rps')
-    
-    parser.add_argument(
-        '-icr', '--input_class_rps', 
-        type = str,
-        help = 'sample group specification rps')
-    
-    parser.add_argument(
-        '-idsr', '--input_datas_rps', 
+        '-naf', '--names_fluxes', 
         type = str,
         nargs = '+', 
-        help = 'input datasets rps')
-    
-    parser.add_argument(
-        '-nar', '--names_rps', 
-        type = str,
-        nargs = '+', 
-        help = 'input names rps')
+        help = 'input names fluxes')
     
     #Output:
     parser.add_argument(
         "-gs", "--generate_svg",
         type = utils.Bool("generate_svg"), default = True,
-        help = "choose whether to use RAS datasets.")
+        help = "choose whether to generate svg")
     
     parser.add_argument(
         "-gp", "--generate_pdf",
         type = utils.Bool("generate_pdf"), default = True,
-        help = "choose whether to use RAS datasets.")
+        help = "choose whether to generate pdf")
     
     parser.add_argument(
         '-cm', '--custom_map',
@@ -147,18 +111,23 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         help='custom map to use')
     
     parser.add_argument(
+        '-mc',  '--choice_map',
+        type = utils.Model, default = utils.Model.HMRcore,
+        choices = [utils.Model.HMRcore, utils.Model.ENGRO2, utils.Model.Custom])
+    
+    parser.add_argument(
+        '-colorm',  '--color_map',
+        type = str,
+        choices = ["jet", "viridis"])
+    
+    parser.add_argument(
         '-idop', '--output_path', 
         type = str,
         default='result',
         help = 'output path for maps')
-    
-    parser.add_argument(
-        '-mc',  '--choice_map',
-        type = utils.Model, default = utils.Model.HMRcore,
-        choices = [utils.Model.HMRcore, utils.Model.ENGRO2, utils.Model.Custom])
 
     args :argparse.Namespace = parser.parse_args(args)
-    if args.using_RAS and not args.using_RPS: args.net = False
+    args.net = True # TODO SICCOME I FLUSSI POSSONO ESSERE ANCHE NEGATIVI SONO SEMPRE CONSIDERATI NETTI
 
     return args
           
@@ -283,8 +252,8 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
     maxT = 12
     minT = 2
     grey = '#BEBEBE'
-    blue = '#6495ed'
-    red = '#ecac68'
+    blue = '#6495ed' # azzurrino
+    red = '#ecac68' # arancione
     for el in core_map.iter():
         el_id = str(el.get('id'))
         if el_id.startswith('R_'):
@@ -383,6 +352,7 @@ class ArrowColor(Enum):
     Encodes possible arrow colors based on their meaning in the enrichment process.
     """
     Invalid       = "#BEBEBE" # gray, fold-change under treshold
+    Transparent   = "#ffffff00" # white, not significant p-value
     UpRegulated   = "#ecac68" # red, up-regulated reaction
     DownRegulated = "#6495ed" # blue, down-regulated reaction
 
@@ -429,7 +399,6 @@ class Arrow:
             ERRORS.append(reactionId)
 
     def styleReactionElements(self, metabMap :ET.ElementTree, reactionId :str, *, mindReactionDir = True) -> None:
-        # If We're dealing with RAS data or in general don't care about the direction of the reaction we only style the arrow body
         if not mindReactionDir:
             return self.applyTo(getArrowBodyElementId(reactionId), metabMap, self.toStyleStr())
         
@@ -437,6 +406,22 @@ class Arrow:
         idOpt1, idOpt2 = getArrowHeadElementId(reactionId)
         self.applyTo(idOpt1, metabMap, self.toStyleStr(downSizedForTips = True))
         if idOpt2: self.applyTo(idOpt2, metabMap, self.toStyleStr(downSizedForTips = True))
+
+    def styleReactionElementsMeanMedian(self, metabMap :ET.ElementTree, reactionId :str, isNegative:bool) -> None:
+
+        self.applyTo(getArrowBodyElementId(reactionId), metabMap, self.toStyleStr())
+        idOpt1, idOpt2 = getArrowHeadElementId(reactionId)
+
+        if(isNegative):
+            self.applyTo(idOpt2, metabMap, self.toStyleStr(downSizedForTips = True))
+            self.col = ArrowColor.Transparent
+            self.applyTo(idOpt1, metabMap, self.toStyleStr(downSizedForTips = True)) #trasp
+        else:
+            self.applyTo(idOpt1, metabMap, self.toStyleStr(downSizedForTips = True))
+            self.col = ArrowColor.Transparent
+            self.applyTo(idOpt2, metabMap, self.toStyleStr(downSizedForTips = True)) #trasp
+
+
     
     def getMapReactionId(self, reactionId :str, mindReactionDir :bool) -> str:
         """
@@ -452,7 +437,7 @@ class Arrow:
         # we assume the reactionIds also don't encode reaction dir if they don't mind it when styling the map.
         if not mindReactionDir: return "R_" + reactionId
 
-        #TODO: this is clearly something we need to make consistent in RPS
+        #TODO: this is clearly something we need to make consistent in fluxes
         return (reactionId[:-3:-1] + reactionId[:-2]) if reactionId[:-2] in ["_F", "_B"] else f"F_{reactionId}" # "Pyr_F" --> "F_Pyr"
 
     def toStyleStr(self, *, downSizedForTips = False) -> str:
@@ -471,12 +456,12 @@ class Arrow:
 INVALID_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
 INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
 
-def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float) -> None:
+def applyFluxesEnrichmentToMap(fluxesEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float) -> None:
     """
-    Applies RPS enrichment results to the provided metabolic map.
+    Applies fluxes enrichment results to the provided metabolic map.
 
     Args:
-        rpsEnrichmentRes : RPS enrichment results.
+        fluxesEnrichmentRes : fluxes enrichment results.
         metabMap : the metabolic map to edit.
         maxNumericZScore : biggest finite z-score value found.
     
@@ -486,7 +471,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
     Returns:
         None
     """
-    for reactionId, values in rpsEnrichmentRes.items():
+    for reactionId, values in fluxesEnrichmentRes.items():
         pValue = values[0]
         foldChange = values[1]
         z_score = values[2]
@@ -494,22 +479,28 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         if isinstance(foldChange, str): foldChange = float(foldChange)
         if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
             INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId)
+            INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
+
             continue
 
         if abs(foldChange) <  (ARGS.fChange - 1) / (abs(ARGS.fChange) + 1):
             INVALID_ARROW.styleReactionElements(metabMap, reactionId)
+            INVALID_ARROW.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
+
             continue
         
         width = Arrow.MAX_W
         if not math.isinf(foldChange):
-            try: width = max(abs(z_score * Arrow.MAX_W) / maxNumericZScore, Arrow.MIN_W)
+            try: 
+                width = max(abs(z_score * Arrow.MAX_W) / maxNumericZScore, Arrow.MIN_W) 
+
             except ZeroDivisionError: pass
+        # TODO CHECK RV
+        #if not reactionId.endswith("_RV"): # RV stands for reversible reactions
+        #   Arrow(width, ArrowColor.fromFoldChangeSign(foldChange)).styleReactionElements(metabMap, reactionId)
+        #   continue
         
-        if not reactionId.endswith("_RV"): # RV stands for reversible reactions
-            Arrow(width, ArrowColor.fromFoldChangeSign(foldChange)).styleReactionElements(metabMap, reactionId)
-            continue
-        
-        reactionId = reactionId[:-3] # Remove "_RV"
+        #reactionId = reactionId[:-3] # Remove "_RV"
         
         inversionScore = (values[3] < 0) + (values[4] < 0) # Compacts the signs of averages into 1 easy to check score
         if inversionScore == 2: foldChange *= -1
@@ -521,9 +512,10 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         # vvv These 2 if statements can both be true and can both happen
         if ARGS.net: # style arrow head(s):
             arrow.styleReactionElements(metabMap, reactionId + ("_B" if inversionScore == 2 else "_F"))
-        
-        if not ARGS.using_RAS: # style arrow body
-            arrow.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
+            arrow.applyTo(("F_" if inversionScore == 2 else "B_") + reactionId, metabMap, f";stroke:{ArrowColor.Transparent};stroke-width:0;stroke-dasharray:None")
+
+        arrow.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
+
 
 ############################ split class ######################################
 def split_class(classes :pd.DataFrame, resolve_rules :Dict[str, List[float]]) -> Dict[str, List[List[float]]]:
@@ -672,23 +664,18 @@ def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath)
             writer.writerow({ field : data for field, data in zip(fieldNames, row) })
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
-def writeTabularResult(enrichedScores : OldEnrichedScores, ras_enrichment: bool, outPath :utils.FilePath) -> None:
-    fieldNames = ["ids", "P_Value", "fold change"]
-    if not ras_enrichment: fieldNames.extend(["average_1", "average_2"])
+def writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePath) -> None:
+    fieldNames = ["ids", "P_Value", "fold change", "z-score"]
+    fieldNames.extend(["average_1", "average_2"])
 
     writeToCsv([ [reactId] + values for reactId, values in enrichedScores.items() ], fieldNames, outPath)
 
-def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
+def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest") -> None:
     # this function compiles the things always in common between comparison modes after enrichment.
     # TODO: organize, name better.
-    writeTabularResult(tmp, ras_enrichment, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
-    
-    if ras_enrichment:
-        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_z_score)
-        return
-
+    writeTabularResult(tmp, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
     for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
-    applyRpsEnrichmentToMap(tmp, core_map, max_z_score)
+    applyFluxesEnrichmentToMap(tmp, core_map, max_z_score)
 
 def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple[float, float]:
     """
@@ -711,10 +698,10 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
     ks_statistic, p_value = st.ks_2samp(dataset1Data, dataset2Data)
     
     # Calculate means and standard deviations
-    mean1 = np.mean(dataset1Data)
-    mean2 = np.mean(dataset2Data)
-    std1 = np.std(dataset1Data, ddof=1)
-    std2 = np.std(dataset2Data, ddof=1)
+    mean1 = np.nanmean(dataset1Data)
+    mean2 = np.nanmean(dataset2Data)
+    std1 = np.nanstd(dataset1Data, ddof=1)
+    std2 = np.nanstd(dataset2Data, ddof=1)
     
     n1 = len(dataset1Data)
     n2 = len(dataset2Data)
@@ -729,46 +716,24 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     tmp :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_z_score = 0
-
     for l1, l2 in zip(dataset1Data, dataset2Data):
         reactId = ids[count]
         count += 1
         if not reactId: continue # we skip ids that have already been processed
 
-        try: #TODO: identify the source of these errors and minimize code in the try block
-            reactDir = ReactionDirection.fromReactionId(reactId)
-            # Net score is computed only for reversible reactions when user wants it on arrow tips or when RAS datasets aren't used
-            if (ARGS.net or not ARGS.using_RAS) and reactDir is not ReactionDirection.Unknown:
-                try: position = ids.index(reactId[:-1] + ('B' if reactDir is ReactionDirection.Direct else 'F'))
-                except ValueError: continue # we look for the complementary id, if not found we skip
-
-                nets1 = np.subtract(l1, dataset1Data[position])
-                nets2 = np.subtract(l2, dataset2Data[position])
-
-                p_value, z_score = computePValue(nets1, nets2)
-                avg1 = sum(nets1)   / len(nets1)
-                avg2 = sum(nets2)   / len(nets2)
-                net = fold_change(avg1, avg2)
-                
-                if math.isnan(net): continue
-                tmp[reactId[:-1] + "RV"] = [p_value, net, z_score, avg1, avg2]
-                
-                # vvv complementary directional ids are set to None once processed if net is to be applied to tips
-                if ARGS.net:
-                    ids[position] = None
-                    continue
-
-            # fallthrough is intended, regular scores need to be computed when tips aren't net but RAS datasets aren't used
+        try: 
             p_value, z_score = computePValue(l1, l2)
-            avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
+            avg1 = sum(l1) / len(l1)
+            avg2 = sum(l2) / len(l2)
+            f_c = fold_change(avg1, avg2)
             if not isinstance(z_score, str) and max_z_score < abs(z_score): max_z_score = abs(z_score)
-            tmp[reactId] = [float(p_value), avg, z_score]
-        
+            
+            tmp[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
         except (TypeError, ZeroDivisionError): continue
     
     return tmp, max_z_score
 
-def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
+def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -> List[Tuple[str, str, dict, float]]:
     """
     Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
     provided metabolic map.
@@ -776,20 +741,22 @@ def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *
     Args:
         class_pat : the clustered data.
         ids : ids for data association.
-        fromRAS : whether the data to enrich consists of RAS scores.
+        
 
     Returns:
         List[Tuple[str, str, dict, float]]: List of tuples with pairs of dataset names, comparison dictionary, and max z-score.
-        
+
     Raises:
         sys.exit : if there are less than 2 classes for comparison
+
     """
-    class_pat = {k.strip(): v for k, v in class_pat.items()}
-    if (not class_pat) or (len(class_pat.keys()) < 2):
-        sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
-    
+    class_pat = { k.strip() : v for k, v in class_pat.items() }
+    #TODO: simplfy this stuff vvv and stop using sys.exit (raise the correct utils error)
+    if (not class_pat) or (len(class_pat.keys()) < 2): sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
+
     enrichment_results = []
 
+    
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
@@ -798,6 +765,7 @@ def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
             rest = [item for k, v in class_pat.items() if k != single_cluster for item in v]
+
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
             enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
     
@@ -808,10 +776,9 @@ def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *
                 continue
             comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
             enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
-    
     return enrichment_results
 
-def createOutputMaps(dataset1Name: str, dataset2Name: str, core_map: ET.ElementTree) -> None:
+def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
     svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details="SVG Map", ext=utils.FileFormat.SVG)
     utils.writeSvg(svgFilePath, core_map)
 
@@ -841,8 +808,11 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
     elif ARGS.option == "dataset_class":
         classes = read_dataset(classPath, "class")
         classes = classes.astype(str)
-
         resolve_rules_float, ids = getDatasetValues(datasetPath, "Dataset Class (not actual name)")
+        #check if classes have mathc on ids
+        if not all(classes.iloc[:, 0].isin(ids)):
+            utils.logWarning(
+            "No match between classes and sample IDs", ARGS.out_log)
         if resolve_rules_float != None: class_pat = split_class(classes, resolve_rules_float)
     
     return ids, class_pat
@@ -861,11 +831,230 @@ def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List
         Tuple[ClassPat, List[str]]: values and IDs extracted from the dataset
     """
     dataset = read_dataset(datasetPath, datasetName)
+    
+    # Ensure the first column is treated as the reaction name
+    dataset = dataset.set_index(dataset.columns[0])
+
+    # Check if required reactions exist in the dataset
+    required_reactions = ['EX_lac__L_e', 'EX_glc__D_e', 'EX_gln__L_e', 'EX_glu__L_e']
+    missing_reactions = [reaction for reaction in required_reactions if reaction not in dataset.index]
+
+    if missing_reactions:
+        sys.exit(f'Execution aborted: Missing required reactions {missing_reactions} in {datasetName}\n')
+
+    # Calculate new rows using safe division
+    lact_glc = np.divide(
+        np.clip(dataset.loc['EX_lac__L_e'].to_numpy(), a_min=0, a_max=None),
+        np.clip(dataset.loc['EX_glc__D_e'].to_numpy(), a_min=None, a_max=0),
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan),  # Prepara un array con NaN come output di default
+        where=dataset.loc['EX_glc__D_e'].to_numpy() != 0  # Condizione per evitare la divisione per zero
+    )
+    lact_gln = np.divide(
+        np.clip(dataset.loc['EX_lac__L_e'].to_numpy(), a_min=0, a_max=None),
+        np.clip(dataset.loc['EX_gln__L_e'].to_numpy(), a_min=None, a_max=0),
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan), 
+        where=dataset.loc['EX_gln__L_e'].to_numpy() != 0
+    )
+    lact_o2 = np.divide(
+        np.clip(dataset.loc['EX_lac__L_e'].to_numpy(), a_min=0, a_max=None),
+        np.clip(dataset.loc['EX_o2_e'].to_numpy(), a_min=None, a_max=0),
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan), 
+        where=dataset.loc['EX_o2_e'].to_numpy() != 0
+    )
+    glu_gln = np.divide(
+        dataset.loc['EX_glu__L_e'].to_numpy(),
+        np.clip(dataset.loc['EX_gln__L_e'].to_numpy(), a_min=None, a_max=0), 
+        out=np.full_like(dataset.loc['EX_lac__L_e'].to_numpy(), np.nan),
+        where=dataset.loc['EX_gln__L_e'].to_numpy() != 0
+    )
+
+
+    values = {'lact_glc': lact_glc, 'lact_gln': lact_gln, 'lact_o2': lact_o2, 'glu_gln': glu_gln}
+   
+    # Sostituzione di inf e NaN con 0 se necessario
+    for key in values:
+        values[key] = np.nan_to_num(values[key], nan=0.0, posinf=0.0, neginf=0.0)
+
+    # Creazione delle nuove righe da aggiungere al dataset
+    new_rows = pd.DataFrame({
+        dataset.index.name: ['LactGlc', 'LactGln', 'LactO2', 'GluGln'],
+        **{col: [values['lact_glc'][i], values['lact_gln'][i], values['lact_o2'][i], values['glu_gln'][i]] 
+           for i, col in enumerate(dataset.columns)}
+    })
+
+    print(new_rows)
+
+    # Ritorna il dataset originale con le nuove righe
+    dataset.reset_index(inplace=True)
+    dataset = pd.concat([dataset, new_rows], ignore_index=True)
+
     IDs = pd.Series.tolist(dataset.iloc[:, 0].astype(str))
 
     dataset = dataset.drop(dataset.columns[0], axis = "columns").to_dict("list")
     return { id : list(map(utils.Float("Dataset values, not an argument"), values)) for id, values in dataset.items() }, IDs
 
+def rgb_to_hex(rgb):
+    """
+    Convert RGB values (0-1 range) to hexadecimal color format.
+
+    Args:
+        rgb (numpy.ndarray): An array of RGB color components (in the range [0, 1]).
+
+    Returns:
+        str: The color in hexadecimal format (e.g., '#ff0000' for red).
+    """
+    # Convert RGB values (0-1 range) to hexadecimal format
+    rgb = (np.array(rgb) * 255).astype(int)
+    return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+
+
+
+def save_colormap_image(min_value: float, max_value: float, path: utils.FilePath, colorMap:str="viridis"):
+    """
+    Create and save an image of the colormap showing the gradient and its range.
+
+    Args:
+        min_value (float): The minimum value of the colormap range.
+        max_value (float): The maximum value of the colormap range.
+        filename (str): The filename for saving the image.
+    """
+
+    # Create a colormap using matplotlib
+    cmap = plt.get_cmap(colorMap)
+
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(6, 1))
+    fig.subplots_adjust(bottom=0.5)
+
+    # Create a gradient image
+    gradient = np.linspace(0, 1, 256)
+    gradient = np.vstack((gradient, gradient))
+
+    # Add min and max value annotations
+    ax.text(0, 0.5, f'{np.round(min_value, 3)}', va='center', ha='right', transform=ax.transAxes, fontsize=12, color='black')
+    ax.text(1, 0.5, f'{np.round(max_value, 3)}', va='center', ha='left', transform=ax.transAxes, fontsize=12, color='black')
+
+
+    # Display the gradient image
+    ax.imshow(gradient, aspect='auto', cmap=cmap)
+    ax.set_axis_off()
+
+    # Save the image
+    plt.savefig(path.show(), bbox_inches='tight', pad_inches=0)
+    plt.close()
+    pass
+
+def min_nonzero_abs(arr):
+    # Flatten the array and filter out zeros, then find the minimum of the remaining values
+    non_zero_elements = np.abs(arr)[np.abs(arr) > 0]
+    return np.min(non_zero_elements) if non_zero_elements.size > 0 else None
+
+def computeEnrichmentMeanMedian(metabMap: ET.ElementTree, class_pat: Dict[str, List[List[float]]], ids: List[str], colormap:str) -> None:
+    """
+    Compute and visualize the metabolic map based on mean and median of the input fluxes.
+    The fluxes are normalised across classes/datasets and visualised using the given colormap.
+
+    Args:
+        metabMap (ET.ElementTree): An XML tree representing the metabolic map.
+        class_pat (Dict[str, List[List[float]]]): A dictionary where keys are class names and values are lists of enrichment values.
+        ids (List[str]): A list of reaction IDs to be used for coloring arrows.
+    
+    Returns:
+        None
+    """
+    # Create copies only if they are needed
+    metabMap_mean = copy.deepcopy(metabMap)
+    metabMap_median = copy.deepcopy(metabMap)
+
+    # Compute medians and means
+    medians = {key: np.round(np.nanmedian(np.array(value), axis=1), 6) for key, value in class_pat.items()}
+    means = {key: np.round(np.nanmean(np.array(value), axis=1),6) for key, value in class_pat.items()}
+
+    # Normalize medians and means
+    max_flux_medians = max(np.max(np.abs(arr)) for arr in medians.values())
+    max_flux_means = max(np.max(np.abs(arr)) for arr in means.values())
+
+    min_flux_medians = min(min_nonzero_abs(arr) for arr in medians.values())
+    min_flux_means = min(min_nonzero_abs(arr) for arr in means.values())
+
+    medians = {key: median/max_flux_medians for key, median in medians.items()}
+    means = {key: mean/max_flux_means for key, mean in means.items()}
+
+    save_colormap_image(min_flux_medians, max_flux_medians, utils.FilePath("Color map median", ext=utils.FileFormat.PNG, prefix=ARGS.output_path), colormap)
+    save_colormap_image(min_flux_means, max_flux_means, utils.FilePath("Color map mean", ext=utils.FileFormat.PNG, prefix=ARGS.output_path), colormap)
+
+    cmap = plt.get_cmap(colormap)
+
+    min_width = 2.0  # Minimum arrow width
+    max_width = 15.0  # Maximum arrow width
+
+    for key in class_pat:
+        # Create color mappings for median and mean
+        colors_median = {
+            rxn_id: rgb_to_hex(cmap(abs(medians[key][i]))) if medians[key][i] != 0 else '#bebebe'  #grey blocked
+            for i, rxn_id in enumerate(ids)
+        }
+
+        colors_mean = {
+            rxn_id: rgb_to_hex(cmap(abs(means[key][i]))) if means[key][i] != 0 else '#bebebe'  #grey blocked
+            for i, rxn_id in enumerate(ids)
+        }
+
+        for i, rxn_id in enumerate(ids):
+            # Calculate arrow width for median
+            width_median = np.interp(abs(medians[key][i]), [0, 1], [min_width, max_width])
+            isNegative = medians[key][i] < 0
+            apply_arrow(metabMap_median, rxn_id, colors_median[rxn_id], isNegative, width_median)
+
+            # Calculate arrow width for mean
+            width_mean = np.interp(abs(means[key][i]), [0, 1], [min_width, max_width])
+            isNegative = means[key][i] < 0
+            apply_arrow(metabMap_mean, rxn_id, colors_mean[rxn_id], isNegative, width_mean)
+
+        # Save and convert the SVG files
+        save_and_convert(metabMap_mean, "mean", key)
+        save_and_convert(metabMap_median, "median", key)
+
+def apply_arrow(metabMap, rxn_id, color, isNegative, width=5):
+    """
+    Apply an arrow to a specific reaction in the metabolic map with a given color.
+
+    Args:
+        metabMap (ET.ElementTree): An XML tree representing the metabolic map.
+        rxn_id (str): The ID of the reaction to which the arrow will be applied.
+        color (str): The color of the arrow in hexadecimal format.
+        isNegative (bool): A boolean indicating if the arrow represents a negative value.
+        width (int): The width of the arrow.
+
+    Returns:
+        None
+    """
+    arrow = Arrow(width=width, col=color)
+    arrow.styleReactionElementsMeanMedian(metabMap, rxn_id, isNegative)
+    pass
+
+def save_and_convert(metabMap, map_type, key):
+    """
+    Save the metabolic map as an SVG file and optionally convert it to PNG and PDF formats.
+
+    Args:
+        metabMap (ET.ElementTree): An XML tree representing the metabolic map.
+        map_type (str): The type of map ('mean' or 'median').
+        key (str): The key identifying the specific map.
+
+    Returns:
+        None
+    """
+    svgFilePath = utils.FilePath(f"SVG Map {map_type} - {key}", ext=utils.FileFormat.SVG, prefix=ARGS.output_path)
+    utils.writeSvg(svgFilePath, metabMap)
+    if ARGS.generate_pdf:
+        pngPath = utils.FilePath(f"PNG Map {map_type} - {key}", ext=utils.FileFormat.PNG, prefix=ARGS.output_path)
+        pdfPath = utils.FilePath(f"PDF Map {map_type} - {key}", ext=utils.FileFormat.PDF, prefix=ARGS.output_path)
+        convert_to_pdf(svgFilePath, pngPath, pdfPath)
+    if not ARGS.generate_svg:
+        os.remove(svgFilePath.show())
+
+    
 ############################ MAIN #############################################
 def main(args:List[str] = None) -> None:
     """
@@ -877,33 +1066,48 @@ def main(args:List[str] = None) -> None:
     Raises:
         sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
     """
+
     global ARGS
     ARGS = process_args(args)
 
-    if not os.path.isdir(ARGS.output_path):
-        os.makedirs(ARGS.output_path)
+    if ARGS.custom_map == 'None':
+        ARGS.custom_map = None
+
+    if os.path.isdir(ARGS.output_path) == False: os.makedirs(ARGS.output_path)
     
-    core_map: ET.ElementTree = ARGS.choice_map.getMap(
+    core_map :ET.ElementTree = ARGS.choice_map.getMap(
         ARGS.tool_dir,
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
-    
-    if ARGS.using_RAS:
-        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
-        enrichment_results = computeEnrichment(class_pat, ids)
-        for i, j, comparisonDict, max_z_score in enrichment_results:
-            map_copy = copy.deepcopy(core_map)
-            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=True)
-            createOutputMaps(i, j, map_copy)
-    
-    if ARGS.using_RPS:
-        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-        enrichment_results = computeEnrichment(class_pat, ids, fromRAS=False)
-        for i, j, comparisonDict, max_z_score in enrichment_results:
-            map_copy = copy.deepcopy(core_map)
-            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=False)
-            createOutputMaps(i, j, map_copy)
+    # TODO: ^^^ ugly but fine for now, the argument is None if the model isn't custom because no file was given.
+    # getMap will None-check the customPath and panic when the model IS custom but there's no file (good). A cleaner
+    # solution can be derived from my comment in FilePath.fromStrPath
 
-    print('Execution succeeded')
+    ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_fluxes, ARGS.input_data_fluxes, ARGS.input_class_fluxes, ARGS.names_fluxes)
+
+    if(ARGS.choice_map == utils.Model.HMRcore):
+        temp_map = utils.Model.HMRcore_no_legend
+        computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
+    elif(ARGS.choice_map == utils.Model.ENGRO2):
+        temp_map = utils.Model.ENGRO2_no_legend
+        computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
+    else:
+        computeEnrichmentMeanMedian(core_map, class_pat, ids, ARGS.color_map)
+
+
+    enrichment_results = computeEnrichment(class_pat, ids)
+    for i, j, comparisonDict, max_z_score in enrichment_results:
+        map_copy = copy.deepcopy(core_map)
+        temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j)
+        createOutputMaps(i, j, map_copy)
+    
+    if not ERRORS: return
+    utils.logWarning(
+        f"The following reaction IDs were mentioned in the dataset but weren't found in the map: {ERRORS}",
+        ARGS.out_log)
+    
+    print('Execution succeded')
+
 ###############################################################################
 if __name__ == "__main__":
     main()
+

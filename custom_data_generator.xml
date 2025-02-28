@@ -1,0 +1,62 @@
+<tool id="MaREA Custom Data Generator" name="CustomDataGenerator" version="2.0.0">
+    
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
+
+	<requirements>
+        <requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2.0.3">pandas</requirement>
+		<requirement type="package" version="0.29.0">cobra</requirement>
+        <requirement type="package" version="5.2.2">lxml</requirement>
+	</requirements>
+
+    <command detect_errors="exit_code">
+        <![CDATA[
+      	python $__tool_directory__/custom_data_generator.py
+        --input $input
+        --name $input.element_identifier
+        --output_format $output_format
+        --out_log $log
+        ]]>
+    </command>
+    <inputs>
+        <param name="input" argument="--input" type="data" format="xml, json" label="Custom model:" />
+        <param name="name" argument="--name" type="text" label="Model's name:" value="Model" help="Default: Model" />
+        
+        <param name="output_format" argument="--output_format" type="select" label="Output files format:">
+            <option value="p" selected="true">pickle extension (binary, non-editable, pre-parsed)</option>
+            <option value="csv">Comma Separated Values (csv text file, editable, raw)</option>
+        </param>
+    </inputs>
+
+    <outputs>
+        <data format="txt" name="log" label="CustomDataGenerator - $name - Log" />
+        
+        <collection name="results" type="list" label="Custom Data Results ($output_format)">
+            <discover_datasets name = "collection" pattern="__name_and_ext__" directory="result"/>
+        </collection>
+    </outputs>
+
+    <help>
+    <![CDATA[
+What it does
+-------------
+
+This tool generates two files containing reactions and rules respectively, starting from a custom model in JSON or XML format, that can be used as inputs for the RAS and RPS generator modules.
+
+Accepted files:
+    - A model: JSON or XML file reporting reactions and rules contained in the model.   
+
+
+Output:
+-------------
+
+The tool generates:
+    - rules: reporting the rules for each reaction in the custom model given. Format: csv or pickle.
+    - reactions: reporting the reactions in the custom model given. Format: csv or pickle.
+    - a log file (.txt).
+    ]]>
+    </help>
+    <expand macro="citations" />
+</tool>

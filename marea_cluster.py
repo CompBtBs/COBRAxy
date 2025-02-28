@@ -7,6 +7,8 @@ Created on Mon Jun 3 19:51:00 2019
 import sys
 import argparse
 import os
+import numpy as np
+import pandas as pd
 from sklearn.datasets import make_blobs
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.metrics import silhouette_samples, silhouette_score, cluster
@@ -15,12 +17,19 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import scipy.cluster.hierarchy as shc   
 import matplotlib.cm as cm
-import numpy as np
-import pandas as pd
+from typing import Optional, Dict, List
 
 ################################# process args ###############################
+def process_args(args :List[str] = None) -> argparse.Namespace:
+    """
+    Processes command-line arguments.
 
-def process_args(args):
+    Args:
+        args (list): List of command-line arguments.
+
+    Returns:
+        Namespace: An object containing parsed arguments.
+    """
     parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
                                      description = 'process some value\'s' +
                                      ' genes to create class.')
@@ -77,22 +86,46 @@ def process_args(args):
                         type = str,
                         help = 'output of best cluster tsv')
     				
+    parser.add_argument(
+        '-idop', '--output_path', 
+        type = str,
+        default='result',
+        help = 'output path for maps')
     
-    
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     return args
 
 ########################### warning ###########################################
+def warning(s :str) -> None:
+    """
+    Log a warning message to an output log file and print it to the console.
 
-def warning(s):
+    Args:
+        s (str): The warning message to be logged and printed.
+    
+    Returns:
+      None
+    """
     args = process_args(sys.argv)
     with open(args.out_log, 'a') as log:
         log.write(s + "\n\n")
     print(s)
 
 ########################## read dataset ######################################
-    
-def read_dataset(dataset):
+def read_dataset(dataset :str) -> pd.DataFrame:
+    """
+    Read dataset from a CSV file and return it as a Pandas DataFrame.
+
+    Args:
+        dataset (str): the path to the dataset to convert into a DataFrame
+
+    Returns:
+        pandas.DataFrame: The dataset loaded as a Pandas DataFrame.
+
+    Raises:
+        pandas.errors.EmptyDataError: If the dataset file is empty.
+        sys.exit: If the dataset file has the wrong format (e.g., fewer than 2 columns)
+    """
     try:
         dataset = pd.read_csv(dataset, sep = '\t', header = 0)
     except pd.errors.EmptyDataError:
@@ -102,8 +135,16 @@ def read_dataset(dataset):
     return dataset
 
 ############################ rewrite_input ###################################
-    
-def rewrite_input(dataset):
+def rewrite_input(dataset :pd.DataFrame) -> Dict[str, List[Optional[float]]]:
+    """
+    Rewrite the dataset as a dictionary of lists instead of as a dictionary of dictionaries.
+
+    Args:
+        dataset (pandas.DataFrame): The dataset to be rewritten.
+
+    Returns:
+        dict: The rewritten dataset as a dictionary of lists.
+    """
     #Riscrivo il dataset come dizionario di liste, 
     #non come dizionario di dizionari
     
@@ -122,8 +163,18 @@ def rewrite_input(dataset):
     return dataset
 
 ############################## write to csv ##################################
-    
-def write_to_csv (dataset, labels, name):
+def write_to_csv (dataset :pd.DataFrame, labels :List[str], name :str) -> None:
+    """
+    Write dataset and predicted labels to a CSV file.
+
+    Args:
+        dataset (pandas.DataFrame): The dataset to be written.
+        labels (list): The predicted labels for each data point.
+        name (str): The name of the output CSV file.
+
+    Returns:
+        None
+    """
     #labels = predict
     predict = [x+1 for x in labels]
   
@@ -134,7 +185,16 @@ def write_to_csv (dataset, labels, name):
                       header = ['Patient_ID', 'Class'])
    
 ########################### trova il massimo in lista ########################
-def max_index (lista):
+def max_index (lista :List[int]) -> int:
+    """
+    Find the index of the maximum value in a list.
+
+    Args:
+        lista (list): The list in which we search for the index of the maximum value.
+
+    Returns:
+        int: The index of the maximum value in the list.
+    """
     best = -1
     best_index = 0
     for i in range(len(lista)):
@@ -145,10 +205,24 @@ def max_index (lista):
     return best_index
     
 ################################ kmeans #####################################
-    
-def kmeans (k_min, k_max, dataset, elbow, silhouette, best_cluster):
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
+def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouette: str, best_cluster: str) -> None:
+    """
+    Perform k-means clustering on the given dataset, which is an algorithm used to partition a dataset into groups (clusters) based on their characteristics.
+    The goal is to divide the data into homogeneous groups, where the elements within each group are similar to each other and different from the elements in other groups.
+
+    Args:
+        k_min (int): The minimum number of clusters to consider.
+        k_max (int): The maximum number of clusters to consider.
+        dataset (pandas.DataFrame): The dataset to perform clustering on.
+        elbow (str): Whether to generate an elbow plot for kmeans ('true' or 'false').
+        silhouette (str): Whether to generate silhouette plots ('true' or 'false').
+        best_cluster (str): The file path to save the output of the best cluster.
+
+    Returns:
+        None
+    """
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
     
         
     if elbow == 'true':
@@ -176,7 +250,7 @@ def kmeans (k_min, k_max, dataset, elbow, silhouette, best_cluster):
         
         all_labels.append(cluster_labels)
         if n_clusters == 1:
-        	silhouette_avg = 0
+            silhouette_avg = 0
         else:
             silhouette_avg = silhouette_score(dataset, cluster_labels)
         scores.append(silhouette_avg)
@@ -189,7 +263,7 @@ def kmeans (k_min, k_max, dataset, elbow, silhouette, best_cluster):
         if (i + k_min == best):
             prefix = '_BEST'
             
-        write_to_csv(dataset, all_labels[i], 'clustering/kmeans_with_' + str(i + k_min) + prefix + '_clusters.tsv')
+        write_to_csv(dataset, all_labels[i], f'{args.output_path}/kmeans_with_' + str(i + k_min) + prefix + '_clusters.tsv')
         
         
         if (prefix == '_BEST'):
@@ -202,7 +276,7 @@ def kmeans (k_min, k_max, dataset, elbow, silhouette, best_cluster):
         
        
         if silhouette:
-            silihouette_draw(dataset, all_labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, all_labels[i], i + k_min, f'{args.output_path}/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
         
         
     if elbow:
@@ -213,22 +287,51 @@ def kmeans (k_min, k_max, dataset, elbow, silhouette, best_cluster):
     
 
 ############################## elbow_plot ####################################
-    
-def elbow_plot (distortions, k_min, k_max):
+def elbow_plot (distortions: List[float], k_min: int, k_max: int) -> None:
+    """
+    Generate an elbow plot to visualize the distortion for different numbers of clusters.
+    The elbow plot is a graphical tool used in clustering analysis to help identifying the appropriate number of clusters by looking for the point where the rate of decrease
+    in distortion sharply decreases, indicating the optimal balance between model complexity and clustering quality.
+
+    Args:
+        distortions (list): List of distortion values for different numbers of clusters.
+        k_min (int): The minimum number of clusters considered.
+        k_max (int): The maximum number of clusters considered.
+
+    Returns:
+        None
+    """
     plt.figure(0)
     x = list(range(k_min, k_max + 1))
     x.insert(0, 1)
     plt.plot(x, distortions, marker = 'o')
     plt.xlabel('Number of clusters (k)')
     plt.ylabel('Distortion')
-    s = 'clustering/elbow_plot.png'
+    s = f'{args.output_path}/elbow_plot.png'
     fig = plt.gcf()
     fig.set_size_inches(18.5, 10.5, forward = True)
     fig.savefig(s, dpi=100)
     
     
 ############################## silhouette plot ###############################
-def silihouette_draw(dataset, labels, n_clusters, path):
+def silhouette_draw(dataset: pd.DataFrame, labels: List[str], n_clusters: int, path:str) -> None:
+    """
+    Generate a silhouette plot for the clustering results.
+    The silhouette coefficient is a measure used to evaluate the quality of clusters obtained from a clustering algorithmand it quantifies how similar an object is to its own cluster compared to other clusters.
+    The silhouette coefficient ranges from -1 to 1, where:
+    - A value close to +1 indicates that the object is well matched to its own cluster and poorly matched to neighboring clusters. This implies that the object is in a dense, well-separated cluster.
+    - A value close to 0 indicates that the object is close to the decision boundary between two neighboring clusters.
+    - A value close to -1 indicates that the object may have been assigned to the wrong cluster.
+
+    Args:
+        dataset (pandas.DataFrame): The dataset used for clustering.
+        labels (list): The cluster labels assigned to each data point.
+        n_clusters (int): The number of clusters.
+        path (str): The path to save the silhouette plot image.
+
+    Returns:
+        None
+    """
     if n_clusters == 1:
         return None
         
@@ -294,15 +397,26 @@ def silihouette_draw(dataset, labels, n_clusters, path):
         plt.savefig(path, bbox_inches='tight')
             
 ######################## dbscan ##############################################
-    
-def dbscan(dataset, eps, min_samples, best_cluster):
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
+def dbscan(dataset: pd.DataFrame, eps: float, min_samples: float, best_cluster: str) -> None:
+    """
+    Perform DBSCAN clustering on the given dataset, which is a clustering algorithm that groups together closely packed points based on the notion of density.
+
+    Args:
+        dataset (pandas.DataFrame): The dataset to be clustered.
+        eps (float): The maximum distance between two samples for one to be considered as in the neighborhood of the other.
+        min_samples (float): The number of samples in a neighborhood for a point to be considered as a core point.
+        best_cluster (str): The file path to save the output of the best cluster.
+
+    Returns:
+        None
+    """
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
         
     if eps is not None:
-    	clusterer = DBSCAN(eps = eps, min_samples = min_samples)
+        clusterer = DBSCAN(eps = eps, min_samples = min_samples)
     else:
-    	clusterer = DBSCAN()
+        clusterer = DBSCAN()
     
     clustering = clusterer.fit(dataset)
     
@@ -321,17 +435,28 @@ def dbscan(dataset, eps, min_samples, best_cluster):
   
     
 ########################## hierachical #######################################
-    
-def hierachical_agglomerative(dataset, k_min, k_max, best_cluster, silhouette):
+def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, best_cluster: str, silhouette: str) -> None:
+    """
+    Perform hierarchical agglomerative clustering on the given dataset.
 
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
+    Args:
+        dataset (pandas.DataFrame): The dataset to be clustered.
+        k_min (int): The minimum number of clusters to consider.
+        k_max (int): The maximum number of clusters to consider.
+        best_cluster (str): The file path to save the output of the best cluster.
+        silhouette (str): Whether to generate silhouette plots ('true' or 'false').
+
+    Returns:
+        None
+    """
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
     
     plt.figure(figsize=(10, 7))  
     plt.title("Customer Dendograms")  
     shc.dendrogram(shc.linkage(dataset, method='ward'), labels=dataset.index.values.tolist())  
     fig = plt.gcf()
-    fig.savefig('clustering/dendogram.png', dpi=200)
+    fig.savefig(f'{args.output_path}/dendogram.png', dpi=200)
     
     range_n_clusters = [i for i in range(k_min, k_max+1)]
 
@@ -345,7 +470,7 @@ def hierachical_agglomerative(dataset, k_min, k_max, best_cluster, silhouette):
         cluster.fit_predict(dataset)  
         cluster_labels = cluster.labels_
         labels.append(cluster_labels)
-        write_to_csv(dataset, cluster_labels, 'clustering/hierarchical_with_' + str(n_clusters) + '_clusters.tsv')
+        write_to_csv(dataset, cluster_labels, f'{args.output_path}/hierarchical_with_' + str(n_clusters) + '_clusters.tsv')
         
     best = max_index(scores) + k_min
     
@@ -354,7 +479,7 @@ def hierachical_agglomerative(dataset, k_min, k_max, best_cluster, silhouette):
         if (i + k_min == best):
             prefix = '_BEST'
         if silhouette == 'true':
-            silihouette_draw(dataset, labels[i], i + k_min, 'clustering/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
+            silhouette_draw(dataset, labels[i], i + k_min, f'{args.output_path}/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
      
     for i in range(len(labels)):
         if (i + k_min == best):
@@ -365,13 +490,18 @@ def hierachical_agglomerative(dataset, k_min, k_max, best_cluster, silhouette):
             
     
 ############################# main ###########################################
+def main(args_in:List[str] = None) -> None:
+    """
+    Initializes everything and sets the program in motion based on the fronted input arguments.
 
+    Returns:
+        None
+    """
+    global args
+    args = process_args(args_in)
 
-def main():
-    if not os.path.exists('clustering'):
-        os.makedirs('clustering')
-
-    args = process_args(sys.argv)
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
     
     #Data read
     
@@ -381,8 +511,7 @@ def main():
     X = pd.DataFrame.from_dict(X, orient = 'index')
     
     for i in X.columns:
-        tmp = X[i][0]
-        if tmp == None:
+        if any(val is None for val in X[i]):
             X = X.drop(columns=[i])
             
     if args.k_max != None:
@@ -403,6 +532,5 @@ def main():
         hierachical_agglomerative(X, args.k_min, args.k_max, args.best_cluster, args.silhouette)
         
 ##############################################################################
-
 if __name__ == "__main__":
     main()

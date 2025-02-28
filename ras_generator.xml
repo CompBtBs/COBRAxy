@@ -1,48 +1,44 @@
-<tool id="MaREA RAS Generator" name="Expression2RAS" version="1.0.7">
+<tool id="MaREA RAS Generator" name="Expression2RAS" version="2.0.0">
     <description>- Reaction Activity Scores computation</description>
     <macros>
         <import>marea_macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.25.3">pandas</requirement>
-        <requirement type="package" version="1.6.3">scipy</requirement>
-        <requirement type="package" version="4.6.3">lxml</requirement>
-        <requirement type="package" version="1.1.0">svglib</requirement>
-        <requirement type="package" version="3.5.67">reportlab</requirement>
-    </requirements>
+        <requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2.0.3">pandas</requirement>
+        <requirement type="package" version="5.2.2">lxml</requirement>
+		<requirement type="package" version="0.29.0">cobra</requirement>
+	</requirements>
     <command detect_errors="exit_code">
         <![CDATA[
       	python $__tool_directory__/ras_generator.py
-      	--rules_selector $cond_rule.rules_selector	
+      	--rules_selector $cond_rule.rules_selector
         --input $input
         --none $none
         --tool_dir $__tool_directory__
-        --out_log $log	
+        --out_log $log
         --ras_output $ras_output
         #if $cond_rule.rules_selector == 'Custom'
-        	--custom $cond_rule.Custom_rules
+            --rule_list $rule_list
+            --rules_name $rule_list.element_identifier
         #end if
         ]]>
     </command>
     <inputs>
         <conditional name="cond_rule">
             <expand macro="options"/>
-            <when value="HMRcore">
-            </when>
-            <when value="Recon">
-            </when>
             <when value="Custom">
-                <param name="Custom_rules" type="data" format="tabular, csv, tsv, xml" label="Custom rules" />
+                <param name="rule_list" argument="--rule_list" type="data" format="tabular, csv, pickle, p, pk" label="Custom rules" />
             </when>
         </conditional>
         <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Gene Expression dataset:" />
-        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
-        <param name="none" argument="--none" type="boolean" truevalue="true" falsevalue="false" checked="true" label="(A and NaN) solved as (A)?" /> 
+        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset_RAS" help="Default: Dataset_RAS. Do not use white spaces." />
+        <param name="none" argument="--none" type="boolean" checked="true" label="(A and NaN) solved as (A)?" /> 
     </inputs>
 
     <outputs>
         <data format="txt" name="log" label="Expression2RAS - $name - Log" />
-        <data format="tabular" name="ras_output" label="$name RAS"/>
+        <data format="tabular" name="ras_output" label='$name'/>
     </outputs>
 
     <help>
