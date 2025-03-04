@@ -28,7 +28,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
     
     parser.add_argument(
         '-rs', '--rules_selector', 
-        type = utils.Model, default = utils.Model.HMRcore, choices = list(utils.Model),
+        type = utils.Model, default = utils.Model.ENGRO2, choices = list(utils.Model),
         help = 'chose which type of dataset you want use')
     
     parser.add_argument("-rl", "--rule_list", type = str,
@@ -221,24 +221,28 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
                collections.Counter(gene[gene.columns[0]]).items() if count > 1]
     pat_dup = [item for item, count in 
                collections.Counter(list(gene.columns)).items() if count > 1]
+    
+    gene_in_rule = None
 
     if gene_dup:
         if gene_custom == None:
-            if args.rules_selector == 'HMRcore':
+
+            if str(args.rules_selector) == 'HMRcore':
                 gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_genes.p', 'rb'))
             
-            elif args.rules_selector == 'Recon':
+            elif str(args.rules_selector) == 'Recon':
                 gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/Recon_genes.p', 'rb'))
             
-            elif args.rules_selector == 'ENGRO2':
+            elif str(args.rules_selector) == 'ENGRO2':
                 gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
-            print(f"{args.tool_dir}'/local/pickle files/ENGRO2_genes.p'")
+
             utils.logWarning(f"{args.tool_dir}'/local/pickle files/ENGRO2_genes.p'", ARGS.out_log)
-            print(args.rules_selector)
+
             gene_in_rule = gene_in_rule.get(type_gene)
         
         else:
             gene_in_rule = gene_custom
+
         tmp = []
         for i in gene_dup:
             if gene_in_rule.get(i) == 'ok':
