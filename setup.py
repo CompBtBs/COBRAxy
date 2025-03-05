@@ -1,0 +1,47 @@
+from setuptools import setup, find_packages
+
+setup(
+    name='cobraxy',
+    version='0.1.0',
+    description='A collection of tools for metabolic flux analysis in Galaxy.',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
+    author='',  
+    author_email='',
+    url='https://github.com/CompBtBs/COBRAxy.git',
+    license='',
+    packages=find_packages(),  
+    include_package_data=True, 
+    install_requires=[
+        'cairosvg==2.7.1',
+        'cobra==0.29.0',
+        'joblib==1.4.2',
+        'lxml==5.2.2',
+        'matplotlib==3.7.3',
+        'numpy==1.24.4',
+        'pandas==2.0.3',
+        'pyvips==2.2.3',
+        'scikit-learn==1.3.2',
+        'scipy==1.10.1',
+        'seaborn==0.13.0',
+        'svglib==1.5.1'
+    ],
+    entry_points={
+        'console_scripts': [
+            'custom_data_generator=custom_data_generator:main',  # Supponendo che tu abbia una funzione 'main' in custom_data_generator.py
+            'flux_simulation=flux_simulation:main',
+            'flux_to_map=flux_to_map:main',
+            'marea_cluster=marea_cluster:main',
+            'marea=marea:main',
+            'ras_generator=ras_generator:main',
+            'ras_to_bounds=ras_to_bounds:main',
+            'rps_generator=rps_generator:main'
+        ]
+    },
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+    ],
+    python_requires='>=3.8',
+)
