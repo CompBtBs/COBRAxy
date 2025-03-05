@@ -32,7 +32,7 @@
             </when>
         </conditional>
         <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Gene Expression dataset:" />
-        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset_RAS" help="Default: Dataset_RAS. Do not use white spaces." />
+        <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset_RAS" help="Default: Dataset_RAS. Do not use white spaces or special symbols." />
         <param name="none" argument="--none" type="boolean" checked="true" label="(A and NaN) solved as (A)?" /> 
     </inputs>
 
@@ -53,7 +53,7 @@ Accepted files:
     - A gene expression dataset
  
 Format:
-Tab-separated text file reporting the normalized expression level (e.g., TPM, RPKM, ...) of each gene (row) for a given sample (column).
+Tab-separated text file reporting the normalized expression level (e.g., TPM, RPKM, ...) of each gene (row) for a given sample (column). All values must be positive to correctly compute the RAS.
 Column header: sample ID.
 Row header: gene ID.
  
