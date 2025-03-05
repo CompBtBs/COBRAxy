@@ -69,7 +69,7 @@
 
 		--comparison ${comparis.comparison}
 		#if $comparis.comparison == 'onevsmany'
-			--control '${cond.comparis.controlgroup}'
+			--control '${comparis.controlgroup}'
 		#end if
 
 		--choice_map '${cond_choice_map.choice_map}'
@@ -158,8 +158,8 @@
 		
 		<conditional name="cond_choice_map">
 			<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
-				<option value="HMRcore" selected="true">HMRcore</option>
-				<option value="ENGRO2">ENGRO2</option>
+				<option value="ENGRO2" selected="true">ENGRO2</option>
+				<option value="HMRcore">HMRcore</option>
 				<option value="Custom">Custom</option>
 			</param>
 
@@ -307,11 +307,11 @@ Fold-Change threshold: threshold of the fold-change between the average RAS of t
 
 .. class:: infomark
 
-**TIP**: If your dataset is not split into classes, use `MaREA cluster analysis`_.
+**TIP**: If your dataset is not split into classes, use MaREA cluster analysis.
 
 .. class:: infomark
 
-**TIP**: This tool using the RAS scores computed by `Ras tool`_.
+**TIP**: This tool using the RAS scores computed by Ras generator tool.
 
 @REFERENCE@
 

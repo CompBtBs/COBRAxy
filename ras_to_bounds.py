@@ -116,30 +116,32 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
     return dataset
 
 
-def apply_ras_bounds(model, ras_row):
+def apply_ras_bounds(bounds, ras_row):
     """
     Adjust the bounds of reactions in the model based on RAS values.
 
     Args:
-        model (cobra.Model): The metabolic model to be modified.
+        bounds (pd.DataFrame): Model bounds.
         ras_row (pd.Series): A row from a RAS DataFrame containing scaling factors for reaction bounds.
     Returns:
-        None
+        new_bounds (pd.DataFrame): integrated bounds.
     """
+    new_bounds = bounds.copy()
     for reaction in ras_row.index:
         scaling_factor = ras_row[reaction]
-        lower_bound=model.reactions.get_by_id(reaction).lower_bound
-        upper_bound=model.reactions.get_by_id(reaction).upper_bound
-        valMax=float((upper_bound)*scaling_factor)
-        valMin=float((lower_bound)*scaling_factor)
-        if upper_bound!=0 and lower_bound==0:
-            model.reactions.get_by_id(reaction).upper_bound=valMax
-        if upper_bound==0 and lower_bound!=0:
-            model.reactions.get_by_id(reaction).lower_bound=valMin
-        if upper_bound!=0 and lower_bound!=0:
-            model.reactions.get_by_id(reaction).lower_bound=valMin
-            model.reactions.get_by_id(reaction).upper_bound=valMax
-    pass
+        if not np.isnan(scaling_factor):
+            lower_bound=bounds.loc[reaction, "lower_bound"]
+            upper_bound=bounds.loc[reaction, "upper_bound"]
+            valMax=float((upper_bound)*scaling_factor)
+            valMin=float((lower_bound)*scaling_factor)
+            if upper_bound!=0 and lower_bound==0:
+                new_bounds.loc[reaction, "upper_bound"] = valMax
+            if upper_bound==0 and lower_bound!=0:
+                new_bounds.loc[reaction, "lower_bound"] = valMin
+            if upper_bound!=0 and lower_bound!=0:
+                new_bounds.loc[reaction, "lower_bound"] = valMin
+                new_bounds.loc[reaction, "upper_bound"] = valMax
+    return new_bounds
 
 def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder):
     """
@@ -155,10 +157,9 @@ def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder):
     Returns:
         None
     """
-    model_new = model.copy()
-    apply_ras_bounds(model_new, ras_row)
-    bounds = pd.DataFrame([(rxn.lower_bound, rxn.upper_bound) for rxn in model_new.reactions], index=rxns_ids, columns=["lower_bound", "upper_bound"])
-    bounds.to_csv(output_folder + cellName + ".csv", sep='\t', index=True)
+    bounds = pd.DataFrame([(rxn.lower_bound, rxn.upper_bound) for rxn in model.reactions], index=rxns_ids, columns=["lower_bound", "upper_bound"])
+    new_bounds = apply_ras_bounds(bounds, ras_row)
+    new_bounds.to_csv(output_folder + cellName + ".csv", sep='\t', index=True)
     pass
 
 def generate_bounds(model: cobra.Model, medium: dict, ras=None, output_folder='output/') -> pd.DataFrame:
@@ -197,10 +198,9 @@ def generate_bounds(model: cobra.Model, medium: dict, ras=None, output_folder='o
     if ras is not None:
         Parallel(n_jobs=cpu_count())(delayed(process_ras_cell)(cellName, ras_row, model, rxns_ids, output_folder) for cellName, ras_row in ras.iterrows())
     else:
-        model_new = model.copy()
-        apply_ras_bounds(model_new, pd.Series([1]*len(rxns_ids), index=rxns_ids))
-        bounds = pd.DataFrame([(rxn.lower_bound, rxn.upper_bound) for rxn in model_new.reactions], index=rxns_ids, columns=["lower_bound", "upper_bound"])
-        bounds.to_csv(output_folder + "bounds.csv", sep='\t', index=True)
+        bounds = pd.DataFrame([(rxn.lower_bound, rxn.upper_bound) for rxn in model.reactions], index=rxns_ids, columns=["lower_bound", "upper_bound"])
+        newBounds = apply_ras_bounds(bounds, pd.Series([1]*len(rxns_ids), index=rxns_ids))
+        newBounds.to_csv(output_folder + "bounds.csv", sep='\t', index=True)
     pass
 
 
@@ -230,7 +230,7 @@ def main(args:List[str] = None) -> None:
             pass
         ras_class_names = []
         for file in ras_file_names:
-            ras_class_names.append(file.split(".")[0])
+            ras_class_names.append(file.rsplit(".", 1)[0])
         ras_list = []
         class_assignments = pd.DataFrame(columns=["Patient_ID", "Class"])
         for ras_matrix, ras_class_name in zip(ras_file_list, ras_class_names):
@@ -239,8 +239,11 @@ def main(args:List[str] = None) -> None:
             ras.set_index("Reactions", drop=True, inplace=True)
             ras = ras.T
             ras = ras.astype(float)
-            #append class name to patient id (dataframe index)
-            ras.index = [f"{idx}_{ras_class_name}" for idx in ras.index]
+            if(len(ras_file_list)>1):
+                #append class name to patient id (dataframe index)
+                ras.index = [f"{idx}_{ras_class_name}" for idx in ras.index]
+            else:
+                ras.index = [f"{idx}" for idx in ras.index]
             ras_list.append(ras)
             for patient_id in ras.index:
                 class_assignments.loc[class_assignments.shape[0]] = [patient_id, ras_class_name]

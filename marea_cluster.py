@@ -20,7 +20,7 @@ import matplotlib.cm as cm
 from typing import Optional, Dict, List
 
 ################################# process args ###############################
-def process_args(args :List[str] = None) -> argparse.Namespace:
+def process_args(args_in :List[str] = None) -> argparse.Namespace:
     """
     Processes command-line arguments.
 
@@ -92,8 +92,8 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
         default='result',
         help = 'output path for maps')
     
-    args = parser.parse_args(args)
-    return args
+    args_in = parser.parse_args(args_in)
+    return args_in
 
 ########################### warning ###########################################
 def warning(s :str) -> None:
@@ -135,7 +135,7 @@ def read_dataset(dataset :str) -> pd.DataFrame:
     return dataset
 
 ############################ rewrite_input ###################################
-def rewrite_input(dataset :pd.DataFrame) -> Dict[str, List[Optional[float]]]:
+def rewrite_input(dataset :Dict) -> Dict[str, List[Optional[float]]]:
     """
     Rewrite the dataset as a dictionary of lists instead of as a dictionary of dictionaries.
 
@@ -147,8 +147,7 @@ def rewrite_input(dataset :pd.DataFrame) -> Dict[str, List[Optional[float]]]:
     """
     #Riscrivo il dataset come dizionario di liste, 
     #non come dizionario di dizionari
-    
-    dataset.pop('Reactions', None)
+    #dataset.pop('Reactions', None)
     
     for key, val in dataset.items():
         l = []
@@ -506,12 +505,13 @@ def main(args_in:List[str] = None) -> None:
     #Data read
     
     X = read_dataset(args.input)
+    X = X.iloc[:, 1:]
     X = pd.DataFrame.to_dict(X, orient='list')
     X = rewrite_input(X)
     X = pd.DataFrame.from_dict(X, orient = 'index')
     
     for i in X.columns:
-        if any(val is None for val in X[i]):
+        if any(val is None or np.isnan(val) for val in X[i]):
             X = X.drop(columns=[i])
             
     if args.k_max != None:

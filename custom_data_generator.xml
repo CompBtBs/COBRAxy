@@ -1,4 +1,4 @@
-<tool id="MaREA Custom Data Generator" name="CustomDataGenerator" version="2.0.0">
+<tool id="CustomDataGenerator" name="Custom Data Generator" version="2.0.0">
     
     <macros>
         <import>marea_macros.xml</import>
@@ -16,26 +16,24 @@
       	python $__tool_directory__/custom_data_generator.py
         --input $input
         --name $input.element_identifier
-        --output_format $output_format
         --out_log $log
+        --out_rules $rules
+        --out_reactions $reactions
+        --out_bounds $bounds
+        --out_medium $medium
         ]]>
     </command>
     <inputs>
         <param name="input" argument="--input" type="data" format="xml, json" label="Custom model:" />
         <param name="name" argument="--name" type="text" label="Model's name:" value="Model" help="Default: Model" />
-        
-        <param name="output_format" argument="--output_format" type="select" label="Output files format:">
-            <option value="p" selected="true">pickle extension (binary, non-editable, pre-parsed)</option>
-            <option value="csv">Comma Separated Values (csv text file, editable, raw)</option>
-        </param>
     </inputs>
 
     <outputs>
-        <data format="txt" name="log" label="CustomDataGenerator - $name - Log" />
-        
-        <collection name="results" type="list" label="Custom Data Results ($output_format)">
-            <discover_datasets name = "collection" pattern="__name_and_ext__" directory="result"/>
-        </collection>
+        <data format="txt" name="log" label="${tool.name} - Log" />
+        <data format="tabular" name="rules" label="${name}_Rules" />
+        <data format="tabular" name="reactions" label="${name}_Reactions" />
+        <data format="tabular" name="bounds" label="${name}_Bounds" />
+        <data format="tabular" name="medium" label="${name}_Medium" />
     </outputs>
 
     <help>
@@ -43,7 +41,8 @@
 What it does
 -------------
 
-This tool generates two files containing reactions and rules respectively, starting from a custom model in JSON or XML format, that can be used as inputs for the RAS and RPS generator modules.
+This tool generates four files containing reactions, rules, reaction bounds and medium composition respectively, starting from a custom model in JSON or XML format.
+Reactions and rules can be used as inputs for the RAS and RPS generator tools.
 
 Accepted files:
     - A model: JSON or XML file reporting reactions and rules contained in the model.   
@@ -53,8 +52,10 @@ Output:
 -------------
 
 The tool generates:
-    - rules: reporting the rules for each reaction in the custom model given. Format: csv or pickle.
-    - reactions: reporting the reactions in the custom model given. Format: csv or pickle.
+    - rules: reporting the rules for each reaction in the custom model given. Format: csv (tab separated).
+    - reactions: reporting the reactions in the custom model given. Format: csv (tab separated).
+    - reaction bounds: reporting the lower and upper bounds of each model reaction. Format: csv (tab separated).
+    - medium composition: reporting the list of exchange/transport reactions. Format: csv (tab separated).
     - a log file (.txt).
     ]]>
     </help>

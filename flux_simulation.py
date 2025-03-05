@@ -238,25 +238,24 @@ def model_sampler(model_input_original:cobra.Model, bounds_path:str, cell_name:s
         model_input.reactions.get_by_id(rxn_index).lower_bound = row.lower_bound
         model_input.reactions.get_by_id(rxn_index).upper_bound = row.upper_bound
     
-    name = cell_name.split('.')[0]
     
     if ARGS.algorithm == 'OPTGP':
-        OPTGP_sampler(model_input, name, ARGS.n_samples, ARGS.thinning, ARGS.n_batches, ARGS.seed)
+        OPTGP_sampler(model_input, cell_name, ARGS.n_samples, ARGS.thinning, ARGS.n_batches, ARGS.seed)
 
     elif ARGS.algorithm == 'CBS':
-        CBS_sampler(model_input,  name, ARGS.n_samples, ARGS.n_batches, ARGS.seed)
+        CBS_sampler(model_input,  cell_name, ARGS.n_samples, ARGS.n_batches, ARGS.seed)
 
-    df_mean, df_median, df_quantiles = fluxes_statistics(name, ARGS.output_types)
+    df_mean, df_median, df_quantiles = fluxes_statistics(cell_name, ARGS.output_types)
 
     if("fluxes" not in ARGS.output_types):
-        os.remove(ARGS.output_path + "/"  +  name + '.csv')
+        os.remove(ARGS.output_path + "/"  +  cell_name + '.csv')
 
     returnList = []
     returnList.append(df_mean)
     returnList.append(df_median)
     returnList.append(df_quantiles)
 
-    df_pFBA, df_FVA, df_sensitivity = fluxes_analysis(model_input, name, ARGS.output_type_analysis)
+    df_pFBA, df_FVA, df_sensitivity = fluxes_analysis(model_input, cell_name, ARGS.output_type_analysis)
 
     if("pFBA" in ARGS.output_type_analysis):
         returnList.append(df_pFBA)
