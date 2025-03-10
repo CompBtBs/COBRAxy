@@ -293,7 +293,7 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 p_val :float = tmp[0]
                 f_c = tmp[1]
                 z_score = tmp[2]
-                if p_val < threshold_P_V:
+                if p_val <= threshold_P_V:
                     if not isinstance(f_c, str):
                         if abs(f_c) < ((threshold_F_C - 1) / (abs(threshold_F_C) + 1)): # 
                             col = grey
