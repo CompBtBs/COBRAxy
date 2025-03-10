@@ -10,7 +10,17 @@ setup(
     author_email='',
     url='https://github.com/CompBtBs/COBRAxy.git',
     license='',
-    packages=find_packages(),  
+    packages=find_packages(include=["utils", "utils.*"]),  
+    py_modules=[
+        'custom_data_generator',
+        'flux_simulation',
+        'flux_to_map',
+        'marea_cluster',
+        'marea',
+        'ras_generator',
+        'ras_to_bounds',
+        'rps_generator'
+    ],
     include_package_data=True, 
     install_requires=[
         'cairosvg==2.7.1',
@@ -28,7 +38,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'custom_data_generator=custom_data_generator:main',  # Supponendo che tu abbia una funzione 'main' in custom_data_generator.py
+            'custom_data_generator=custom_data_generator:main',
             'flux_simulation=flux_simulation:main',
             'flux_to_map=flux_to_map:main',
             'marea_cluster=marea_cluster:main',
@@ -36,12 +46,12 @@ setup(
             'ras_generator=ras_generator:main',
             'ras_to_bounds=ras_to_bounds:main',
             'rps_generator=rps_generator:main'
-        ]
+        ],
     },
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.8',
+    python_requires='>=3.8.20,<3.12',
 )

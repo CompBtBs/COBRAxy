@@ -1,0 +1,80 @@
+{% set name = "cobraxy" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: file:///C:/Users/f.lapi/Documents/GitHub/COBRAxy/dist/cobraxy-0.1.0.tar.gz
+  sha256: 9445b95e62cfe5233c29baabd5c02a7732d3d096cccdd99cfea13948d1509d9e
+
+build:
+  entry_points:
+    - custom_data_generator=custom_data_generator:main
+    - flux_simulation=flux_simulation:main
+    - flux_to_map=flux_to_map:main
+    - marea_cluster=marea_cluster:main
+    - marea=marea:main
+    - ras_generator=ras_generator:main
+    - ras_to_bounds=ras_to_bounds:main
+    - rps_generator=rps_generator:main
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python >=3.8.20,<3.12
+    - pip
+    - setuptools
+  run:
+    - python >=3.8.20,<3.12
+    - cairosvg ==2.7.1
+    - cobra ==0.29.0
+    - joblib ==1.4.2
+    - lxml ==5.2.2
+    - matplotlib-base ==3.7.3
+    - numpy ==1.24.4
+    - pandas ==2.0.3
+    - pyvips ==2.2.3 # [linux or osx]
+    - scikit-learn ==1.3.2
+    - scipy ==1.10.1
+    - seaborn ==0.13.0
+    - svglib ==1.5.1
+  pip:
+    - pyvips==2.2.3  # [win]
+
+test:
+  imports:
+    - utils
+    - custom_data_generator
+    - flux_simulation
+    - marea_cluster
+    - ras_generator
+    - ras_to_bounds
+    - rps_generator
+  commands:
+    - pip install pyvips==2.2.3
+    - python -c "import pyvips; print('pyvips version:', pyvips.__version__)"
+    - pip check
+    - custom_data_generator --help
+    - flux_simulation --help
+    - flux_to_map --help
+    - marea_cluster --help
+    - marea --help
+    - ras_generator --help
+    - ras_to_bounds --help
+    - rps_generator --help
+  requires:
+    - pip
+
+about:
+  home: https://github.com/CompBtBs/COBRAxy.git
+  summary: A collection of tools for metabolic flux analysis in Galaxy.
+  #license: ''
+  #license_file: PLEASE_ADD_LICENSE_FILE
+
+extra:
+  recipe-maintainers:
+    - Francesco2304
