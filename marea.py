@@ -293,6 +293,9 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 p_val :float = tmp[0]
                 f_c = tmp[1]
                 z_score = tmp[2]
+                
+                if math.isnan(p_val) or (isinstance(f_c, float) and math.isnan(f_c)): continue
+
                 if p_val <= threshold_P_V:
                     if not isinstance(f_c, str):
                         if abs(f_c) < ((threshold_F_C - 1) / (abs(threshold_F_C) + 1)): # 
@@ -490,6 +493,8 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         pValue = values[0]
         foldChange = values[1]
         z_score = values[2]
+
+        if math.isnan(pValue) or (isinstance(foldChange, float) and math.isnan(foldChange)): continue
 
         if isinstance(foldChange, str): foldChange = float(foldChange)
         if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
