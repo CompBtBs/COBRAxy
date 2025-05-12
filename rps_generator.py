@@ -218,8 +218,9 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
         rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list)
     
     df = pd.DataFrame.from_dict(rps_scores)
-    df.rename(columns={'Unnamed: 0': 'Reactions'}, inplace=True)
-    df.to_csv(ARGS.rps_output, sep = '\t', na_rep = "None", index = False)
+
+    df.index.name = 'Reactions'
+    df.to_csv(ARGS.rps_output, sep='\t', na_rep='None', index=True)
 
 ############################ main ####################################
 def main(args:List[str] = None) -> None:
