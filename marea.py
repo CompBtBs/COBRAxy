@@ -767,7 +767,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
             p_value, z_score = computePValue(l1, l2)
             avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
             if not isinstance(z_score, str) and max_z_score < abs(z_score): max_z_score = abs(z_score)
-            tmp[reactId] = [float(p_value), avg, z_score]
+            tmp[reactId] = [float(p_value), avg, z_score, sum(l1) / len(l1), sum(l2) / len(l2)]
         
         except (TypeError, ZeroDivisionError): continue
     
