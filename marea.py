@@ -678,8 +678,7 @@ def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath)
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
 def writeTabularResult(enrichedScores : OldEnrichedScores, ras_enrichment: bool, outPath :utils.FilePath) -> None:
-    fieldNames = ["ids", "P_Value", "fold change"]
-    if not ras_enrichment: fieldNames.extend(["average_1", "average_2"])
+    fieldNames = ["ids", "P_Value", "fold change", "average_1", "average_2"]
 
     writeToCsv([ [reactId] + values for reactId, values in enrichedScores.items() ], fieldNames, outPath)
 
