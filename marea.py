@@ -686,7 +686,10 @@ def writeTabularResult(enrichedScores : OldEnrichedScores, ras_enrichment: bool,
 def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
     # this function compiles the things always in common between comparison modes after enrichment.
     # TODO: organize, name better.
-    writeTabularResult(tmp, ras_enrichment, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
+    suffix = "RAS" if ras_enrichment else "RPS"
+    details = f"Tabular Result ({suffix})"
+
+    writeTabularResult(tmp, ras_enrichment, buildOutputPath(dataset1Name, dataset2Name, details = details, ext = utils.FileFormat.TSV))
     
     if ras_enrichment:
         fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_z_score)
