@@ -888,28 +888,52 @@ def main(args:List[str] = None) -> None:
     ARGS = process_args(args)
 
     if not os.path.isdir(ARGS.output_path):
-        os.makedirs(ARGS.output_path)
+        os.makedirs(ARGS.output_path, exist_ok=True)
     
     core_map: ET.ElementTree = ARGS.choice_map.getMap(
         ARGS.tool_dir,
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
     
-    if ARGS.using_RAS:
-        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
-        enrichment_results = computeEnrichment(class_pat, ids)
-        for i, j, comparisonDict, max_z_score in enrichment_results:
-            map_copy = copy.deepcopy(core_map)
-            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=True)
-            createOutputMaps(i, j, map_copy)
-    
-    if ARGS.using_RPS:
-        ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-        enrichment_results = computeEnrichment(class_pat, ids, fromRAS=False)
-        for i, j, comparisonDict, max_z_score in enrichment_results:
-            map_copy = copy.deepcopy(core_map)
-            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j, ras_enrichment=False)
-            createOutputMaps(i, j, map_copy)
+    # Prepare enrichment results containers
+    ras_results = []
+    rps_results = []
 
+    # Compute RAS enrichment if requested
+    if ARGS.using_RAS:
+        ids_ras, class_pat_ras = getClassesAndIdsFromDatasets(
+            ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
+        ras_results = computeEnrichment(class_pat_ras, ids_ras, fromRAS=True)
+
+    # Compute RPS enrichment if requested
+    if ARGS.using_RPS:
+        ids_rps, class_pat_rps = getClassesAndIdsFromDatasets(
+            ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
+        rps_results = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
+
+    # Organize by comparison pairs
+    comparisons: Dict[Tuple[str, str], Dict[str, Tuple]] = {}
+    for i, j, d, mz in ras_results:
+        comparisons[(i, j)] = {'ras': (d, mz), 'rps': None}
+    for i, j, d, mz in rps_results:
+        comparisons.setdefault((i, j), {}).update({'rps': (d, mz)})
+
+    # For each comparison, create a styled map with RAS bodies and RPS heads
+    for (i, j), res in comparisons.items():
+        map_copy = copy.deepcopy(core_map)
+
+        # Apply RAS styling to arrow bodies
+        if res.get('ras'):
+            tmp_ras, max_z_ras = res['ras']
+            temp_thingsInCommon(tmp_ras, map_copy, max_z_ras, i, j, ras_enrichment=True)
+
+        # Apply RPS styling to arrow heads
+        if res.get('rps'):
+            tmp_rps, max_z_rps = res['rps']
+            # Ensure applyRpsEnrichmentToMap styles only heads; adjust internals if needed
+            temp_thingsInCommon(tmp_rps, map_copy, max_z_rps, i, j, ras_enrichment=False)
+
+        # Output both SVG and PDF/PNG as configured
+        createOutputMaps(i, j, map_copy)
     print('Execution succeeded')
 ###############################################################################
 if __name__ == "__main__":
