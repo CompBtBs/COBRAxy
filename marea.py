@@ -930,7 +930,7 @@ def main(args:List[str] = None) -> None:
         if res.get('rps'):
             tmp_rps, max_z_rps = res['rps']
             # Ensure applyRpsEnrichmentToMap styles only heads; adjust internals if needed
-            applyRpsEnrichmentToMap(tmp_rps, map_copy, max_z_rps)
+            temp_thingsInCommon(tmp_rps, map_copy, max_z_rps, i, j, ras_enrichment=False)
 
         # Output both SVG and PDF/PNG as configured
         createOutputMaps(i, j, map_copy)
