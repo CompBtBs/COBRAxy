@@ -888,13 +888,13 @@ def main(args:List[str] = None) -> None:
     ARGS = process_args(args)
 
     if not os.path.isdir(ARGS.output_path):
-        os.makedirs(ARGS.output_path)
+        os.makedirs(ARGS.output_path, exist_ok=True)
     
     core_map: ET.ElementTree = ARGS.choice_map.getMap(
         ARGS.tool_dir,
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
     
-        # Prepare enrichment results containers
+    # Prepare enrichment results containers
     ras_results = []
     rps_results = []
 
