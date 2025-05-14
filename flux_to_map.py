@@ -50,7 +50,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
     parser.add_argument(
         '-co', '--comparison',
         type = str, 
-        default = '1vs1',
+        default = 'manyvsmany',
         choices = ['manyvsmany', 'onevsrest', 'onevsmany'])
     
     parser.add_argument(
