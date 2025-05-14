@@ -211,9 +211,7 @@ def fold_change(avg1 :float, avg2 :float) -> FoldChange:
         return 'INF'
     
     # (threshold_F_C - 1) / (abs(threshold_F_C) + 1) con threshold_F_C > 1
-    fc = (avg1 - avg2) / (abs(avg1) + abs(avg2))
-    if avg1 < 0 and avg2 < 0: fc *= -1
-    return fc
+    return (avg1 - avg2) / (abs(avg1) + abs(avg2))
 
 # TODO: I would really like for this one to get the Thanos treatment
 def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
@@ -519,6 +517,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         reactionId = reactionId[:-3] # Remove "_RV"
         
         inversionScore = (values[3] < 0) + (values[4] < 0) # Compacts the signs of averages into 1 easy to check score
+        if inversionScore == 2: foldChange *= -1
         
         # If the score is 1 (opposite signs) we use alternative colors vvv
         arrow = Arrow(width, ArrowColor.fromFoldChangeSign(foldChange, useAltColor = inversionScore == 1))
