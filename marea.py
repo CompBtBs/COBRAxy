@@ -326,7 +326,8 @@ def getElementById(reactionId :str, metabMap :ET.ElementTree) -> utils.Result[ET
         utils.Result[ET.Element, ResultErr]: result of the search, either the first match found or a ResultErr.
     """
     return utils.Result.Ok(
-        lambda: metabMap.xpath(f"//*[@id=\"{reactionId}\"]")[0]).mapErr(
+        f"//*[@id=\"{reactionId}\"]").map(
+        lambda xPath : metabMap.xpath(xPath)[0]).mapErr(
         lambda _ : utils.Result.ResultErr(f"No elements with ID \"{reactionId}\" found in map"))
         # ^^^ we shamelessly ignore the contents of the IndexError, it offers nothing to the user.
 
