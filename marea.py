@@ -503,7 +503,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
             continue
         
         width = Arrow.MAX_W
-        if not math.isinf(foldChange):
+        if not math.isinf(z_score):
             try: width = min(
                 max(abs(z_score * Arrow.MAX_W) / maxNumericZScore, Arrow.MIN_W),
                 Arrow.MAX_W)
