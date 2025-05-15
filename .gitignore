@@ -1,1 +1,6 @@
 __pycache__/
+cobraxy.egg-info/
+.venv/
+.vscode/
+outputs/
+build/

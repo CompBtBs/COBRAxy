@@ -50,6 +50,13 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type = str, 
         default = 'manyvsmany',
         choices = ['manyvsmany', 'onevsrest', 'onevsmany'])
+
+    parser.add_argument(
+        '-te' ,'--test',
+        type = str, 
+        default = 'ks', 
+        choices = ['ks', 'ttest_p', 'ttest_ind', 'wilcoxon', 'mw'],
+        help = 'Statistical test to use (default: %(default)s)')
     
     parser.add_argument(
         '-pv' ,'--pValue',
@@ -503,7 +510,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
             continue
         
         width = Arrow.MAX_W
-        if not math.isinf(foldChange):
+        if not math.isinf(z_score):
             try: width = min(
                 max(abs(z_score * Arrow.MAX_W) / maxNumericZScore, Arrow.MIN_W),
                 Arrow.MAX_W)
@@ -690,11 +697,25 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
 
     Returns:
         tuple: (P-value, Z-score)
-            - P-value from a Kolmogorov-Smirnov test on the provided data.
+            - P-value from the selected test on the provided data.
             - Z-score of the difference between means of the two datasets.
     """
-    # Perform Kolmogorov-Smirnov test
-    ks_statistic, p_value = st.ks_2samp(dataset1Data, dataset2Data)
+    match ARGS.test:
+        case "ks":
+            # Perform Kolmogorov-Smirnov test
+            _, p_value = st.ks_2samp(dataset1Data, dataset2Data)
+        case "ttest_p":
+            # Perform t-test for paired samples
+            _, p_value = st.ttest_rel(dataset1Data, dataset2Data)
+        case "ttest_ind":
+            # Perform t-test for independent samples
+            _, p_value = st.ttest_ind(dataset1Data, dataset2Data)
+        case "wilcoxon":
+            # Perform Wilcoxon signed-rank test
+            _, p_value = st.wilcoxon(dataset1Data, dataset2Data)
+        case "mw":
+            # Perform Mann-Whitney U test
+            _, p_value = st.mannwhitneyu(dataset1Data, dataset2Data)
     
     # Calculate means and standard deviations
     mean1 = np.mean(dataset1Data)
