@@ -65,6 +65,11 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type = float, 
         default = 0.1, 
         help = 'P-Value threshold (default: %(default)s)')
+
+    parser.add_argument(
+        '-adj' ,'--adjusted',
+        type = utils.Bool("adjusted"), default = False, 
+        help = 'Apply the FDR (Benjamini-Hochberg) correction (default: %(default)s)')
     
     parser.add_argument(
         '-fc', '--fChange',
@@ -740,7 +745,7 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
 
 def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
     #TODO: the following code still suffers from "dumbvarnames-osis"
-    tmp :Dict[str, List[Union[float, FoldChange]]] = {}
+    datasetScores :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_z_score = 0
     for l1, l2 in zip(dataset1Data, dataset2Data):
@@ -755,10 +760,22 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
             f_c = fold_change(avg1, avg2)
             if not isinstance(z_score, str) and max_z_score < abs(z_score): max_z_score = abs(z_score)
             
-            tmp[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
+            datasetScores[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
         except (TypeError, ZeroDivisionError): continue
+
+    # Apply multiple testing correction if set by the user
+    if ARGS.adjusted:
+        
+        # Retrive the p-values from the datasetScores dictionary
+        reactIds = list(datasetScores.keys())
+        pValues = [datasetScores[reactId][0] for reactId in reactIds]
+        
+        # Apply the Benjamini-Hochberg correction and update
+        adjustedPValues = st.multipletests(pValues, method="fdr_bh")[1]
+        for i, reactId in enumerate(reactIds):
+            datasetScores[reactId][0] = adjustedPValues[i]
     
-    return tmp, max_z_score
+    return datasetScores, max_z_score
 
 def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -> List[Tuple[str, str, dict, float]]:
     """
