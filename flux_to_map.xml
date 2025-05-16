@@ -54,12 +54,16 @@
 		#end if
 		
 		#if $advanced.choice == 'true':
+			--test ${advanced.test}
 			--pValue ${advanced.pValue}
+			--adjusted ${advanced.adjusted}
 			--fChange ${advanced.fChange}
 			--generate_svg ${advanced.generateSvg}
 			--generate_pdf ${advanced.generatePdf}
 		#else 
+			--test 'ks'
 			--pValue 0.05
+			--adjusted false
 			--fChange 1.2
 			--generate_svg false
 			--generate_pdf true
@@ -117,13 +121,13 @@
 		</param>
 
 		<conditional name="advanced">
-			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
 				<option value="true" selected="true">No</option>
 				<option value="false">Yes</option>
 			</param>
 
 			<when value="true">
-				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates.">
+				<param name="test" argument="--test" type="select" label="Statistical test to use" help="Select the statistical test to use for the analysis based on your data and the amount of replicates.">
 					<option value="ks" selected="true">Kolmogorov-Smirnov</option>
 					<option value="ttest_p">T-test (paired)</option>
 					<option value="ttest_ind">T-test (unpaired)</option>
@@ -131,6 +135,7 @@
 					<option value="mw">Mann-Whitney</option>
 				</param>
 				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
+				<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
 				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
 				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
 				<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />

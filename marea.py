@@ -63,6 +63,11 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type = float, 
         default = 0.1, 
         help = 'P-Value threshold (default: %(default)s)')
+
+    parser.add_argument(
+        '-adj' ,'--adjusted',
+        type = utils.Bool("adjusted"), default = False, 
+        help = 'Apply the FDR (Benjamini-Hochberg) correction (default: %(default)s)')
     
     parser.add_argument(
         '-fc', '--fChange',
@@ -774,6 +779,18 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
         
         except (TypeError, ZeroDivisionError): continue
     
+    # Apply multiple testing correction if set by the user
+    if ARGS.adjusted:
+        
+        # Retrieve the p-values from the comparisonResult dictionary
+        reactIds = list(comparisonResult.keys())
+        pValues = [comparisonResult[reactId][0] for reactId in reactIds]
+        
+        # Apply the Benjamini-Hochberg correction and update
+        adjustedPValues = st.multipletests(pValues, method="fdr_bh")[1]
+        for i, reactId in enumerate(reactIds):
+            comparisonResult[reactId][0] = adjustedPValues[i]
+
     return comparisonResult, max_z_score
 
 def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
