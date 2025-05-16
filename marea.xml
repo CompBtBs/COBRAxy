@@ -78,13 +78,17 @@
 		#end if
 		
 		#if $advanced.choice == 'true':
+			--test ${advanced.test}
 			--pValue ${advanced.pValue}
+			--adjusted ${advanced.adjusted}
 			--fChange ${advanced.fChange}
 			--generate_svg ${advanced.generateSvg}
 			--generate_pdf ${advanced.generatePdf}
 			--net ${advanced.netRPS}
 		#else 
+			--test 'ks'
 			--pValue 0.05
+			--adjusted false
 			--fChange 1.2
 			--generate_svg false
 			--generate_pdf true
@@ -169,7 +173,7 @@
 		</conditional>
 		
 		<conditional name="advanced">
-			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
 				<option value="true" selected="true">No</option>
 				<option value="false">Yes</option>
 			</param>
@@ -304,7 +308,8 @@ Group-file
 Advanced options
 ----------------
 
-P-Value threshold: the threshold used for significance Kolmogorov-Smirnov (KS) test, to verify whether the distributions of RASs over the samples in two sets are significantly different
+Statistical test: the statistical test to use for the analysis based on your data and the amount of replicates. The Kolmogorov-Smirnov test is the default option, but you can choose between T-test (paired), T-test (unpaired), Wilcoxon and Mann-Whitney tests.
+P-Value threshold: the threshold used for significance in the selected test, to verify whether the distributions of RASs over the samples in two sets are significantly different
 
 Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the KS test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map;
 

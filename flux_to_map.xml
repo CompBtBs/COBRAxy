@@ -54,11 +54,15 @@
 		#end if
 		
 		#if $advanced.choice == 'true':
+			--test ${advanced.test}
 			--pValue ${advanced.pValue}
+			--adjusted ${advanced.adjusted}
 			--fChange ${advanced.fChange}
 			--generate_svg ${advanced.generateSvg}
 			--generate_pdf ${advanced.generatePdf}
 		#else 
+			--test 'ks'
+			--adjusted false
 			--pValue 0.05
 			--fChange 1.2
 			--generate_svg false
@@ -117,7 +121,7 @@
 		</param>
 
 		<conditional name="advanced">
-			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
 				<option value="true" selected="true">No</option>
 				<option value="false">Yes</option>
 			</param>

@@ -709,7 +709,6 @@ def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map
     for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
     applyRpsEnrichmentToMap(tmp, core_map, max_z_score)
 
-def pvalueCorrection
 def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple[float, float]:
     """
     Computes the statistical significance score (P-value) of the comparison between coherent data
@@ -803,7 +802,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     # Apply multiple testing correction if set by the user
     if ARGS.adjusted:
         
-        # Retrive the p-values from the datasetScores dictionary
+        # Retrieve the p-values from the datasetScores dictionary
         reactIds = list(datasetScores.keys())
         pValues = [datasetScores[reactId][0] for reactId in reactIds]
         

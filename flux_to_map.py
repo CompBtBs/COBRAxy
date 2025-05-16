@@ -77,7 +77,6 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         default = 1.5, 
         help = 'Fold-Change threshold (default: %(default)s)')
     
-
     parser.add_argument(
         '-op', '--option',
         type = str, 
