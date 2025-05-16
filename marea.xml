@@ -179,7 +179,7 @@
 			</param>
 
 			<when value="true">
-				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates.">
+				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates.  Paired T-test and Wilcoxon need the same number of replicates in each group.">
 					<option value="ks" selected="true">Kolmogorov-Smirnov</option>
 					<option value="ttest_p">T-test (paired)</option>
 					<option value="ttest_ind">T-test (unpaired)</option>
