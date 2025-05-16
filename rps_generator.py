@@ -1,6 +1,3 @@
-import re
-import sys
-import csv
 import math
 import argparse
 
@@ -8,8 +5,7 @@ import numpy  as np
 import pickle as pk
 import pandas as pd
 
-from enum   import Enum
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict
 
 import utils.general_utils as utils
 import utils.reaction_parsing as reactionUtils
@@ -45,6 +41,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
                         help = "Output log")    
     parser.add_argument('-id', '--input',
                         type = str,
+                        required = True,
                         help = 'input dataset')
     parser.add_argument('-rp', '--rps_output',
                         type = str,
@@ -70,7 +67,6 @@ def name_dataset(name_data :str, count :int) -> str:
         return str(name_data) + '_' + str(count)
     else:
         return str(name_data)
-    
 
 ############################ get_abund_data ####################################
 def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Series]:
@@ -96,7 +92,6 @@ def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Se
 
     return abundances_series
 
-
 ############################ clean_metabolite_name ####################################
 def clean_metabolite_name(name :str) -> str:
     """
@@ -110,7 +105,6 @@ def clean_metabolite_name(name :str) -> str:
         str : a new string with the cleaned name.
     """
     return "".join(ch for ch in name if ch not in ",;-_'([{ }])").lower()
-
 
 ############################ get_metabolite_id ####################################
 def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
@@ -157,39 +151,41 @@ def check_missing_metab(reactions: Dict[str, Dict[str, int]], dataset_by_rows: D
     return missing_list
 
 ############################ calculate_rps ####################################
-def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, float], black_list: List[str], missing_list: List[str]) -> Dict[str, float]:
+def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, float], black_list: List[str], missing_list: List[str], substrateFreqTable: Dict[str, int]) -> Dict[str, float]:
     """
     Calculate the Reaction Propensity scores (RPS) based on the availability of reaction substrates, for (ideally) each input model reaction and for each sample.
     The score is computed as the product of the concentrations of the reacting substances, with each concentration raised to a power equal to its stoichiometric coefficient
-    for each reaction using the provided coefficient and abundance values.
+    for each reaction using the provided coefficient and abundance values. The value is then normalized, based on how frequent the metabolite is in the selected model's reactions,
+    and log-transformed.
 
     Parameters:
         reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and stoichiometric coefficients as values.
         abundances (dict): A dictionary representing metabolite abundances where keys are metabolite names and values are their corresponding abundances.
         black_list (list): A list containing metabolite names that should be excluded from the RPS calculation.
         missing_list (list): A list containing metabolite names that were missing in the original abundances dictionary and thus their values were set to 1.
-
+        substrateFreqTable (dict): A dictionary where each metabolite name (key) is associated with how many times it shows up in the model's reactions (value).
+        
     Returns:
         dict: A dictionary containing Reaction Propensity Scores (RPS) where keys are reaction names and values are the corresponding RPS scores.
     """
     rps_scores = {}
- 
+
     for reaction_name, substrates in reactions.items():
         total_contribution = 1
-        metab_significant = False
+        metab_significant  = False
         for metabolite, stoichiometry in substrates.items():
-            temp = 1 if math.isnan(abundances[metabolite]) else abundances[metabolite]
+            abundance = 1 if math.isnan(abundances[metabolite]) else abundances[metabolite]
             if metabolite not in black_list and metabolite not in missing_list:
-              metab_significant = True
-            total_contribution *= temp ** stoichiometry
+                metab_significant = True
+            
+            total_contribution += math.log((abundance + np.finfo(float).eps) / substrateFreqTable[metabolite]) * stoichiometry
         
         rps_scores[reaction_name] = total_contribution if metab_significant else math.nan
     
     return rps_scores
 
-
 ############################ rps_for_cell_lines ####################################
-def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, int]], black_list: List[str], syn_dict: Dict[str, List[str]]) -> None:
+def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, int]], black_list: List[str], syn_dict: Dict[str, List[str]], substrateFreqTable: Dict[str, int]) -> None:
     """
     Calculate Reaction Propensity Scores (RPS) for each cell line represented in the dataframe and creates an output file.
 
@@ -198,6 +194,7 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
         reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and stoichiometric coefficients as values.
         black_list (list): A list containing metabolite names that should be excluded from the RPS calculation.
         syn_dict (dict): A dictionary where keys are general metabolite names and values are lists of possible synonyms.
+        substrateFreqTable (dict): A dictionary where each metabolite name (key) is associated with how many times it shows up in the model's reactions (value).
 
     Returns:
         None
@@ -215,10 +212,10 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     rps_scores :Dict[Dict[str, float]] = {}
     for pos, cell_line_name in enumerate(cell_lines):
         abundances = { metab : abundances[pos] for metab, abundances in abundances_dict.items() }
-        rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list)
+        rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list, substrateFreqTable)
     
     df = pd.DataFrame.from_dict(rps_scores)
-
+    
     df.index.name = 'Reactions'
     df.to_csv(ARGS.rps_output, sep='\t', na_rep='None', index=True)
 
@@ -244,13 +241,18 @@ def main(args:List[str] = None) -> None:
 
     if ARGS.reaction_choice == 'default':
         reactions = pk.load(open(ARGS.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
+        substrateFreqTable = pk.load(open(ARGS.tool_dir + '/local/pickle files/substrate_frequencies.pickle', 'rb'))
     
     elif ARGS.reaction_choice == 'custom':
         reactions = reactionUtils.parse_custom_reactions(ARGS.custom)
-    
-    rps_for_cell_lines(dataset, reactions, black_list, syn_dict)
+        substrateFreqTable = {}
+        for _, substrates in reactions.items():
+            for substrateName, _ in substrates.items():
+                if substrateName not in substrateFreqTable: substrateFreqTable[substrateName] = 0
+                substrateFreqTable[substrateName] += 1
+
+    rps_for_cell_lines(dataset, reactions, black_list, syn_dict, substrateFreqTable)
     print('Execution succeded')
 
 ##############################################################################
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
