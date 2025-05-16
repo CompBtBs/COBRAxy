@@ -625,12 +625,18 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
             # Perform Kolmogorov-Smirnov test
             _, p_value = st.ks_2samp(dataset1Data, dataset2Data)
         case "ttest_p":
+            # Datasets should have same size
+            if len(dataset1Data) != len(dataset2Data):
+                raise ValueError("Datasets must have the same size for paired t-test.")
             # Perform t-test for paired samples
             _, p_value = st.ttest_rel(dataset1Data, dataset2Data)
         case "ttest_ind":
             # Perform t-test for independent samples
             _, p_value = st.ttest_ind(dataset1Data, dataset2Data)
         case "wilcoxon":
+            # Datasets should have same size
+            if len(dataset1Data) != len(dataset2Data):
+                raise ValueError("Datasets must have the same size for Wilcoxon signed-rank test.")
             # Perform Wilcoxon signed-rank test
             _, p_value = st.wilcoxon(dataset1Data, dataset2Data)
         case "mw":
@@ -679,7 +685,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
         pValues = [comparisonResult[reactId][0] for reactId in reactIds]
         
         # Apply the Benjamini-Hochberg correction and update
-        adjustedPValues = st.multipletests(pValues, method="fdr_bh")[1]
+        adjustedPValues = st.false_discovery_control(pValues)[1]
         for i, reactId in enumerate(reactIds):
             comparisonResult[reactId][0] = adjustedPValues[i]
     
