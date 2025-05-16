@@ -62,8 +62,8 @@
 			--generate_pdf ${advanced.generatePdf}
 		#else 
 			--test 'ks'
-			--adjusted false
 			--pValue 0.05
+			--adjusted false
 			--fChange 1.2
 			--generate_svg false
 			--generate_pdf true
