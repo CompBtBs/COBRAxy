@@ -782,16 +782,15 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     # Apply multiple testing correction if set by the user
     if ARGS.adjusted:
         
-        # Retrieve the p-values from the datasetScores dictionary
-        reactIds = list(datasetScores.keys())
-        pValues = [datasetScores[reactId][0] for reactId in reactIds]
+        # Retrieve the p-values from the comparisonResult dictionary
+        reactIds = list(comparisonResult.keys())
+        pValues = [comparisonResult[reactId][0] for reactId in reactIds]
         
         # Apply the Benjamini-Hochberg correction and update
         adjustedPValues = st.multipletests(pValues, method="fdr_bh")[1]
         for i, reactId in enumerate(reactIds):
-            datasetScores[reactId][0] = adjustedPValues[i]
+            comparisonResult[reactId][0] = adjustedPValues[i]
 
-    return datasetScores, max_z_score
     return comparisonResult, max_z_score
 
 def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:

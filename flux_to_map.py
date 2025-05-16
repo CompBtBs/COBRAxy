@@ -653,7 +653,7 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
 
 def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
     #TODO: the following code still suffers from "dumbvarnames-osis"
-    datasetScores :Dict[str, List[Union[float, FoldChange]]] = {}
+    comparisonResult :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_z_score = 0
     for l1, l2 in zip(dataset1Data, dataset2Data):
@@ -668,22 +668,22 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
             f_c = fold_change(avg1, avg2)
             if np.isfinite(z_score) and max_z_score < abs(z_score): max_z_score = abs(z_score)
             
-            datasetScores[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
+            comparisonResult[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
         except (TypeError, ZeroDivisionError): continue
 
     # Apply multiple testing correction if set by the user
     if ARGS.adjusted:
         
-        # Retrive the p-values from the datasetScores dictionary
-        reactIds = list(datasetScores.keys())
-        pValues = [datasetScores[reactId][0] for reactId in reactIds]
+        # Retrive the p-values from the comparisonResult dictionary
+        reactIds = list(comparisonResult.keys())
+        pValues = [comparisonResult[reactId][0] for reactId in reactIds]
         
         # Apply the Benjamini-Hochberg correction and update
         adjustedPValues = st.multipletests(pValues, method="fdr_bh")[1]
         for i, reactId in enumerate(reactIds):
-            datasetScores[reactId][0] = adjustedPValues[i]
+            comparisonResult[reactId][0] = adjustedPValues[i]
     
-    return datasetScores, max_z_score
+    return comparisonResult, max_z_score
 
 def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -> List[Tuple[str, str, dict, float]]:
     """
