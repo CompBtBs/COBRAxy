@@ -776,9 +776,9 @@ def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dat
 
     # Prepare and run pyDESeq2
     inference = DefaultInference()
-    dds = DeseqDataSet(counts=dataframe, metadata=metadata, design="~dataset", inference=inference)
+    dds = DeseqDataSet(counts=dataframe, metadata=metadata, design="~dataset", inference=inference, quiet=True, low_memory=True)
     dds.deseq2()
-    ds = DeseqStats(dds, contrast=["dataset", "dataset1", "dataset2"], inference=inference)
+    ds = DeseqStats(dds, contrast=["dataset", "dataset1", "dataset2"], inference=inference, quiet=True)
     ds.summary()
 
     # Retrieve the p-values from the DESeq2 results
