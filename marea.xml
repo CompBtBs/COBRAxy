@@ -185,6 +185,7 @@
 					<option value="ttest_ind">T-test (unpaired)</option>
 					<option value="wilcoxon">Wilcoxon</option>
 					<option value="mw">Mann-Whitney</option>
+					<option value="DESeq">DESeq2 like statistical test</option>
 				</param>
 				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
 				<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
