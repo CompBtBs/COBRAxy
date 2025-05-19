@@ -748,6 +748,43 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
     
     return p_value, z_score
 
+def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> None:
+    """
+    Computes the p-value for each reaction in the comparisonResult dictionary using DESeq2.
+
+    Args:
+        comparisonResult : dictionary mapping a p-value and a fold-change value (values) to each reaction ID as encoded in the SVG map (keys)
+        dataset1Data : data from the 1st dataset.
+        dataset2Data : data from the 2nd dataset.
+        ids : list of reaction IDs.
+
+    Returns:
+        None : mutates the comparisonResult dictionary in place with the p-values.
+    """
+
+    # pyDESeq2 is based on pandas, so we need to convert the data into a DataFrame and clean it from NaN values
+    dataframe1 = pd.DataFrame(dataset1Data, index=ids)
+    dataframe2 = pd.DataFrame(dataset2Data, index=ids)
+
+    dataframe1_clean = dataframe1.dropna(axis=0, how="any").T.astype(int)
+    dataframe2_clean = dataframe2.dropna(axis=0, how="any").T.astype(int)
+
+    # pyDESeq2 works on a DataFrame with values and another with infos about samples and conditions
+    dataframe = pd.concat([dataframe1_clean, dataframe2_clean], axis=0)
+    metadata = pd.DataFrame(np.concatenate([np.full(dataframe1_clean.shape[0], "dataset1"), np.full(dataframe2_clean.shape[0], "dataset2")]), columns=["dataset"])
+    metadata.index = dataframe.index
+
+    # Prepare and run pyDESeq2
+    inference = DefaultInference()
+    dds = DeseqDataSet(counts=dataframe, metadata=metadata, design="~dataset", inference=inference)
+    dds.deseq2()
+    ds = DeseqStats(dds, contrast=["dataset", "dataset1", "dataset2"], inference=inference)
+    ds.summary()
+
+    # Retrieve the p-values from the DESeq2 results
+    for reactId in ds.results_df.index:
+        comparisonResult[reactId][0] = ds.results_df["pvalue"][reactId]
+
 def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
   
     #TODO: the following code still suffers from "dumbvarnames-osis"
@@ -795,36 +832,13 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
         except (TypeError, ZeroDivisionError): continue
     
     if ARGS.test == "DESeq":
-        dataframe1 = pd.DataFrame(dataset1Data, index=ids)
-        dataframe2 = pd.DataFrame(dataset2Data, index=ids)
-
-        dataframe1_clean = dataframe1.dropna(axis=0, how="any").T.astype(int)
-        dataframe2_clean = dataframe2.dropna(axis=0, how="any").T.astype(int)
-
-        dataframe = pd.concat([dataframe1_clean, dataframe2_clean], axis=0)
-        metadata = pd.DataFrame(np.concatenate([np.full(dataframe1_clean.shape[0], "dataset1"), np.full(dataframe2_clean.shape[0], "dataset2")]), columns=["dataset"])
-        metadata.index = dataframe.index
-        inference = DefaultInference()
-        dds = DeseqDataSet(counts=dataframe, metadata=metadata, design="~dataset", inference=inference)
-
-        dds.deseq2()
-
-        ds = DeseqStats(dds, contrast=["dataset", "dataset1", "dataset2"], inference=inference)
-        ds.summary()
-
-        for reactId in ds.results_df.index:
-            comparisonResult[reactId][0] = ds.results_df["pvalue"][reactId]
-       
+        # Compute p-values using DESeq2
+        DESeqPValue(comparisonResult, dataset1Data, dataset2Data, ids)
 
     # Apply multiple testing correction if set by the user
     if ARGS.adjusted:
-        
         # Retrieve the p-values from the comparisonResult dictionary, they have to be different from NaN
         validPValues = [(reactId, result[0]) for reactId, result in comparisonResult.items() if not np.isnan(result[0])]
-
-        if not validPValues:
-            return comparisonResult, max_z_score
-        
         # Unpack the valid p-values
         reactIds, pValues = zip(*validPValues)
         # Adjust the p-values using the Benjamini-Hochberg method
