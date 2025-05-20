@@ -1002,9 +1002,11 @@ def main(args:List[str] = None) -> None:
             writeToCsv(
                 [[reactId, *netValues] for reactId, netValues in rows.items()],
                 # vvv In weird comparison modes the dataset names are not recorded properly..
-                columnNames.get(datasetName, ["Reactions", "other cool column names.."]),
+                columnNames.get(datasetName, ["Reactions"]),
                 utils.FilePath(
-                    datasetName, ext = utils.FileFormat.CSV, prefix = ARGS.output_path))
+                    "Net_RPS_" + datasetName,
+                    ext = utils.FileFormat.CSV,
+                    prefix = ARGS.output_path))
 
     print('Execution succeeded')
 ###############################################################################
