@@ -12,6 +12,7 @@
 		<requirement type="package" version="2.2.3">pyvips</requirement>
 		<requirement type="package" version="2.7.1">cairosvg</requirement>
 		<requirement type="package" version="0.29.0">cobra</requirement>
+		<requirement type="package" version="0.5.1">pydeseq2</requirement>
 	</requirements>
 	
 	<command detect_errors="exit_code">
