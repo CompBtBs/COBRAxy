@@ -271,8 +271,8 @@ class ArrowColor(Enum):
     """
     Encodes possible arrow colors based on their meaning in the enrichment process.
     """
-    Invalid       = "#BEBEBE" # gray, fold-change under treshold
-    Transparent   = "#ffffff00" # white, not significant p-value
+    Invalid       = "#BEBEBE" # gray, fold-change under treshold or not significant p-value
+    Transparent   = "#ffffff00" # transparent, to make some arrow segments disappear
     UpRegulated   = "#ecac68" # red, up-regulated reaction
     DownRegulated = "#6495ed" # blue, down-regulated reaction
 
