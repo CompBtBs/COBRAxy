@@ -10,7 +10,7 @@
 		<requirement type="package" version="0.29.0">cobra</requirement>
         <requirement type="package" version="5.2.2">lxml</requirement>
         <requirement type="package" version="1.4.2">joblib</requirement>
-        <requirement type="package" version="1.10.1">scipy</requirement>
+        <requirement type="package" version="1.11">scipy</requirement>
 	</requirements>
 
     <command detect_errors="exit_code">
