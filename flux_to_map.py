@@ -680,14 +680,19 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     # Apply multiple testing correction if set by the user
     if ARGS.adjusted:
         
-        # Retrive the p-values from the comparisonResult dictionary
-        reactIds = list(comparisonResult.keys())
-        pValues = [comparisonResult[reactId][0] for reactId in reactIds]
+        # Retrieve the p-values from the comparisonResult dictionary, they have to be different from NaN
+        validPValues = [(reactId, result[0]) for reactId, result in comparisonResult.items() if not np.isnan(result[0])]
+
+        if not validPValues:
+            return comparisonResult, max_z_score
         
-        # Apply the Benjamini-Hochberg correction and update
-        adjustedPValues = st.false_discovery_control(pValues)[1]
-        for i, reactId in enumerate(reactIds):
-            comparisonResult[reactId][0] = adjustedPValues[i]
+        # Unpack the valid p-values
+        reactIds, pValues = zip(*validPValues)
+        # Adjust the p-values using the Benjamini-Hochberg method
+        adjustedPValues = st.false_discovery_control(pValues)
+        # Update the comparisonResult dictionary with the adjusted p-values
+        for reactId , adjustedPValue in zip(reactIds, adjustedPValues):
+            comparisonResult[reactId][0] = adjustedPValue
     
     return comparisonResult, max_z_score
 

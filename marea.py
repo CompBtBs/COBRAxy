@@ -17,6 +17,10 @@ import pyvips
 from typing import Tuple, Union, Optional, List, Dict
 import copy
 
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.default_inference import DefaultInference
+from pydeseq2.ds import DeseqStats
+
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
@@ -55,7 +59,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         '-te' ,'--test',
         type = str, 
         default = 'ks', 
-        choices = ['ks', 'ttest_p', 'ttest_ind', 'wilcoxon', 'mw'],
+        choices = ['ks', 'ttest_p', 'ttest_ind', 'wilcoxon', 'mw', 'DESeq'],
         help = 'Statistical test to use (default: %(default)s)')
     
     parser.add_argument(
@@ -729,6 +733,8 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
         case "mw":
             # Perform Mann-Whitney U test
             _, p_value = st.mannwhitneyu(dataset1Data, dataset2Data)
+        case _:
+            p_value = np.nan # Default value if no valid test is selected
     
     # Calculate means and standard deviations
     mean1 = np.mean(dataset1Data)
@@ -744,8 +750,48 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
     
     return p_value, z_score
 
+
+def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> None:
+    """
+    Computes the p-value for each reaction in the comparisonResult dictionary using DESeq2.
+
+    Args:
+        comparisonResult : dictionary mapping a p-value and a fold-change value (values) to each reaction ID as encoded in the SVG map (keys)
+        dataset1Data : data from the 1st dataset.
+        dataset2Data : data from the 2nd dataset.
+        ids : list of reaction IDs.
+
+    Returns:
+        None : mutates the comparisonResult dictionary in place with the p-values.
+    """
+
+    # pyDESeq2 is based on pandas, so we need to convert the data into a DataFrame and clean it from NaN values
+    dataframe1 = pd.DataFrame(dataset1Data, index=ids)
+    dataframe2 = pd.DataFrame(dataset2Data, index=ids)
+
+    dataframe1_clean = dataframe1.dropna(axis=0, how="any").T.astype(int)
+    dataframe2_clean = dataframe2.dropna(axis=0, how="any").T.astype(int)
+
+    # pyDESeq2 works on a DataFrame with values and another with infos about samples and conditions
+    dataframe = pd.concat([dataframe1_clean, dataframe2_clean], axis=0)
+    metadata = pd.DataFrame(np.concatenate([np.full(dataframe1_clean.shape[0], "dataset1"), np.full(dataframe2_clean.shape[0], "dataset2")]), columns=["dataset"])
+    metadata.index = dataframe.index
+
+    # Prepare and run pyDESeq2
+    inference = DefaultInference()
+    dds = DeseqDataSet(counts=dataframe, metadata=metadata, design="~dataset", inference=inference, quiet=True, low_memory=True)
+    dds.deseq2()
+    ds = DeseqStats(dds, contrast=["dataset", "dataset1", "dataset2"], inference=inference, quiet=True)
+    ds.summary()
+
+    # Retrieve the p-values from the DESeq2 results
+    for reactId in ds.results_df.index:
+        comparisonResult[reactId][0] = ds.results_df["pvalue"][reactId]
+
+
 # TODO: the net RPS computation should be done in the RPS module
 def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float, Dict[str, Tuple[np.ndarray, np.ndarray]]]:
+
     #TODO: the following code still suffers from "dumbvarnames-osis"
     netRPS :Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
     comparisonResult :Dict[str, List[Union[float, FoldChange]]] = {}
@@ -768,6 +814,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
                 nets2 = np.subtract(l2, dataset2Data[position])
                 netRPS[reactId] = (nets1, nets2)
 
+                # Compute p-value and z-score for the RPS scores, if the pyDESeq option is set, p-values will be computed after and this function will return p_value = 0
                 p_value, z_score = computePValue(nets1, nets2)
                 avg1 = sum(nets1)   / len(nets1)
                 avg2 = sum(nets2)   / len(nets2)
@@ -782,6 +829,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
                     continue
 
             # fallthrough is intended, regular scores need to be computed when tips aren't net but RAS datasets aren't used
+            # Compute p-value and z-score for the RAS scores, if the pyDESeq option is set, p-values will be computed after and this function will return p_value = 0
             p_value, z_score = computePValue(l1, l2)
             avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
             # vvv TODO: Check numpy version compatibility
@@ -790,17 +838,22 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
         
         except (TypeError, ZeroDivisionError): continue
     
+    if ARGS.test == "DESeq":
+        # Compute p-values using DESeq2
+        DESeqPValue(comparisonResult, dataset1Data, dataset2Data, ids)
+
     # Apply multiple testing correction if set by the user
     if ARGS.adjusted:
-        
-        # Retrieve the p-values from the comparisonResult dictionary
-        reactIds = list(comparisonResult.keys())
-        pValues = [comparisonResult[reactId][0] for reactId in reactIds]
-        
-        # Apply the Benjamini-Hochberg correction and update
-        adjustedPValues = st.false_discovery_control(pValues)[1]
-        for i, reactId in enumerate(reactIds):
-            comparisonResult[reactId][0] = adjustedPValues[i]
+
+        # Retrieve the p-values from the comparisonResult dictionary, they have to be different from NaN
+        validPValues = [(reactId, result[0]) for reactId, result in comparisonResult.items() if not np.isnan(result[0])]
+        # Unpack the valid p-values
+        reactIds, pValues = zip(*validPValues)
+        # Adjust the p-values using the Benjamini-Hochberg method
+        adjustedPValues = st.false_discovery_control(pValues)
+        # Update the comparisonResult dictionary with the adjusted p-values
+        for reactId , adjustedPValue in zip(reactIds, adjustedPValues):
+            comparisonResult[reactId][0] = adjustedPValue
 
     return comparisonResult, max_z_score, netRPS
 
