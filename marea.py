@@ -732,7 +732,7 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
             # Perform Mann-Whitney U test
             _, p_value = st.mannwhitneyu(dataset1Data, dataset2Data)
         case _:
-            p_value = 0.0 # Default value if no valid test is selected
+            p_value = np.nan # Default value if no valid test is selected
     
     # Calculate means and standard deviations
     mean1 = np.mean(dataset1Data)
@@ -785,9 +785,10 @@ def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dat
     for reactId in ds.results_df.index:
         comparisonResult[reactId][0] = ds.results_df["pvalue"][reactId]
 
-def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
+def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float, Dict[str, Tuple[np.ndarray, np.ndarray]]]:
   
     #TODO: the following code still suffers from "dumbvarnames-osis"
+    netRPS :Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
     comparisonResult :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_z_score = 0
@@ -806,6 +807,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
 
                 nets1 = np.subtract(l1, dataset1Data[position])
                 nets2 = np.subtract(l2, dataset2Data[position])
+                netRPS[reactId] = (nets1, nets2)
 
                 # Compute p-value and z-score for the RPS scores, if the pyDESeq option is set, p-values will be computed after and this function will return p_value = 0
                 p_value, z_score = computePValue(nets1, nets2)
@@ -847,7 +849,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
         for reactId , adjustedPValue in zip(reactIds, adjustedPValues):
             comparisonResult[reactId][0] = adjustedPValue
 
-    return comparisonResult, max_z_score
+    return comparisonResult, max_z_score, netRPS
 
 def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
     """
