@@ -772,11 +772,12 @@ def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dat
     # pyDESeq2 is based on pandas, so we need to convert the data into a DataFrame and clean it from NaN values
     dataframe1 = pd.DataFrame(dataset1Data, index=ids)
     dataframe2 = pd.DataFrame(dataset2Data, index=ids)
-
+    
+    # pyDESeq2 requires datasets to be samples x reactions and integer values
     dataframe1_clean = dataframe1.dropna(axis=0, how="any").T.astype(int)
     dataframe2_clean = dataframe2.dropna(axis=0, how="any").T.astype(int)
 
-    # pyDESeq2 works on a DataFrame with values and another with infos about samples and conditions
+    # pyDESeq2 works on a DataFrame with values and another with infos about how samples are split
     dataframe = pd.concat([dataframe1_clean, dataframe2_clean], axis=0)
     metadata = pd.DataFrame(np.concatenate([np.full(dataframe1_clean.shape[0], "dataset1"), np.full(dataframe2_clean.shape[0], "dataset2")]), columns=["dataset"])
     metadata.index = dataframe.index
