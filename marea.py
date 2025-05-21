@@ -765,6 +765,10 @@ def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dat
         None : mutates the comparisonResult dictionary in place with the p-values.
     """
 
+    # pyDESeq2 needs at least 2 replicates per sample so I check this
+    if len(dataset1Data[0]) < 2 or len(dataset2Data[0]) < 2:
+        raise ValueError("Datasets must have at least 2 replicates each")
+
     # pyDESeq2 is based on pandas, so we need to convert the data into a DataFrame and clean it from NaN values
     dataframe1 = pd.DataFrame(dataset1Data, index=ids)
     dataframe2 = pd.DataFrame(dataset2Data, index=ids)
