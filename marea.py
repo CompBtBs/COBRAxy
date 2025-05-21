@@ -568,16 +568,22 @@ def split_class(classes :pd.DataFrame, dataset_values :Dict[str, List[float]]) -
         if pd.isnull(classe): continue
 
         l :List[List[float]] = []
+        sample_ids: List[str] = []
+
         for j in range(i, len(classes)):
             if classes.iloc[j, 1] == classe:
                 pat_id :str = classes.iloc[j, 0] # sample name
                 values = dataset_values.get(pat_id, None) # the column of values for that sample
                 if values != None:
                     l.append(values)
+                    sample_ids.append(pat_id)
                 classes.iloc[j, 1] = None # TODO: problems?
         
         if l:
-            class_pat[classe] = list(map(list, zip(*l)))
+            class_pat[classe] = {
+                "values": list(map(list, zip(*l))),  # trasposta
+                "samples": sample_ids
+            }
             continue
         
         utils.logWarning(
@@ -957,8 +963,11 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
 
         values, ids = getDatasetValues(datasetPath, "Dataset Class (not actual name)")
         if values != None:
-            # TODO: add the columnNames thing, I didn't because I don't understand the whole "dataset classes" thing
-            class_pat = split_class(classes, values)
+            class_pat_with_samples_id = split_class(classes, values)
+
+            for clas, values_and_samples_id in class_pat_with_samples_id.items():
+                class_pat[clas] = values_and_samples_id["values"]
+                columnNames[clas] = values_and_samples_id["samples"]
     
     return ids, class_pat, columnNames
     #^^^ TODO: this could be a match statement over an enum, make it happen future marea dev with python 3.12! (it's why I kept the ifs)
