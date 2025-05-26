@@ -771,17 +771,27 @@ def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dat
         None : mutates the comparisonResult dictionary in place with the p-values.
     """
 
+    # pyDESeq2 needs at least 2 replicates per sample so I check this
+    if len(dataset1Data[0]) < 2 or len(dataset2Data[0]) < 2:
+        raise ValueError("Datasets must have at least 2 replicates each")
+
     # pyDESeq2 is based on pandas, so we need to convert the data into a DataFrame and clean it from NaN values
     dataframe1 = pd.DataFrame(dataset1Data, index=ids)
     dataframe2 = pd.DataFrame(dataset2Data, index=ids)
-
+    
+    # pyDESeq2 requires datasets to be samples x reactions and integer values
     dataframe1_clean = dataframe1.dropna(axis=0, how="any").T.astype(int)
     dataframe2_clean = dataframe2.dropna(axis=0, how="any").T.astype(int)
+    dataframe1_clean.index = [f"ds1_rep{i+1}" for i in range(dataframe1_clean.shape[0])]
+    dataframe2_clean.index = [f"ds2_rep{j+1}" for j in range(dataframe2_clean.shape[0])]
 
-    # pyDESeq2 works on a DataFrame with values and another with infos about samples and conditions
+    # pyDESeq2 works on a DataFrame with values and another with infos about how samples are split (like dataset class)
     dataframe = pd.concat([dataframe1_clean, dataframe2_clean], axis=0)
-    metadata = pd.DataFrame(np.concatenate([np.full(dataframe1_clean.shape[0], "dataset1"), np.full(dataframe2_clean.shape[0], "dataset2")]), columns=["dataset"])
-    metadata.index = dataframe.index
+    metadata = pd.DataFrame({"dataset": (["dataset1"]*dataframe1_clean.shape[0] + ["dataset2"]*dataframe2_clean.shape[0])}, index=dataframe.index)
+
+    # Ensure the index of the metadata matches the index of the dataframe
+    if not dataframe.index.equals(metadata.index):
+        raise ValueError("The index of the metadata DataFrame must match the index of the counts DataFrame.")
 
     # Prepare and run pyDESeq2
     inference = DefaultInference()
