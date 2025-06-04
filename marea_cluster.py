@@ -59,14 +59,14 @@ def process_args(args_in :List[str] = None) -> argparse.Namespace:
     
     parser.add_argument('-el', '--elbow', 
                         type = str,
-                        default = 'False',
-                        choices = ['True', 'False'],
+                        default = 'false',
+                        choices = ['true', 'false'],
                         help = 'choose if you want to generate an elbow plot for kmeans')
     
     parser.add_argument('-si', '--silhouette', 
                         type = str,
-                        default = 'False',
-                        choices = ['True', 'False'],
+                        default = 'false',
+                        choices = ['true', 'false'],
                         help = 'choose if you want silhouette plots')
     
     parser.add_argument('-td', '--tool_dir',
@@ -224,12 +224,12 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
         os.makedirs(args.output_path)
     
         
-    if elbow == 'True':
+    if elbow == 'true':
         elbow = True
     else:
         elbow = False
         
-    if silhouette == 'True':
+    if silhouette == 'true':
         silhouette = True
     else:
         silhouette = False
@@ -477,7 +477,7 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
         prefix = ''
         if (i + k_min == best):
             prefix = '_BEST'
-        if silhouette == 'True':
+        if silhouette == 'true':
             silhouette_draw(dataset, labels[i], i + k_min, f'{args.output_path}/silhouette_with_' + str(i + k_min) + prefix + '_clusters.png')
      
     for i in range(len(labels)):
