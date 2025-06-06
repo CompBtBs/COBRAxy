@@ -963,7 +963,7 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
             values, ids = getDatasetValues(path, name)
             if values != None:
                 class_pat[name]   = list(map(list, zip(*values.values()))) # TODO: ???
-                columnNames[name] = list(values.keys())
+                columnNames[name] = ["Reactions", *values.keys()]
             
             num += 1
     
@@ -977,7 +977,7 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
 
             for clas, values_and_samples_id in class_pat_with_samples_id.items():
                 class_pat[clas] = values_and_samples_id["values"]
-                columnNames[clas] = values_and_samples_id["samples"]
+                columnNames[clas] = ["Reactions", *values_and_samples_id["samples"]]
     
     return ids, class_pat, columnNames
     #^^^ TODO: this could be a match statement over an enum, make it happen future marea dev with python 3.12! (it's why I kept the ifs)
