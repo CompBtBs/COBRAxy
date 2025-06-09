@@ -17,6 +17,10 @@ import pyvips
 from typing import Tuple, Union, Optional, List, Dict
 import copy
 
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.default_inference import DefaultInference
+from pydeseq2.ds import DeseqStats
+
 ERRORS = []
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
@@ -55,7 +59,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         '-te' ,'--test',
         type = str, 
         default = 'ks', 
-        choices = ['ks', 'ttest_p', 'ttest_ind', 'wilcoxon', 'mw'],
+        choices = ['ks', 'ttest_p', 'ttest_ind', 'wilcoxon', 'mw', 'DESeq'],
         help = 'Statistical test to use (default: %(default)s)')
     
     parser.add_argument(
@@ -63,6 +67,11 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type = float, 
         default = 0.1, 
         help = 'P-Value threshold (default: %(default)s)')
+
+    parser.add_argument(
+        '-adj' ,'--adjusted',
+        type = utils.Bool("adjusted"), default = False, 
+        help = 'Apply the FDR (Benjamini-Hochberg) correction (default: %(default)s)')
     
     parser.add_argument(
         '-fc', '--fChange',
@@ -387,7 +396,8 @@ class ArrowColor(Enum):
     """
     Encodes possible arrow colors based on their meaning in the enrichment process.
     """
-    Invalid       = "#BEBEBE" # gray, fold-change under treshold
+    Invalid       = "#BEBEBE" # gray, fold-change under treshold or not significant p-value
+    Transparent   = "#ffffff00" # transparent, to make some arrow segments disappear
     UpRegulated   = "#ecac68" # orange, up-regulated reaction
     DownRegulated = "#6495ed" # lightblue, down-regulated reaction
 
@@ -474,8 +484,9 @@ class Arrow:
 
 # vvv These constants could be inside the class itself a static properties, but python
 # was built by brainless organisms so here we are!
-INVALID_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
+INVALID_ARROW       = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
 INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
+TRANSPARENT_ARROW   = Arrow(Arrow.MIN_W, ArrowColor.Transparent) # Who cares how big it is if it's transparent
 
 # TODO: A more general version of this can be used for RAS as well, we don't need "fix map" or whatever
 def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float) -> None:
@@ -557,16 +568,22 @@ def split_class(classes :pd.DataFrame, dataset_values :Dict[str, List[float]]) -
         if pd.isnull(classe): continue
 
         l :List[List[float]] = []
+        sample_ids: List[str] = []
+
         for j in range(i, len(classes)):
             if classes.iloc[j, 1] == classe:
                 pat_id :str = classes.iloc[j, 0] # sample name
                 values = dataset_values.get(pat_id, None) # the column of values for that sample
                 if values != None:
                     l.append(values)
+                    sample_ids.append(pat_id)
                 classes.iloc[j, 1] = None # TODO: problems?
         
         if l:
-            class_pat[classe] = list(map(list, zip(*l)))
+            class_pat[classe] = {
+                "values": list(map(list, zip(*l))),  # trasposta
+                "samples": sample_ids
+            }
             continue
         
         utils.logWarning(
@@ -673,7 +690,7 @@ def temp_thingsInCommon(tmp :OldEnrichedScores, core_map :ET.ElementTree, max_z_
     suffix = "RAS" if ras_enrichment else "RPS"
     writeToCsv(
         [ [reactId] + values for reactId, values in tmp.items() ],
-        ["ids", "P_Value", "fold change", "average_1", "average_2"],
+        ["ids", "P_Value", "fold change", "z-score", "average_1", "average_2"],
         buildOutputPath(dataset1Name, dataset2Name, details = f"Tabular Result ({suffix})", ext = utils.FileFormat.TSV))
     
     if ras_enrichment:
@@ -705,17 +722,25 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
             # Perform Kolmogorov-Smirnov test
             _, p_value = st.ks_2samp(dataset1Data, dataset2Data)
         case "ttest_p":
+            # Datasets should have same size
+            if len(dataset1Data) != len(dataset2Data):
+                raise ValueError("Datasets must have the same size for paired t-test.")
             # Perform t-test for paired samples
             _, p_value = st.ttest_rel(dataset1Data, dataset2Data)
         case "ttest_ind":
             # Perform t-test for independent samples
             _, p_value = st.ttest_ind(dataset1Data, dataset2Data)
         case "wilcoxon":
+            # Datasets should have same size
+            if len(dataset1Data) != len(dataset2Data):
+                raise ValueError("Datasets must have the same size for Wilcoxon signed-rank test.")
             # Perform Wilcoxon signed-rank test
             _, p_value = st.wilcoxon(dataset1Data, dataset2Data)
         case "mw":
             # Perform Mann-Whitney U test
             _, p_value = st.mannwhitneyu(dataset1Data, dataset2Data)
+        case _:
+            p_value = np.nan # Default value if no valid test is selected
     
     # Calculate means and standard deviations
     mean1 = np.mean(dataset1Data)
@@ -731,8 +756,60 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
     
     return p_value, z_score
 
-def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
+
+def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> None:
+    """
+    Computes the p-value for each reaction in the comparisonResult dictionary using DESeq2.
+
+    Args:
+        comparisonResult : dictionary mapping a p-value and a fold-change value (values) to each reaction ID as encoded in the SVG map (keys)
+        dataset1Data : data from the 1st dataset.
+        dataset2Data : data from the 2nd dataset.
+        ids : list of reaction IDs.
+
+    Returns:
+        None : mutates the comparisonResult dictionary in place with the p-values.
+    """
+
+    # pyDESeq2 needs at least 2 replicates per sample so I check this
+    if len(dataset1Data[0]) < 2 or len(dataset2Data[0]) < 2:
+        raise ValueError("Datasets must have at least 2 replicates each")
+
+    # pyDESeq2 is based on pandas, so we need to convert the data into a DataFrame and clean it from NaN values
+    dataframe1 = pd.DataFrame(dataset1Data, index=ids)
+    dataframe2 = pd.DataFrame(dataset2Data, index=ids)
+    
+    # pyDESeq2 requires datasets to be samples x reactions and integer values
+    dataframe1_clean = dataframe1.dropna(axis=0, how="any").T.astype(int)
+    dataframe2_clean = dataframe2.dropna(axis=0, how="any").T.astype(int)
+    dataframe1_clean.index = [f"ds1_rep{i+1}" for i in range(dataframe1_clean.shape[0])]
+    dataframe2_clean.index = [f"ds2_rep{j+1}" for j in range(dataframe2_clean.shape[0])]
+
+    # pyDESeq2 works on a DataFrame with values and another with infos about how samples are split (like dataset class)
+    dataframe = pd.concat([dataframe1_clean, dataframe2_clean], axis=0)
+    metadata = pd.DataFrame({"dataset": (["dataset1"]*dataframe1_clean.shape[0] + ["dataset2"]*dataframe2_clean.shape[0])}, index=dataframe.index)
+
+    # Ensure the index of the metadata matches the index of the dataframe
+    if not dataframe.index.equals(metadata.index):
+        raise ValueError("The index of the metadata DataFrame must match the index of the counts DataFrame.")
+
+    # Prepare and run pyDESeq2
+    inference = DefaultInference()
+    dds = DeseqDataSet(counts=dataframe, metadata=metadata, design="~dataset", inference=inference, quiet=True, low_memory=True)
+    dds.deseq2()
+    ds = DeseqStats(dds, contrast=["dataset", "dataset1", "dataset2"], inference=inference, quiet=True)
+    ds.summary()
+
+    # Retrieve the p-values from the DESeq2 results
+    for reactId in ds.results_df.index:
+        comparisonResult[reactId][0] = ds.results_df["pvalue"][reactId]
+
+
+# TODO: the net RPS computation should be done in the RPS module
+def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float, Dict[str, Tuple[np.ndarray, np.ndarray]]]:
+
     #TODO: the following code still suffers from "dumbvarnames-osis"
+    netRPS :Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
     comparisonResult :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_z_score = 0
@@ -751,7 +828,9 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
 
                 nets1 = np.subtract(l1, dataset1Data[position])
                 nets2 = np.subtract(l2, dataset2Data[position])
+                netRPS[reactId] = (nets1, nets2)
 
+                # Compute p-value and z-score for the RPS scores, if the pyDESeq option is set, p-values will be computed after and this function will return p_value = 0
                 p_value, z_score = computePValue(nets1, nets2)
                 avg1 = sum(nets1)   / len(nets1)
                 avg2 = sum(nets2)   / len(nets2)
@@ -766,6 +845,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
                     continue
 
             # fallthrough is intended, regular scores need to be computed when tips aren't net but RAS datasets aren't used
+            # Compute p-value and z-score for the RAS scores, if the pyDESeq option is set, p-values will be computed after and this function will return p_value = 0
             p_value, z_score = computePValue(l1, l2)
             avg = fold_change(sum(l1) / len(l1), sum(l2) / len(l2))
             # vvv TODO: Check numpy version compatibility
@@ -774,9 +854,26 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
         
         except (TypeError, ZeroDivisionError): continue
     
-    return comparisonResult, max_z_score
+    if ARGS.test == "DESeq":
+        # Compute p-values using DESeq2
+        DESeqPValue(comparisonResult, dataset1Data, dataset2Data, ids)
 
-def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> List[Tuple[str, str, dict, float]]:
+    # Apply multiple testing correction if set by the user
+    if ARGS.adjusted:
+
+        # Retrieve the p-values from the comparisonResult dictionary, they have to be different from NaN
+        validPValues = [(reactId, result[0]) for reactId, result in comparisonResult.items() if not np.isnan(result[0])]
+        # Unpack the valid p-values
+        reactIds, pValues = zip(*validPValues)
+        # Adjust the p-values using the Benjamini-Hochberg method
+        adjustedPValues = st.false_discovery_control(pValues)
+        # Update the comparisonResult dictionary with the adjusted p-values
+        for reactId , adjustedPValue in zip(reactIds, adjustedPValues):
+            comparisonResult[reactId][0] = adjustedPValue
+
+    return comparisonResult, max_z_score, netRPS
+
+def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *, fromRAS=True) -> Tuple[List[Tuple[str, str, dict, float]], dict]:
     """
     Compares clustered data based on a given comparison mode and applies enrichment-based styling on the
     provided metabolic map.
@@ -787,8 +884,10 @@ def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *
         fromRAS : whether the data to enrich consists of RAS scores.
 
     Returns:
-        List[Tuple[str, str, dict, float]]: List of tuples with pairs of dataset names, comparison dictionary, and max z-score.
-        
+        tuple: A tuple containing:
+        - List[Tuple[str, str, dict, float]]: List of tuples with pairs of dataset names, comparison dictionary and max z-score.
+        - dict : net RPS values for each dataset's reactions
+    
     Raises:
         sys.exit : if there are less than 2 classes for comparison
     """
@@ -796,28 +895,37 @@ def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *
     if (not class_pat) or (len(class_pat.keys()) < 2):
         sys.exit('Execution aborted: classes provided for comparisons are less than two\n')
     
+    # { datasetName : { reactId : netRPS, ... }, ... }
+    netRPSResults :Dict[str, Dict[str, np.ndarray]] = {}
     enrichment_results = []
 
     if ARGS.comparison == "manyvsmany":
         for i, j in it.combinations(class_pat.keys(), 2):
-            comparisonDict, max_z_score = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
+            comparisonDict, max_z_score, netRPS = compareDatasetPair(class_pat.get(i), class_pat.get(j), ids)
             enrichment_results.append((i, j, comparisonDict, max_z_score))
+            netRPSResults[i] = { reactId : net[0] for reactId, net in netRPS.items() }
+            netRPSResults[j] = { reactId : net[1] for reactId, net in netRPS.items() }
     
     elif ARGS.comparison == "onevsrest":
         for single_cluster in class_pat.keys():
             rest = [item for k, v in class_pat.items() if k != single_cluster for item in v]
-            comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
+            comparisonDict, max_z_score, netRPS = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
             enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
+            netRPSResults[single_cluster] = { reactId : net[0] for reactId, net in netRPS.items() }
+            netRPSResults["rest"]         = { reactId : net[1] for reactId, net in netRPS.items() }
     
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
             if otherDataset == ARGS.control:
                 continue
-            comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+            
+            comparisonDict, max_z_score, netRPS = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
             enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
+            netRPSResults[ARGS.control] = { reactId : net[0] for reactId, net in netRPS.items() }
+            netRPSResults[otherDataset] = { reactId : net[1] for reactId, net in netRPS.items() }
     
-    return enrichment_results
+    return enrichment_results, netRPSResults
 
 def createOutputMaps(dataset1Name: str, dataset2Name: str, core_map: ET.ElementTree) -> None:
     svgFilePath = buildOutputPath(dataset1Name, dataset2Name, details="SVG Map", ext=utils.FileFormat.SVG)
@@ -840,9 +948,10 @@ def createOutputMaps(dataset1Name: str, dataset2Name: str, core_map: ET.ElementT
         os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
-def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, classPath :str, names :List[str]) -> Tuple[List[str], ClassPat]:
+def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, classPath :str, names :List[str]) -> Tuple[List[str], ClassPat, Dict[str, List[str]]]:
     # TODO: I suggest creating dicts with ids as keys instead of keeping class_pat and ids separate,
     # for the sake of everyone's sanity.
+    columnNames :Dict[str, List[str]] = {} # { datasetName : [ columnName, ... ], ... }
     class_pat :ClassPat = {}
     if ARGS.option == 'datasets':
         num = 1
@@ -853,8 +962,8 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
             
             values, ids = getDatasetValues(path, name)
             if values != None:
-                class_pat[name] = list(map(list, zip(*values.values())))
-                # TODO: ???
+                class_pat[name]   = list(map(list, zip(*values.values()))) # TODO: ???
+                columnNames[name] = ["Reactions", *values.keys()]
             
             num += 1
     
@@ -863,9 +972,14 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
         classes = classes.astype(str)
 
         values, ids = getDatasetValues(datasetPath, "Dataset Class (not actual name)")
-        if values != None: class_pat = split_class(classes, values)
+        if values != None:
+            class_pat_with_samples_id = split_class(classes, values)
+
+            for clas, values_and_samples_id in class_pat_with_samples_id.items():
+                class_pat[clas] = values_and_samples_id["values"]
+                columnNames[clas] = ["Reactions", *values_and_samples_id["samples"]]
     
-    return ids, class_pat
+    return ids, class_pat, columnNames
     #^^^ TODO: this could be a match statement over an enum, make it happen future marea dev with python 3.12! (it's why I kept the ifs)
 
 #TODO: create these damn args as FilePath objects
@@ -915,22 +1029,25 @@ def main(args:List[str] = None) -> None:
     rps_results = []
 
     # Compute RAS enrichment if requested
-    if ARGS.using_RAS:
-        ids_ras, class_pat_ras = getClassesAndIdsFromDatasets(
+    if ARGS.using_RAS: #       vvv columnNames only matter with RPS data
+        ids_ras, class_pat_ras, _ = getClassesAndIdsFromDatasets(
             ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
-        ras_results = computeEnrichment(class_pat_ras, ids_ras, fromRAS=True)
+        ras_results, _ = computeEnrichment(class_pat_ras, ids_ras, fromRAS=True)
+        #           ^^^ netRPS only matter with RPS data
 
     # Compute RPS enrichment if requested
     if ARGS.using_RPS:
-        ids_rps, class_pat_rps = getClassesAndIdsFromDatasets(
+        ids_rps, class_pat_rps, columnNames = getClassesAndIdsFromDatasets(
             ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-        rps_results = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
+        
+        rps_results, netRPS = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
 
     # Organize by comparison pairs
     comparisons: Dict[Tuple[str, str], Dict[str, Tuple]] = {}
     for i, j, comparison_data, max_z_score in ras_results:
         comparisons[(i, j)] = {'ras': (comparison_data, max_z_score), 'rps': None}
-    for i, j, comparison_data, max_z_score in rps_results:
+    
+    for i, j, comparison_data, max_z_score,  in rps_results:
         comparisons.setdefault((i, j), {}).update({'rps': (comparison_data, max_z_score)})
 
     # For each comparison, create a styled map with RAS bodies and RPS heads
@@ -950,6 +1067,19 @@ def main(args:List[str] = None) -> None:
 
         # Output both SVG and PDF/PNG as configured
         createOutputMaps(i, j, map_copy)
+    
+    # Add net RPS output file
+    if ARGS.net or not ARGS.using_RAS:
+        for datasetName, rows in netRPS.items():
+            writeToCsv(
+                [[reactId, *netValues] for reactId, netValues in rows.items()],
+                # vvv In weird comparison modes the dataset names are not recorded properly..
+                columnNames.get(datasetName, ["Reactions"]),
+                utils.FilePath(
+                    "Net_RPS_" + datasetName,
+                    ext = utils.FileFormat.CSV,
+                    prefix = ARGS.output_path))
+
     print('Execution succeeded')
 ###############################################################################
 if __name__ == "__main__":

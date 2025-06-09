@@ -7,11 +7,15 @@
 		<requirement type="package" version="1.24.4">numpy</requirement>
         <requirement type="package" version="2.0.3">pandas</requirement>
         <requirement type="package" version="5.2.2">lxml</requirement>
-        <requirement type="package" version="1.10.1">scipy</requirement>
+        <requirement type="package" version="1.11">scipy</requirement>
 		<requirement type="package" version="1.5.1">svglib</requirement>
 		<requirement type="package" version="2.2.3">pyvips</requirement>
 		<requirement type="package" version="2.7.1">cairosvg</requirement>
 		<requirement type="package" version="0.29.0">cobra</requirement>
+		<requirement type="package" version="0.8.0">anndata</requirement>
+		<requirement type="package" version="1.11">scipy</requirement>
+		<requirement type="package" version="1.3.2">scikit-learn</requirement>
+		<requirement type="package" version="0.5.1">pydeseq2</requirement>
 	</requirements>
 	
 	<command detect_errors="exit_code">
@@ -78,13 +82,17 @@
 		#end if
 		
 		#if $advanced.choice == 'true':
+			--test ${advanced.test}
 			--pValue ${advanced.pValue}
+			--adjusted ${advanced.adjusted}
 			--fChange ${advanced.fChange}
 			--generate_svg ${advanced.generateSvg}
 			--generate_pdf ${advanced.generatePdf}
 			--net ${advanced.netRPS}
 		#else 
+			--test 'ks'
 			--pValue 0.05
+			--adjusted false
 			--fChange 1.2
 			--generate_svg false
 			--generate_pdf true
@@ -169,20 +177,22 @@
 		</conditional>
 		
 		<conditional name="advanced">
-			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
 				<option value="true" selected="true">No</option>
 				<option value="false">Yes</option>
 			</param>
 
 			<when value="true">
-				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates.">
+				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates.  Paired T-test and Wilcoxon need the same number of replicates in each group.">
 					<option value="ks" selected="true">Kolmogorov-Smirnov</option>
 					<option value="ttest_p">T-test (paired)</option>
 					<option value="ttest_ind">T-test (unpaired)</option>
 					<option value="wilcoxon">Wilcoxon</option>
 					<option value="mw">Mann-Whitney</option>
+					<option value="DESeq">DESeq2-like statistical test (requires at least 2 replicates per sample, to use ONLY with RAS)</option>
 				</param>
 				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
+				<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
 				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
 				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
 				<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
@@ -303,7 +313,8 @@ Group-file
 Advanced options
 ----------------
 
-P-Value threshold: the threshold used for significance Kolmogorov-Smirnov (KS) test, to verify whether the distributions of RASs over the samples in two sets are significantly different
+Statistical test: the statistical test to use for the analysis based on your data and the amount of replicates. The Kolmogorov-Smirnov test is the default option, but you can choose between T-test (paired), T-test (unpaired), Wilcoxon and Mann-Whitney tests.
+P-Value threshold: the threshold used for significance in the selected test, to verify whether the distributions of RASs over the samples in two sets are significantly different
 
 Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the KS test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map;
 

@@ -32,9 +32,11 @@ setup(
         'pandas==2.0.3',
         'pyvips==2.2.3',
         'scikit-learn==1.3.2',
-        'scipy==1.10.1',
+        'scipy==1.11',
         'seaborn==0.13.0',
-        'svglib==1.5.1'
+        'svglib==1.5.1',
+        'anndata==0.8.0',
+        'pydeseq2==0.5.1'
     ],
     entry_points={
         'console_scripts': [

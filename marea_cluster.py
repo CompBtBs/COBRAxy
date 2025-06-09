@@ -75,7 +75,7 @@ def process_args(args_in :List[str] = None) -> argparse.Namespace:
                         help = 'your tool directory')
                         
     parser.add_argument('-ms', '--min_samples',
-                        type = float,
+                        type = int,
                         help = 'min samples for dbscan (optional)')
                         
     parser.add_argument('-ep', '--eps',
@@ -106,7 +106,7 @@ def warning(s :str) -> None:
     Returns:
       None
     """
-    args = process_args(sys.argv)
+
     with open(args.out_log, 'a') as log:
         log.write(s + "\n\n")
     print(s)
@@ -213,8 +213,8 @@ def kmeans (k_min: int, k_max: int, dataset: pd.DataFrame, elbow: str, silhouett
         k_min (int): The minimum number of clusters to consider.
         k_max (int): The maximum number of clusters to consider.
         dataset (pandas.DataFrame): The dataset to perform clustering on.
-        elbow (str): Whether to generate an elbow plot for kmeans ('true' or 'false').
-        silhouette (str): Whether to generate silhouette plots ('true' or 'false').
+        elbow (str): Whether to generate an elbow plot for kmeans ('True' or 'False').
+        silhouette (str): Whether to generate silhouette plots ('True' or 'False').
         best_cluster (str): The file path to save the output of the best cluster.
 
     Returns:
@@ -443,7 +443,7 @@ def hierachical_agglomerative(dataset: pd.DataFrame, k_min: int, k_max: int, bes
         k_min (int): The minimum number of clusters to consider.
         k_max (int): The maximum number of clusters to consider.
         best_cluster (str): The file path to save the output of the best cluster.
-        silhouette (str): Whether to generate silhouette plots ('true' or 'false').
+        silhouette (str): Whether to generate silhouette plots ('True' or 'False').
 
     Returns:
         None

@@ -65,6 +65,11 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type = float, 
         default = 0.1, 
         help = 'P-Value threshold (default: %(default)s)')
+
+    parser.add_argument(
+        '-adj' ,'--adjusted',
+        type = utils.Bool("adjusted"), default = False, 
+        help = 'Apply the FDR (Benjamini-Hochberg) correction (default: %(default)s)')
     
     parser.add_argument(
         '-fc', '--fChange',
@@ -72,7 +77,6 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         default = 1.5, 
         help = 'Fold-Change threshold (default: %(default)s)')
     
-
     parser.add_argument(
         '-op', '--option',
         type = str, 
@@ -267,8 +271,8 @@ class ArrowColor(Enum):
     """
     Encodes possible arrow colors based on their meaning in the enrichment process.
     """
-    Invalid       = "#BEBEBE" # gray, fold-change under treshold
-    Transparent   = "#ffffff00" # white, not significant p-value
+    Invalid       = "#BEBEBE" # gray, fold-change under treshold or not significant p-value
+    Transparent   = "#ffffff00" # transparent, to make some arrow segments disappear
     UpRegulated   = "#ecac68" # red, up-regulated reaction
     DownRegulated = "#6495ed" # blue, down-regulated reaction
 
@@ -621,12 +625,18 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
             # Perform Kolmogorov-Smirnov test
             _, p_value = st.ks_2samp(dataset1Data, dataset2Data)
         case "ttest_p":
+            # Datasets should have same size
+            if len(dataset1Data) != len(dataset2Data):
+                raise ValueError("Datasets must have the same size for paired t-test.")
             # Perform t-test for paired samples
             _, p_value = st.ttest_rel(dataset1Data, dataset2Data)
         case "ttest_ind":
             # Perform t-test for independent samples
             _, p_value = st.ttest_ind(dataset1Data, dataset2Data)
         case "wilcoxon":
+            # Datasets should have same size
+            if len(dataset1Data) != len(dataset2Data):
+                raise ValueError("Datasets must have the same size for Wilcoxon signed-rank test.")
             # Perform Wilcoxon signed-rank test
             _, p_value = st.wilcoxon(dataset1Data, dataset2Data)
         case "mw":
@@ -649,7 +659,7 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
 
 def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float]:
     #TODO: the following code still suffers from "dumbvarnames-osis"
-    tmp :Dict[str, List[Union[float, FoldChange]]] = {}
+    comparisonResult :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
     max_z_score = 0
     for l1, l2 in zip(dataset1Data, dataset2Data):
@@ -664,10 +674,27 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
             f_c = fold_change(avg1, avg2)
             if np.isfinite(z_score) and max_z_score < abs(z_score): max_z_score = abs(z_score)
             
-            tmp[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
+            comparisonResult[reactId] = [float(p_value), f_c, z_score, avg1, avg2]
         except (TypeError, ZeroDivisionError): continue
+
+    # Apply multiple testing correction if set by the user
+    if ARGS.adjusted:
+        
+        # Retrieve the p-values from the comparisonResult dictionary, they have to be different from NaN
+        validPValues = [(reactId, result[0]) for reactId, result in comparisonResult.items() if not np.isnan(result[0])]
+
+        if not validPValues:
+            return comparisonResult, max_z_score
+        
+        # Unpack the valid p-values
+        reactIds, pValues = zip(*validPValues)
+        # Adjust the p-values using the Benjamini-Hochberg method
+        adjustedPValues = st.false_discovery_control(pValues)
+        # Update the comparisonResult dictionary with the adjusted p-values
+        for reactId , adjustedPValue in zip(reactIds, adjustedPValues):
+            comparisonResult[reactId][0] = adjustedPValue
     
-    return tmp, max_z_score
+    return comparisonResult, max_z_score
 
 def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -> List[Tuple[str, str, dict, float]]:
     """

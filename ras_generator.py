@@ -8,6 +8,7 @@ import pickle as pk
 import utils.general_utils as utils
 import utils.rule_parsing as ruleUtils
 from typing import Union, Optional, List, Dict, Tuple, TypeVar
+import os
 
 ERRORS = []
 ########################## argparse ##########################################
@@ -212,7 +213,7 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
     Returns:
         dict: A dictionary containing gene data with gene IDs as keys and corresponding values.
     """
-    args = process_args()    
+ 
     for i in range(len(gene)):
         tmp = gene.iloc[i, 0]
         gene.iloc[i, 0] = tmp.strip().split('.')[0]
@@ -227,16 +228,16 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
     if gene_dup:
         if gene_custom == None:
 
-            if str(args.rules_selector) == 'HMRcore':
-                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/HMRcore_genes.p', 'rb'))
+            if str(ARGS.rules_selector) == 'HMRcore':
+                gene_in_rule = pk.load(open(ARGS.tool_dir + '/local/pickle files/HMRcore_genes.p', 'rb'))
             
-            elif str(args.rules_selector) == 'Recon':
-                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/Recon_genes.p', 'rb'))
+            elif str(ARGS.rules_selector) == 'Recon':
+                gene_in_rule = pk.load(open(ARGS.tool_dir + '/local/pickle files/Recon_genes.p', 'rb'))
             
-            elif str(args.rules_selector) == 'ENGRO2':
-                gene_in_rule = pk.load(open(args.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
+            elif str(ARGS.rules_selector) == 'ENGRO2':
+                gene_in_rule = pk.load(open(ARGS.tool_dir + '/local/pickle files/ENGRO2_genes.p', 'rb'))
 
-            utils.logWarning(f"{args.tool_dir}'/local/pickle files/ENGRO2_genes.p'", ARGS.out_log)
+            utils.logWarning(f"{ARGS.tool_dir}'/local/pickle files/ENGRO2_genes.p'", ARGS.out_log)
 
             gene_in_rule = gene_in_rule.get(type_gene)
         
@@ -662,7 +663,7 @@ def main(args:List[str] = None) -> None:
     # get args from frontend (related xml)
     global ARGS
     ARGS = process_args(args)
-    print(ARGS.rules_selector)
+
     # read dataset
     dataset = read_dataset(ARGS.input, "dataset")
     dataset.iloc[:, 0] = (dataset.iloc[:, 0]).astype(str)
@@ -672,6 +673,7 @@ def main(args:List[str] = None) -> None:
 
     # handle custom models
     model :utils.Model = ARGS.rules_selector
+
     if model is utils.Model.Custom:
         rules = load_custom_rules()
         reactions = list(rules.keys())
