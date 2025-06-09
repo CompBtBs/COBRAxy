@@ -690,7 +690,7 @@ def temp_thingsInCommon(tmp :OldEnrichedScores, core_map :ET.ElementTree, max_z_
     suffix = "RAS" if ras_enrichment else "RPS"
     writeToCsv(
         [ [reactId] + values for reactId, values in tmp.items() ],
-        ["ids", "P_Value", "fold change", "average_1", "average_2"],
+        ["ids", "P_Value", "fold change", "z-score", "average_1", "average_2"],
         buildOutputPath(dataset1Name, dataset2Name, details = f"Tabular Result ({suffix})", ext = utils.FileFormat.TSV))
     
     if ras_enrichment:
