@@ -638,7 +638,8 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
             if len(dataset1Data) != len(dataset2Data):
                 raise ValueError("Datasets must have the same size for Wilcoxon signed-rank test.")
             # Perform Wilcoxon signed-rank test
-            _, p_value = st.wilcoxon(dataset1Data, dataset2Data)
+            np.random.seed(42)  # Ensure reproducibility since zsplit method is used
+            _, p_value = st.wilcoxon(dataset1Data, dataset2Data, zero_method="zsplit")
         case "mw":
             # Perform Mann-Whitney U test
             _, p_value = st.mannwhitneyu(dataset1Data, dataset2Data)
