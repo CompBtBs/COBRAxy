@@ -733,13 +733,21 @@ def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
             enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
     
+    #elif ARGS.comparison == "onevsmany":
+    #    controlItems = class_pat.get(ARGS.control)
+    #    for otherDataset in class_pat.keys():
+    #        if otherDataset == ARGS.control:
+    #            continue
+    #        comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+    #        enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
             if otherDataset == ARGS.control:
                 continue
-            comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
+            comparisonDict, max_z_score = compareDatasetPair(class_pat.get(otherDataset),controlItems, ids)
+            enrichment_results.append(( otherDataset,ARGS.control, comparisonDict, max_z_score))
+
     return enrichment_results
 
 def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:

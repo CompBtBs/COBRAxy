@@ -921,10 +921,12 @@ def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *
             if otherDataset == ARGS.control:
                 continue
             
-            comparisonDict, max_z_score, netRPS = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
-            netRPSResults[ARGS.control] = { reactId : net[0] for reactId, net in netRPS.items() }
-            netRPSResults[otherDataset] = { reactId : net[1] for reactId, net in netRPS.items() }
+            #comparisonDict, max_z_score, netRPS = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+            comparisonDict, max_z_score, netRPS = compareDatasetPair(class_pat.get(otherDataset),controlItems, ids)
+            #enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
+            enrichment_results.append(( otherDataset,ARGS.control, comparisonDict, max_z_score))
+            netRPSResults[otherDataset] = { reactId : net[0] for reactId, net in netRPS.items() }
+            netRPSResults[ARGS.control] = { reactId : net[1] for reactId, net in netRPS.items() }
     
     return enrichment_results, netRPSResults
 
