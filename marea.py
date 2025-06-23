@@ -735,7 +735,8 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
             if len(dataset1Data) != len(dataset2Data):
                 raise ValueError("Datasets must have the same size for Wilcoxon signed-rank test.")
             # Perform Wilcoxon signed-rank test
-            _, p_value = st.wilcoxon(dataset1Data, dataset2Data)
+            np.random.seed(42) # Ensure reproducibility since zsplit method is used
+            _, p_value = st.wilcoxon(dataset1Data, dataset2Data, zero_method='zsplit')
         case "mw":
             # Perform Mann-Whitney U test
             _, p_value = st.mannwhitneyu(dataset1Data, dataset2Data)
@@ -920,10 +921,12 @@ def computeEnrichment(class_pat: Dict[str, List[List[float]]], ids: List[str], *
             if otherDataset == ARGS.control:
                 continue
             
-            comparisonDict, max_z_score, netRPS = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
-            netRPSResults[ARGS.control] = { reactId : net[0] for reactId, net in netRPS.items() }
-            netRPSResults[otherDataset] = { reactId : net[1] for reactId, net in netRPS.items() }
+            #comparisonDict, max_z_score, netRPS = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+            comparisonDict, max_z_score, netRPS = compareDatasetPair(class_pat.get(otherDataset),controlItems, ids)
+            #enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
+            enrichment_results.append(( otherDataset,ARGS.control, comparisonDict, max_z_score))
+            netRPSResults[otherDataset] = { reactId : net[0] for reactId, net in netRPS.items() }
+            netRPSResults[ARGS.control] = { reactId : net[1] for reactId, net in netRPS.items() }
     
     return enrichment_results, netRPSResults
 

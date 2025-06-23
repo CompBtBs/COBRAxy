@@ -638,7 +638,8 @@ def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple
             if len(dataset1Data) != len(dataset2Data):
                 raise ValueError("Datasets must have the same size for Wilcoxon signed-rank test.")
             # Perform Wilcoxon signed-rank test
-            _, p_value = st.wilcoxon(dataset1Data, dataset2Data)
+            np.random.seed(42)  # Ensure reproducibility since zsplit method is used
+            _, p_value = st.wilcoxon(dataset1Data, dataset2Data, zero_method="zsplit")
         case "mw":
             # Perform Mann-Whitney U test
             _, p_value = st.mannwhitneyu(dataset1Data, dataset2Data)
@@ -732,13 +733,21 @@ def computeEnrichment(class_pat :Dict[str, List[List[float]]], ids :List[str]) -
             comparisonDict, max_z_score = compareDatasetPair(class_pat.get(single_cluster), rest, ids)
             enrichment_results.append((single_cluster, "rest", comparisonDict, max_z_score))
     
+    #elif ARGS.comparison == "onevsmany":
+    #    controlItems = class_pat.get(ARGS.control)
+    #    for otherDataset in class_pat.keys():
+    #        if otherDataset == ARGS.control:
+    #            continue
+    #        comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
+    #        enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
     elif ARGS.comparison == "onevsmany":
         controlItems = class_pat.get(ARGS.control)
         for otherDataset in class_pat.keys():
             if otherDataset == ARGS.control:
                 continue
-            comparisonDict, max_z_score = compareDatasetPair(controlItems, class_pat.get(otherDataset), ids)
-            enrichment_results.append((ARGS.control, otherDataset, comparisonDict, max_z_score))
+            comparisonDict, max_z_score = compareDatasetPair(class_pat.get(otherDataset),controlItems, ids)
+            enrichment_results.append(( otherDataset,ARGS.control, comparisonDict, max_z_score))
+
     return enrichment_results
 
 def createOutputMaps(dataset1Name :str, dataset2Name :str, core_map :ET.ElementTree) -> None:
