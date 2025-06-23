@@ -179,7 +179,7 @@ def randomObjectiveFunction(model, n_samples, df_fva, seed=0):
                    
                     c=2*random.random()-1 #coefficiente tra -1 e 1
                     
-                    val_max=np.max([df_fva.loc[reaction,"minimum"],df_fva.loc[reaction,"maximum"]])
+                    val_max = np.max([abs(df_fva.loc[reaction,"minimum"]), abs(df_fva.loc[reaction,"maximum"])])
                     
                     if val_max!=0: #solo se la fva è diversa da zero
                         coefficients_df.loc[reaction,str(i)] = c/val_max #divido per la fva
