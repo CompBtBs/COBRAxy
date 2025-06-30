@@ -171,7 +171,7 @@ def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, fl
     rps_scores = {}
 
     for reaction_name, substrates in reactions.items():
-        total_contribution = 1
+        total_contribution = 0
         metab_significant  = False
         for metabolite, stoichiometry in substrates.items():
             abundance = 1 if math.isnan(abundances[metabolite]) else abundances[metabolite]
