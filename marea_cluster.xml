@@ -78,7 +78,7 @@
     <outputs>
         <data format="txt" name="log" label="${tool.name} - Log" />
         <data format="tabular" name="best_cluster" label="${tool.name} - best cluster assignment" />
-        <collection name="results" type="list" label="${tool.name} - Plots and results">
+        <collection name="clustering" type="list" label="${tool.name} - Plots and results">
             <discover_datasets pattern="__name_and_ext__" directory="clustering"/>
             <filter>data['clust_type'] == "kmeans" or data['clust_type'] == "hierarchy"</filter>
         </collection>

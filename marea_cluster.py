@@ -89,7 +89,7 @@ def process_args(args_in :List[str] = None) -> argparse.Namespace:
     parser.add_argument(
         '-idop', '--output_path', 
         type = str,
-        default='result',
+        default='clustering/',
         help = 'output path for maps')
     
     args_in = parser.parse_args(args_in)

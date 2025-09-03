@@ -195,7 +195,8 @@ def main(args:List[str] = None) -> None:
     ARGS = process_args(args)
 
     # this is the worst thing I've seen so far, congrats to the former MaREA devs for suggesting this!
-    if os.path.isdir(ARGS.output_path) == False: os.makedirs(ARGS.output_path)
+    if os.path.isdir(ARGS.output_path) == False: 
+        os.makedirs(ARGS.output_path)
 
     # load custom model
     model = load_custom_model(
@@ -206,6 +207,24 @@ def main(args:List[str] = None) -> None:
     reactions = generate_reactions(model, asParsed = False)
     bounds = generate_bounds(model)
     medium = get_medium(model)
+
+    df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "Rule"])
+    df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
+
+    df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
+    df_medium = medium.rename(columns = {"reaction": "ReactionID"})
+    df_medium["InMedium"] = True # flag per indicare la presenza nel medium
+
+    merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
+    merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
+
+    merged = merged.merge(df_medium, on = "ReactionID", how = "left")
+
+    merged["InMedium"] = merged["InMedium"].fillna(False)
+
+    out_file = os.path.join(ARGS.output_path, f"{os.path.basename(ARGS.name).split('.')[0]}_custom_data.csv")
+
+    merged.to_csv(out_file, sep = ',', index = False)
 
     # save files out of collection: path coming from xml
     save_as_csv(rules, ARGS.out_rules, ("ReactionID", "Rule"))
