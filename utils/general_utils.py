@@ -7,12 +7,24 @@ import lxml.etree as ET
 
 from enum import Enum
 from itertools import count
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
 import pandas as pd
 import cobra
 
-# FILES
+import zipfile
+import gzip
+import bz2
+from io import StringIO
+
+class ValueErr(Exception):
+    def __init__(self, param_name, expected, actual):
+        super().__init__(f"Invalid value for {param_name}: expected {expected}, got {actual}")
+
+class PathErr(Exception):
+    def __init__(self, path, message):
+        super().__init__(f"Path error for '{path}': {message}")
+
 class FileFormat(Enum):
     """
     Encodes possible file extensions to conditionally save data in a different format.
@@ -20,111 +32,143 @@ class FileFormat(Enum):
     DAT    = ("dat",) # this is how galaxy treats all your files!
     CSV    = ("csv",) # this is how most editable input data is written
     TSV    = ("tsv",) # this is how most editable input data is ACTUALLY written TODO:more support pls!!
-    
     SVG    = ("svg",) # this is how most metabolic maps are written
     PNG    = ("png",) # this is a common output format for images (such as metabolic maps)
     PDF    = ("pdf",) # this is also a common output format for images, as it's required in publications.
-
-    XML    = ("xml",) # this is one main way cobra models appear in
-    JSON   = ("json",) # this is the other
-
-    TXT = ("txt",) # this is how most output data is written
     
+    # Updated to include compressed variants
+    XML    = ("xml", "xml.gz", "xml.zip", "xml.bz2") # SBML files are XML files, sometimes compressed
+    JSON   = ("json", "json.gz", "json.zip", "json.bz2") # COBRA models can be stored as JSON files, sometimes compressed
+    
+    TXT = ("txt",) # this is how most output data is written
     PICKLE = ("pickle", "pk", "p") # this is how all runtime data structures are saved
-    #TODO: we're in a pickle (ba dum tss), there's no point in supporting many extensions internally. The
-    # issue will never be solved for user-uploaded files and those are saved as .dat by galaxy anyway so it
-    # doesn't matter as long as we CAN recognize these 3 names as valid pickle extensions. We must however
-    # agree on an internal standard and use only that one, otherwise constructing usable paths becomes a nightmare.
+
+    def __init__(self, *extensions):
+        self.extensions = extensions
+        # Store original extension when set via fromExt
+        self._original_extension = None
+
     @classmethod
-    def fromExt(cls, ext :str) -> "FileFormat":
+    def fromExt(cls, ext: str) -> "FileFormat":
         """
         Converts a file extension string to a FileFormat instance.
-
         Args:
             ext : The file extension as a string.
-
         Returns:
             FileFormat: The FileFormat instance corresponding to the file extension.
         """
         variantName = ext.upper()
-        if variantName in FileFormat.__members__: return FileFormat[variantName]
+        if variantName in FileFormat.__members__: 
+            instance = FileFormat[variantName]
+            instance._original_extension = ext
+            return instance
         
-        variantName = variantName.lower()
+        variantName = ext.lower()
         for member in cls:
-            if variantName in member.value: return member
+            if variantName in member.value: 
+                # Create a copy-like behavior by storing the original extension
+                member._original_extension = ext
+                return member
         
         raise ValueErr("ext", "a valid FileFormat file extension", ext)
 
     def __str__(self) -> str:
         """
         (Private) converts to str representation. Good practice for usage with argparse.
-
         Returns:
             str : the string representation of the file extension.
         """
-        return self.value[-1] #TODO: fix, it's the dumb pickle thing
+        # If we have an original extension stored (for compressed files), use it
+        if hasattr(self, '_original_extension') and self._original_extension:
+            return self._original_extension
+        
+        # For XML and JSON without original extension, use the base extension
+        if self == FileFormat.XML:
+            return "xml"
+        elif self == FileFormat.JSON:
+            return "json"
+        
+        return self.value[-1]
 
 class FilePath():
     """
     Represents a file path. View this as an attempt to standardize file-related operations by expecting
     values of this type in any process requesting a file path.
     """
-    def __init__(self, filePath :str, ext :FileFormat, *, prefix = "") -> None:
+    def __init__(self, filePath: str, ext: FileFormat, *, prefix="") -> None:
         """
         (Private) Initializes an instance of FilePath.
-
         Args:
             path : the end of the path, containing the file name.
             ext : the file's extension.
             prefix : anything before path, if the last '/' isn't there it's added by the code.
-        
         Returns:
             None : practically, a FilePath instance.
         """
-        self.ext      = ext
+        self.ext = ext
         self.filePath = filePath
 
-        if prefix and prefix[-1] != '/': prefix += '/'
+        if prefix and prefix[-1] != '/': 
+            prefix += '/'
         self.prefix = prefix
     
     @classmethod
-    def fromStrPath(cls, path :str) -> "FilePath":
+    def fromStrPath(cls, path: str) -> "FilePath":
         """
         Factory method to parse a string from which to obtain, if possible, a valid FilePath instance.
-
+        It detects double extensions such as .json.gz and .xml.bz2, which are common in COBRA models.
+        These double extensions are not supported for other file types such as .csv.
         Args:
             path : the string containing the path
-        
         Raises:
             PathErr : if the provided string doesn't represent a valid path.
-        
         Returns:
             FilePath : the constructed instance.
         """
-        # This method is often used to construct FilePath instances from ARGS UI arguments. These arguments *should*
-        # always be correct paths and could be used as raw strings, however most if not all functions that work with
-        # file paths request the FilePath objects specifically, which is a very good thing in any case other than this.
-        # What ends up happening is we spend time parsing a string into a FilePath so that the function accepts it, only
-        # to call show() immediately to bring back the string and open the file it points to.
-        # TODO: this is an indication that the arguments SHOULD BE OF TYPE FilePath if they are filepaths, this ENSURES
-        # their correctness when modifying the UI and avoids the pointless back-and-forth.
         result = re.search(r"^(?P<prefix>.*\/)?(?P<name>.*)\.(?P<ext>[^.]*)$", path)
         if not result or not result["name"] or not result["ext"]:
             raise PathErr(path, "cannot recognize folder structure or extension in path")
 
         prefix = result["prefix"] if result["prefix"] else ""
-        return cls(result["name"], FileFormat.fromExt(result["ext"]), prefix = prefix)
+        name, ext = result["name"], result["ext"]
+
+        # Check for double extensions (json.gz, xml.zip, etc.)
+        parts = path.split(".")
+        if len(parts) >= 3:  
+            penultimate = parts[-2]
+            last = parts[-1]
+            double_ext = f"{penultimate}.{last}"
+            
+            # Try the double extension first
+            try:
+                ext_format = FileFormat.fromExt(double_ext)
+                name = ".".join(parts[:-2])
+                # Extract prefix if it exists
+                if '/' in name:
+                    prefix = name[:name.rfind('/') + 1]
+                    name = name[name.rfind('/') + 1:]
+                return cls(name, ext_format, prefix=prefix)
+            except ValueErr:
+                # If double extension doesn't work, fall back to single extension
+                pass
+
+        # Single extension fallback (original logic)
+        try:
+            ext_format = FileFormat.fromExt(ext)
+            return cls(name, ext_format, prefix=prefix)
+        except ValueErr:
+            raise PathErr(path, f"unsupported file extension: {ext}")
 
     def show(self) -> str:
         """
         Shows the path as a string.
-
         Returns:
             str : the path shown as a string.
         """
         return f"{self.prefix}{self.filePath}.{self.ext}"
     
-    def __str__(self) -> str: return self.show()
+    def __str__(self) -> str: 
+        return self.show()
 
 # ERRORS
 def terminate(msg :str) -> None:
@@ -562,14 +606,55 @@ class Model(Enum):
     def load_custom_model(self, file_path :FilePath, ext :Optional[FileFormat] = None) -> cobra.Model:
         ext = ext if ext else file_path.ext
         try:
-            if ext is FileFormat.XML:
+            if str(ext) in FileFormat.XML.value:
                 return cobra.io.read_sbml_model(file_path.show())
             
-            if ext is FileFormat.JSON:
-                return cobra.io.load_json_model(file_path.show())
+            if str(ext) in FileFormat.JSON.value:
+                # Compressed files are not automatically handled by cobra
+                if(ext == "json"):
+                    return cobra.io.load_json_model(file_path.show())
+                else: 
+                    return self.extract_json_model(file_path, ext)
 
         except Exception as e: raise DataErr(file_path, e.__str__())
         raise DataErr(file_path,
             f"Fomat \"{file_path.ext}\" is not recognized, only JSON and XML files are supported.")
+    
+
+    def extract_json_model(file_path:FilePath, ext :FileFormat) -> cobra.Model:
+        """
+        Extract json COBRA model from a compressed file (zip, gz, bz2).
+        
+        Args:
+            file_path: File path of the model
+            ext: File extensions of class FileFormat (should be .zip, .gz or .bz2)
+            
+        Returns:
+            cobra.Model: COBRApy model 
+            
+        Raises:
+            Exception: Extraction errors
+        """
+        ext_str = str(ext)
+
+        try:
+            if '.zip' in ext_str:
+                with zipfile.ZipFile(file_path.show(), 'r') as zip_ref:
+                    with zip_ref.open(zip_ref.namelist()[0]) as json_file:
+                        content = json_file.read().decode('utf-8')
+                        return cobra.io.load_json_model(StringIO(content))
+            elif '.gz' in ext_str:
+                with gzip.open(file_path.show(), 'rt', encoding='utf-8') as gz_ref:
+                    return cobra.io.load_json_model(gz_ref)
+            elif '.bz2' in ext_str:
+                with bz2.open(file_path.show(), 'rt', encoding='utf-8') as bz2_ref:
+                    return cobra.io.load_json_model(bz2_ref)
+            else:
+                raise ValueError(f"Compression format not supported: {ext_str}. Supported: .zip, .gz and .bz2")
+            
+        except Exception as e:
+            raise Exception(f"Error during model extraction: {str(e)}")
+        
+
 
     def __str__(self) -> str: return self.value
