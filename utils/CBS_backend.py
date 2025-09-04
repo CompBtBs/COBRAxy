@@ -72,7 +72,7 @@ def solve_lp_problem(lp,obj_coefs,reactions):
     # Initialize the parameters    
     params=glp_smcp()
     params.presolve=GLP_ON
-    params.msg_lev = GLP_MSG_ALL
+    params.msg_lev = GLP_MSG_ERR
     params.tm_lim=4000
     glp_init_smcp(params)
     

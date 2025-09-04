@@ -388,6 +388,9 @@ def main(args :List[str] = None) -> None:
         model = model_type.getCOBRAmodel(customPath = utils.FilePath.fromStrPath(ARGS.model), customExtension = utils.FilePath.fromStrPath(ARGS.model_name).ext)
     else:
         model = model_type.getCOBRAmodel(toolDir=ARGS.tool_dir)
+
+    #Set solver verbosity to 1 to see warning and error messages only.
+    model.solver.configuration.verbosity = 1
     
     ARGS.bounds = ARGS.input.split(",")
     ARGS.bounds_name = ARGS.names.split(",")
