@@ -523,8 +523,8 @@ def ras_for_cell_lines(dataset: pd.DataFrame, rules: Dict[str, ruleUtils.OpList]
     """
     ras_values_by_cell_line = {}
     dataset.set_index(dataset.columns[0], inplace=True)
-    # Considera tutte le colonne tranne la prima in cui ci sono gli hugo quindi va scartata
-    for cell_line_name in dataset.columns[1:]:
+    
+    for cell_line_name in dataset.columns: #[1:]:
         cell_line = dataset[cell_line_name].to_dict()
         ras_values_by_cell_line[cell_line_name]= get_ras_values(rules, cell_line)
     return ras_values_by_cell_line
@@ -650,8 +650,15 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
      
     if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
 
+    dict_rule = {}
+    for line in utils.readCsv(datFilePath):
+        if line[2] == "":
+            dict_rule[line[0]] = ruleUtils.OpList([""])
+        else:
+            dict_rule[line[0]] = ruleUtils.parseRuleToNestedList(line[2])
+
     # csv rules need to be parsed, those in a pickle format are taken to be pre-parsed.
-    return { line[0] : ruleUtils.parseRuleToNestedList(line[1]) for line in utils.readCsv(datFilePath) }
+    return dict_rule
 
 def main(args:List[str] = None) -> None:
     """
@@ -692,7 +699,7 @@ def main(args:List[str] = None) -> None:
     rules      = model.getRules(ARGS.tool_dir)
     genes      = data_gene(dataset, type_gene, name, None)
     ids, rules = load_id_rules(rules.get(type_gene))
-    
+
     resolve_rules, err = resolve(genes, rules, ids, ARGS.none, name)
     create_ras(resolve_rules, name, rules, ids, ARGS.ras_output)
     
