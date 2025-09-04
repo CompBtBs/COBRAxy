@@ -7,10 +7,15 @@ import lxml.etree as ET
 
 from enum import Enum
 from itertools import count
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
 import pandas as pd
 import cobra
+
+import zipfile
+import gzip
+import bz2
+from io import StringIO
 
 # FILES
 class FileFormat(Enum):
@@ -19,22 +24,23 @@ class FileFormat(Enum):
     """
     DAT    = ("dat",) # this is how galaxy treats all your files!
     CSV    = ("csv",) # this is how most editable input data is written
-    TSV    = ("tsv",) # this is how most editable input data is ACTUALLY written TODO:more support pls!!
+    TSV    = ("tsv",) # this is how most editable input data is ACTUALLY written
     
     SVG    = ("svg",) # this is how most metabolic maps are written
     PNG    = ("png",) # this is a common output format for images (such as metabolic maps)
     PDF    = ("pdf",) # this is also a common output format for images, as it's required in publications.
 
-    XML    = ("xml",) # this is one main way cobra models appear in
-    JSON   = ("json",) # this is the other
+    XML    = ("xml","xml.gz", "xml.zip", "xml.bz2") # SBML files are XML files, sometimes compressed
+    JSON   = ("json","json.gz", "json.zip", "json.bz2") # COBRA models can be stored as JSON files, sometimes compressed
 
     TXT = ("txt",) # this is how most output data is written
     
     PICKLE = ("pickle", "pk", "p") # this is how all runtime data structures are saved
-    #TODO: we're in a pickle (ba dum tss), there's no point in supporting many extensions internally. The
-    # issue will never be solved for user-uploaded files and those are saved as .dat by galaxy anyway so it
-    # doesn't matter as long as we CAN recognize these 3 names as valid pickle extensions. We must however
-    # agree on an internal standard and use only that one, otherwise constructing usable paths becomes a nightmare.
+
+    def __init__(self):
+        self.original_extension = ""
+
+   
     @classmethod
     def fromExt(cls, ext :str) -> "FileFormat":
         """
@@ -47,11 +53,16 @@ class FileFormat(Enum):
             FileFormat: The FileFormat instance corresponding to the file extension.
         """
         variantName = ext.upper()
-        if variantName in FileFormat.__members__: return FileFormat[variantName]
+        if variantName in FileFormat.__members__: 
+            instance = FileFormat[variantName]
+            instance.original_extension = ext
+            return instance
         
         variantName = variantName.lower()
         for member in cls:
-            if variantName in member.value: return member
+            if variantName in member.value: 
+                member.original_extension = ext
+                return member
         
         raise ValueErr("ext", "a valid FileFormat file extension", ext)
 
@@ -62,7 +73,11 @@ class FileFormat(Enum):
         Returns:
             str : the string representation of the file extension.
         """
-        return self.value[-1] #TODO: fix, it's the dumb pickle thing
+
+        if(self.values[-1] in  ["json", "xml"]): #return the original string extension for compressed files
+            return self.original_extension
+        else:
+            return self.value[-1] # for all other formats and pickle
 
 class FilePath():
     """
@@ -91,6 +106,8 @@ class FilePath():
     def fromStrPath(cls, path :str) -> "FilePath":
         """
         Factory method to parse a string from which to obtain, if possible, a valid FilePath instance.
+        It detects double extensions such as .json.gz and .xml.bz2, which are common in COBRA models.
+        These double extensions are not supported for other file types such as .csv.
 
         Args:
             path : the string containing the path
@@ -113,7 +130,18 @@ class FilePath():
             raise PathErr(path, "cannot recognize folder structure or extension in path")
 
         prefix = result["prefix"] if result["prefix"] else ""
-        return cls(result["name"], FileFormat.fromExt(result["ext"]), prefix = prefix)
+        name, ext = result["name"], result["ext"]
+
+        # Split path into parts
+        parts = path.split(".")
+        if len(parts) >= 3:  
+            penultimate = parts[-2]
+            last = parts[-1]
+            if penultimate in {"json", "xml"}:
+                name = ".".join(parts[:-2])
+                ext = f"{penultimate}.{last}"
+
+        return cls(name, FileFormat.fromExt(ext), prefix=prefix)
 
     def show(self) -> str:
         """
@@ -562,14 +590,75 @@ class Model(Enum):
     def load_custom_model(self, file_path :FilePath, ext :Optional[FileFormat] = None) -> cobra.Model:
         ext = ext if ext else file_path.ext
         try:
-            if ext is FileFormat.XML:
+            if ext in FileFormat.XML:
                 return cobra.io.read_sbml_model(file_path.show())
             
-            if ext is FileFormat.JSON:
-                return cobra.io.load_json_model(file_path.show())
+            if ext in FileFormat.JSON:
+                # Compressed files are not automatically handled by cobra
+                if(ext == "json"):
+                    return cobra.io.load_json_model(file_path.show())
+                else: 
+                    return self.extract_json_model(file_path, ext)
 
         except Exception as e: raise DataErr(file_path, e.__str__())
         raise DataErr(file_path,
             f"Fomat \"{file_path.ext}\" is not recognized, only JSON and XML files are supported.")
+    
+
+    def extract_json_model(file_path: FilePath, compression: Literal["gz", "zip", "bz2"]) -> cobra.Model:
+        """
+        Extracts a JSON model from a ZIP, GZ or BZ2 file and loads it into a COBRApy model.
+        args:
+            file_path: File path of class FilePath
+        returns:
+            cobra.Model: COBRApy model
+        
+        """
+        if compression == "zip":
+            with zipfile.ZipFile(file_path.show(), 'r') as zip_ref:
+                with zip_ref.open(zip_ref.namelist()[0]) as json_file:
+                    content = json_file.read().decode('utf-8')
+                    return cobra.io.load_json_model(StringIO(content))
+        elif compression == "gz":
+            with gzip.open(file_path.show(), 'rt', encoding='utf-8') as gz_ref:
+                return cobra.io.load_json_model(gz_ref)
+        elif compression == "bz2":
+            with bz2.open(file_path.show(), 'rt', encoding='utf-8') as bz2_ref:
+                return cobra.io.load_json_model(bz2_ref)
+
+        else:
+            raise ValueError(f"Compression format not supported: {compression}. Supported: gz, zip and bz2")
+    
+
+    def extract_json_model(file_path:FilePath, ext :FileFormat) -> cobra.Model:
+        """
+        Extract json COBRA model from a compressed file (zip, gz, bz2).
+        
+        Args:
+            file_path: File path of the model
+            ext: File extensions of class FileFormat (should be .zip, .gz or .bz2)
+            
+        Returns:
+            cobra.Model: COBRApy model 
+            
+        Raises:
+            Exception: Extraction errors
+        """
+        ext_str = str(ext)
+
+        try:
+            if '.zip' in ext_str:
+                return extract_json_model(file_path, "zip")
+            elif '.gz' in ext_str:
+                return extract_json_model(file_path, "gz")
+            elif '.bz2' in ext_str:
+                return extract_json_model(file_path, "bz2")
+            else:
+                raise ValueError(f"Compression format not supported: {ext_str}. Supported: .zip, .gz and .bz2")
+            
+        except Exception as e:
+            raise Exception(f"Error during model extraction: {str(e)}")
+        
+
 
     def __str__(self) -> str: return self.value
