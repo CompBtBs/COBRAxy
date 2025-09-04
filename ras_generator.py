@@ -651,7 +651,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
 
     dict_rule = {}
-    for line in utils.readCsv(datFilePath):
+    for line in utils.readCsv(datFilePath, delimiter = "\t"):
         if line[2] == "":
             dict_rule[line[0]] = ruleUtils.OpList([""])
         else:

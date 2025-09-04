@@ -121,7 +121,9 @@ def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
     """
     name = clean_metabolite_name(name)
     for id, synonyms in syn_dict.items():
-        if name in synonyms: return id
+
+        if name in synonyms:
+            return id
     
     return ""
 
@@ -131,7 +133,8 @@ def check_missing_metab(reactions: Dict[str, Dict[str, int]], dataset_by_rows: D
     Check for missing metabolites in the abundances dictionary compared to the reactions dictionary and update abundances accordingly.
 
     Parameters:
-        reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and stoichiometric coefficients as values.
+        reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and 
+                          stoichiometric coefficients as values.
         dataset_by_rows (dict): A dictionary representing abundances where keys are metabolite names and values are their corresponding abundances for all cell lines.
         cell_lines_amt : amount of cell lines, needed to add a new list of abundances for missing metabolites.
 
@@ -199,6 +202,7 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     Returns:
         None
     """
+
     cell_lines = dataset[0][1:]
     abundances_dict = {}
 
@@ -206,16 +210,17 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     for row in dataset[1:]:
         id = get_metabolite_id(row[0], syn_dict) if translationIsApplied else row[0]
         if id: abundances_dict[id] = list(map(utils.Float(), row[1:]))
-    
+
     missing_list = check_missing_metab(reactions, abundances_dict, len((cell_lines)))
-    
+
     rps_scores :Dict[Dict[str, float]] = {}
     for pos, cell_line_name in enumerate(cell_lines):
         abundances = { metab : abundances[pos] for metab, abundances in abundances_dict.items() }
+
         rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list, substrateFreqTable)
     
     df = pd.DataFrame.from_dict(rps_scores)
-    
+    print(df.head())
     df.index.name = 'Reactions'
     df.to_csv(ARGS.rps_output, sep='\t', na_rep='None', index=True)
 
@@ -245,11 +250,19 @@ def main(args:List[str] = None) -> None:
     
     elif ARGS.reaction_choice == 'custom':
         reactions = reactionUtils.parse_custom_reactions(ARGS.custom)
+        for r, s in reactions.items():
+            tmp_list = list(s.keys())
+            for k in tmp_list:
+                if k[-2] == '_':
+                    s[k[:-2]] = s.pop(k)
         substrateFreqTable = {}
         for _, substrates in reactions.items():
             for substrateName, _ in substrates.items():
                 if substrateName not in substrateFreqTable: substrateFreqTable[substrateName] = 0
                 substrateFreqTable[substrateName] += 1
+
+    print(f"Reactions: {reactions}")
+    print(f"Substrate Frequencies: {substrateFreqTable}")
 
     rps_for_cell_lines(dataset, reactions, black_list, syn_dict, substrateFreqTable)
     print('Execution succeded')

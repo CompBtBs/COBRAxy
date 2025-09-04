@@ -222,9 +222,11 @@ def main(args:List[str] = None) -> None:
 
     merged["InMedium"] = merged["InMedium"].fillna(False)
 
+    merged = merged.sort_values(by = "InMedium", ascending = False)
+
     out_file = os.path.join(ARGS.output_path, f"{os.path.basename(ARGS.name).split('.')[0]}_custom_data.csv")
 
-    merged.to_csv(out_file, sep = ',', index = False)
+    merged.to_csv(out_file, sep = '\t', index = False)
 
     # save files out of collection: path coming from xml
     save_as_csv(rules, ARGS.out_rules, ("ReactionID", "Rule"))

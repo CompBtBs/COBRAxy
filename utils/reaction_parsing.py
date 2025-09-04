@@ -124,7 +124,6 @@ def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
   Returns:
     ReactionsDict : dictionary encoding custom reactions information.
   """
-  reactionsData :Dict[str, str] = {row[0]: row[1] for row in utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath))} 
-  
+  reactionsData :Dict[str, str] = {row[0]: row[1] for row in utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath), delimiter = "\t")} 
   return create_reaction_dict(reactionsData)
 
