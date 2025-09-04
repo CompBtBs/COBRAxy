@@ -605,31 +605,6 @@ class Model(Enum):
             f"Fomat \"{file_path.ext}\" is not recognized, only JSON and XML files are supported.")
     
 
-    def extract_json_model(file_path: FilePath, compression: Literal["gz", "zip", "bz2"]) -> cobra.Model:
-        """
-        Extracts a JSON model from a ZIP, GZ or BZ2 file and loads it into a COBRApy model.
-        args:
-            file_path: File path of class FilePath
-        returns:
-            cobra.Model: COBRApy model
-        
-        """
-        if compression == "zip":
-            with zipfile.ZipFile(file_path.show(), 'r') as zip_ref:
-                with zip_ref.open(zip_ref.namelist()[0]) as json_file:
-                    content = json_file.read().decode('utf-8')
-                    return cobra.io.load_json_model(StringIO(content))
-        elif compression == "gz":
-            with gzip.open(file_path.show(), 'rt', encoding='utf-8') as gz_ref:
-                return cobra.io.load_json_model(gz_ref)
-        elif compression == "bz2":
-            with bz2.open(file_path.show(), 'rt', encoding='utf-8') as bz2_ref:
-                return cobra.io.load_json_model(bz2_ref)
-
-        else:
-            raise ValueError(f"Compression format not supported: {compression}. Supported: gz, zip and bz2")
-    
-
     def extract_json_model(file_path:FilePath, ext :FileFormat) -> cobra.Model:
         """
         Extract json COBRA model from a compressed file (zip, gz, bz2).
@@ -648,11 +623,16 @@ class Model(Enum):
 
         try:
             if '.zip' in ext_str:
-                return extract_json_model(file_path, "zip")
+                with zipfile.ZipFile(file_path.show(), 'r') as zip_ref:
+                    with zip_ref.open(zip_ref.namelist()[0]) as json_file:
+                        content = json_file.read().decode('utf-8')
+                        return cobra.io.load_json_model(StringIO(content))
             elif '.gz' in ext_str:
-                return extract_json_model(file_path, "gz")
+                with gzip.open(file_path.show(), 'rt', encoding='utf-8') as gz_ref:
+                    return cobra.io.load_json_model(gz_ref)
             elif '.bz2' in ext_str:
-                return extract_json_model(file_path, "bz2")
+                with bz2.open(file_path.show(), 'rt', encoding='utf-8') as bz2_ref:
+                    return cobra.io.load_json_model(bz2_ref)
             else:
                 raise ValueError(f"Compression format not supported: {ext_str}. Supported: .zip, .gz and .bz2")
             
