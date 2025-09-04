@@ -75,22 +75,32 @@ def solve_lp_problem(lp,obj_coefs,reactions):
     params.msg_lev = GLP_MSG_ERR
     params.tm_lim=4000
     glp_init_smcp(params)
-    
-    # Solve the problem
-    glp_scale_prob(lp,GLP_SF_AUTO)
-    
-    value=glp_simplex(lp, params) 
 
-    Z = glp_get_obj_val(lp);
+    glp_term_out(GLP_OFF)
 
-    if value == 0:
-        fluxes = []
-        for i in range(len(reactions)): fluxes.append(glp_get_col_prim(lp, i+1))
-        return fluxes,Z
-    else:
-        raise Exception("error in LP problem. Problem:",str(value)) 
+    try:
     
+        # Solve the problem
+        glp_scale_prob(lp,GLP_SF_AUTO)
+        
+        value=glp_simplex(lp, params) 
 
+        Z = glp_get_obj_val(lp);
+
+        if value == 0:
+            fluxes = []
+            for i in range(len(reactions)): fluxes.append(glp_get_col_prim(lp, i+1))
+            return fluxes,Z
+        else:
+            raise Exception("error in LP problem. Problem:",str(value)) 
+    except Exception as e:
+        # Re-enable terminal output for error reporting
+        glp_term_out(GLP_ON)
+        raise Exception(e)
+    finally:
+        # Re-enable terminal output after solving
+        glp_term_out(GLP_ON)
+    
 # Create LP structure
 def create_lp_structure(model):
     
