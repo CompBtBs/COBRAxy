@@ -45,8 +45,8 @@
             <!-- ENGRO2 -->
             <when value="ENGRO2">
                 <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
-                <expand macro="options_ras_to_bounds_medium"/>
                 <conditional name="medium_selector">
+                    <expand macro="options_ras_to_bounds_medium"/>
                     <when value="Custom">
                         <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
                     </when>
