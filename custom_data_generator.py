@@ -192,6 +192,22 @@ def save_as_csv(data :dict, file_path :str, fieldNames :Tuple[str, str]) -> None
         for key, value in data.items():
             writer.writerow({ fieldNames[0] : key, fieldNames[1] : value })
 
+def save_as_tabular_df(df: pd.DataFrame, path: str) -> None:
+    try:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        df.to_csv(path, sep="\t", index=False)
+    except Exception as e:
+        raise utils.DataErr(path, f"failed writing tabular output: {e}")
+
+def save_as_xlsx_df(df: pd.DataFrame, path: str) -> None:
+    try:
+        if not path.lower().endswith(".xlsx"):
+            path += ".xlsx"
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        df.to_excel(path, index=False)
+    except Exception as e:
+        raise utils.DataErr(path, f"failed writing xlsx output: {e}")
+
 ###############################- ENTRY POINT -################################
 def main(args:List[str] = None) -> None:
     """
@@ -259,13 +275,21 @@ def main(args:List[str] = None) -> None:
 
     ####
 
+    # write only the requested output
     if ARGS.output_format == "xlsx":
-        #if not ARGS.out_xlsx.lower().endswith(".xlsx"):
-        #    ARGS.out_xlsx += ".xlsx"
-
-        merged.to_excel(ARGS.out_xlsx, index=False)
+        if not ARGS.out_xlsx:
+            raise utils.ArgsErr("out_xlsx", "output path (--out_xlsx) is required when output_format == xlsx", ARGS.out_xlsx)
+        save_as_xlsx_df(merged, ARGS.out_xlsx)
+        expected = ARGS.out_xlsx
     else:
-        merged.to_csv(ARGS.out_tabular, sep="\t", index=False)
+        if not ARGS.out_tabular:
+            raise utils.ArgsErr("out_tabular", "output path (--out_tabular) is required when output_format == tabular", ARGS.out_tabular)
+        save_as_tabular_df(merged, ARGS.out_tabular)
+        expected = ARGS.out_tabular
+
+    # verify output exists and non-empty
+    if not expected or not os.path.exists(expected) or os.path.getsize(expected) == 0:
+        raise utils.DataErr(expected, "Output non creato o vuoto")
 
 print("CustomDataGenerator: completed successfully")
 

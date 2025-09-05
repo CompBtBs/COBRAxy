@@ -29,8 +29,13 @@
             --medium $cond_medium.medium
         #end if
         --out_log $log
+
+        #if $output_format == 'tabular'
         --out_tabular $out_tabular
+        #end if
+        #if $output_format == 'xlsx'
         --out_xlsx $out_xlsx
+        #end if
 
         ]]>
     </command>
@@ -60,12 +65,17 @@
     </inputs>
 
     <outputs>
-        <data name="log" format="txt" label="CustomDataGenerator - Log" />
-        <!-- Output condizionali -->
-        <data name="out_tabular" format="tabular" label="${cond_model.model_selector}_data_tabular"
-              filter="output_format == 'tabular'"/>
-        <data name="out_xlsx" format="xlsx" label="${cond_model.model_selector}_data_xlsx"
-              filter="output_format == 'xlsx'"/>
+    <data name="log" format="txt" label="CustomDataGenerator - Log" />
+
+    <data name="out_tabular" format="tabular"
+            label="${cond_model.model_selector}_data_tabular"
+            optional="true"
+            filter="output_format == 'tabular'"/>
+
+    <data name="out_xlsx" format="xlsx"
+            label="${cond_model.model_selector}_data_xlsx"
+            optional="true"
+            filter="output_format == 'xlsx'"/>
     </outputs>
 
 
