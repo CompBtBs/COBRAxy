@@ -40,14 +40,63 @@
         ]]>
     </command>
     <inputs>
-        <!-- modello -->
         <conditional name="cond_model">
             <expand macro="options_model"/>
+            <!-- ENGRO2 -->
+            <when value="ENGRO2">
+                <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
+                <expand macro="options_ras_to_bounds_medium"/>
+                <conditional name="medium_selector">
+                    <when value="Custom">
+                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
+                    </when>
+                </conditional>
+            </when>
+
+            <!-- Recon -->
+            <when value="Recon">
+                <param name="name" argument="--name" type="text" value="Recon" hidden="true" />
+                <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
+                <option value="Default" selected="true">Default (Recon built-in medium)</option>
+                <option value="Custom">Custom medium file</option>
+                </param>
+                <conditional name="medium_selector">
+                    <when value="Custom">
+                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
+                    </when>
+                </conditional>
+            </when>
+
+            <!-- HMRcore -->
+            <when value="HMRcore">
+                <param name="name" argument="--name" type="text" value="HMRcore" hidden="true" />
+                <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
+                <option value="Default" selected="true">Default (HMRcore built-in medium)</option>
+                <option value="Custom">Custom medium file</option>
+                </param>
+                <conditional name="medium_selector">
+                    <when value="Custom">
+                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
+                    </when>
+                </conditional>
+            </when>
+
+            <!-- Custom model -->
             <when value="Custom_model">
                 <param name="input" argument="--input" type="data" format="json,xml" label="Custom model file:" />
-                <param name="name" argument="--name" type="text" label="Model's name:" value="CustomModel" help="Default: CustomModel. Do not use spaces or special symbols." />
+                <param name="name" argument="--name" type="text" label="Model's name:" value="CustomModel" />
+                <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
+                    <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>
+                    <option value="Custom">Custom medium file (required)</option>
+                </param>
+                <conditional name="medium_selector">
+                    <when value="Custom">
+                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
+                    </when>
+                </conditional>
             </when>
         </conditional>
+
 
         <!-- formato output -->
         <param name="output_format" argument="--output_format" type="select" label="Output format:">
@@ -55,13 +104,7 @@
             <option value="xlsx">Excel (.xlsx)</option>
         </param>
 
-        <!-- medium -->
-        <conditional name="cond_medium">
-            <expand macro="options_ras_to_bounds_medium"/>
-            <when value="Custom">
-                <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
-            </when>
-        </conditional> 
+
     </inputs>
 
     <outputs>

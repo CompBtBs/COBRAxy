@@ -220,9 +220,6 @@ def main(args:List[str] = None) -> None:
     global ARGS
     ARGS = process_args(args)
 
-    # this is the worst thing I've seen so far, congrats to the former MaREA devs for suggesting this!
-    #if os.path.isdir(ARGS.output_path) == False: 
-    #    os.makedirs(ARGS.output_path)
 
     if ARGS.input:
         # load custom model
