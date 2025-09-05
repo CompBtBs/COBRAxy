@@ -121,7 +121,6 @@ def get_metabolite_id(name :str, syn_dict :Dict[str, List[str]]) -> str:
     """
     name = clean_metabolite_name(name)
     for id, synonyms in syn_dict.items():
-
         if name in synonyms:
             return id
     
@@ -208,8 +207,9 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
 
     translationIsApplied = ARGS.reaction_choice == "default"
     for row in dataset[1:]:
-        id = get_metabolite_id(row[0], syn_dict) if translationIsApplied else row[0]
-        if id: abundances_dict[id] = list(map(utils.Float(), row[1:]))
+        id = get_metabolite_id(row[0], syn_dict) #if translationIsApplied else row[0]
+        if id: 
+            abundances_dict[id] = list(map(utils.Float(), row[1:]))
 
     missing_list = check_missing_metab(reactions, abundances_dict, len((cell_lines)))
 
@@ -220,7 +220,8 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
         rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list, substrateFreqTable)
     
     df = pd.DataFrame.from_dict(rps_scores)
-    print(df.head())
+    df = df.loc[list(reactions.keys()),:]
+    print(df.head(10))
     df.index.name = 'Reactions'
     df.to_csv(ARGS.rps_output, sep='\t', na_rep='None', index=True)
 
@@ -243,7 +244,7 @@ def main(args:List[str] = None) -> None:
         syn_dict = pk.load(sd)
 
     dataset = utils.readCsv(utils.FilePath.fromStrPath(ARGS.input), '\t', skipHeader = False)
-
+    tmp_dict = None
     if ARGS.reaction_choice == 'default':
         reactions = pk.load(open(ARGS.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
         substrateFreqTable = pk.load(open(ARGS.tool_dir + '/local/pickle files/substrate_frequencies.pickle', 'rb'))
@@ -261,8 +262,17 @@ def main(args:List[str] = None) -> None:
                 if substrateName not in substrateFreqTable: substrateFreqTable[substrateName] = 0
                 substrateFreqTable[substrateName] += 1
 
-    print(f"Reactions: {reactions}")
-    print(f"Substrate Frequencies: {substrateFreqTable}")
+        print(f"Reactions: {reactions}")
+        print(f"Substrate Frequencies: {substrateFreqTable}")
+        print(f"Synonyms: {syn_dict}")
+        tmp_dict = {}
+        for metabName, freq in substrateFreqTable.items():
+            tmp_metabName = clean_metabolite_name(metabName)
+            for syn_key, syn_list in syn_dict.items():
+                if tmp_metabName in syn_list or tmp_metabName == clean_metabolite_name(syn_key):
+                    print(f"Mapping {tmp_metabName} to {syn_key}")
+                    tmp_dict[syn_key] = syn_list
+                    tmp_dict[syn_key].append(tmp_metabName)
 
     rps_for_cell_lines(dataset, reactions, black_list, syn_dict, substrateFreqTable)
     print('Execution succeded')

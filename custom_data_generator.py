@@ -8,38 +8,48 @@ import utils.general_utils as utils
 import utils.rule_parsing  as rulesUtils
 from typing import Optional, Tuple, Union, List, Dict
 import utils.reaction_parsing as reactionUtils
+import openpyxl
 
 ARGS : argparse.Namespace
-def process_args(args:List[str] = None) -> argparse.Namespace:
+def process_args(args: List[str] = None) -> argparse.Namespace:
     """
-    Interfaces the script of a module with its frontend, making the user's choices for
-    various parameters available as values in code.
-
-    Args:
-        args : Always obtained (in file) from sys.argv
-
-    Returns:
-        Namespace : An object containing the parsed arguments
+    Parse command-line arguments for CustomDataGenerator.
     """
+
     parser = argparse.ArgumentParser(
-        usage = "%(prog)s [options]",
-        description = "generate custom data from a given model")
+        usage="%(prog)s [options]",
+        description="Generate custom data from a given model"
+    )
+
+    parser.add_argument("--out_log", type=str, required=True,
+                        help="Output log file")
+
+    parser.add_argument("--model", type=str,
+                        help="Built-in model identifier (e.g., ENGRO2, Recon, HMRcore)")
+    parser.add_argument("--input", type=str,
+                        help="Custom model file (JSON or XML)")
+    parser.add_argument("--name", type=str, required=True,
+                        help="Model name (default or custom)")
     
-    parser.add_argument("-ol", "--out_log", type = str, required = True, help = "Output log")
+    parser.add_argument("--medium_selector", type=str, required=True,
+                        help="Medium selection option (default/custom)")
+    parser.add_argument("--medium", type=str,
+                        help="Custom medium file if medium_selector=Custom")
+    
+    parser.add_argument("--output_format", type=str, choices=["tabular", "xlsx"], required=True,
+                        help="Output format: CSV (tabular) or Excel (xlsx)")
+    
+    parser.add_argument("--out_tabular", type=str,
+                        help="Output file for the merged dataset (CSV or XLSX)")
+    
+    parser.add_argument("--out_xlsx", type=str,
+                        help="Output file for the merged dataset (CSV or XLSX)")
+    
+    parser.add_argument("--tool_dir", type=str, default=os.path.dirname(__file__),
+                        help="Tool directory (passed from Galaxy as $__tool_directory__)")
 
-    parser.add_argument("-orules", "--out_rules", type = str, required = True, help = "Output rules")
-    parser.add_argument("-orxns", "--out_reactions", type = str, required = True, help = "Output reactions")
-    parser.add_argument("-omedium", "--out_medium", type = str, required = True, help = "Output medium")
-    parser.add_argument("-obnds", "--out_bounds", type = str, required = True, help = "Output bounds")
 
-    parser.add_argument("-id", "--input",   type = str, required = True, help = "Input model")
-    parser.add_argument("-mn", "--name",    type = str, required = True, help = "Input model name")
-    # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
-    parser.add_argument('-idop', '--output_path', type = str, default='result', help = 'output path for maps')
-    argsNamespace = parser.parse_args(args)
-    # ^ can't get this one to work from xml, there doesn't seem to be a way to get the directory attribute from the collection
-
-    return argsNamespace
+    return parser.parse_args(args)
 
 ################################- INPUT DATA LOADING -################################
 def load_custom_model(file_path :utils.FilePath, ext :Optional[utils.FileFormat] = None) -> cobra.Model:
@@ -195,12 +205,30 @@ def main(args:List[str] = None) -> None:
     ARGS = process_args(args)
 
     # this is the worst thing I've seen so far, congrats to the former MaREA devs for suggesting this!
-    if os.path.isdir(ARGS.output_path) == False: 
-        os.makedirs(ARGS.output_path)
+    #if os.path.isdir(ARGS.output_path) == False: 
+    #    os.makedirs(ARGS.output_path)
 
-    # load custom model
-    model = load_custom_model(
-        utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.name).ext)
+    if ARGS.input:
+        # load custom model
+        model = load_custom_model(
+            utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.name).ext)
+    else:
+        # load built-in model
+
+        try:
+            model_enum = utils.Model[ARGS.model]  # e.g., Model['ENGRO2']
+        except KeyError:
+            raise utils.ArgsErr("model", "one of Recon/ENGRO2/HMRcore/Custom_model", ARGS.model)
+
+        # Load built-in model (Model.getCOBRAmodel uses tool_dir to locate local models)
+        try:
+            model = model_enum.getCOBRAmodel(toolDir=ARGS.tool_dir)
+        except Exception as e:
+            # Wrap/normalize load errors as DataErr for consistency
+            raise utils.DataErr(ARGS.model, f"failed loading built-in model: {e}")
+
+    # Determine final model name: explicit --name overrides, otherwise use the model id
+    model_name = ARGS.name if ARGS.name else ARGS.model
 
     # generate data
     rules = generate_rules(model, asParsed = False)
@@ -224,15 +252,22 @@ def main(args:List[str] = None) -> None:
 
     merged = merged.sort_values(by = "InMedium", ascending = False)
 
-    out_file = os.path.join(ARGS.output_path, f"{os.path.basename(ARGS.name).split('.')[0]}_custom_data.csv")
+    #out_file = os.path.join(ARGS.output_path, f"{os.path.basename(ARGS.name).split('.')[0]}_custom_data")
 
-    merged.to_csv(out_file, sep = '\t', index = False)
+    #merged.to_csv(out_file, sep = '\t', index = False)
 
-    # save files out of collection: path coming from xml
-    save_as_csv(rules, ARGS.out_rules, ("ReactionID", "Rule"))
-    save_as_csv(reactions, ARGS.out_reactions, ("ReactionID", "Reaction"))
-    bounds.to_csv(ARGS.out_bounds, sep = '\t')
-    medium.to_csv(ARGS.out_medium, sep = '\t')
+
+    ####
+
+    if ARGS.output_format == "xlsx":
+        #if not ARGS.out_xlsx.lower().endswith(".xlsx"):
+        #    ARGS.out_xlsx += ".xlsx"
+
+        merged.to_excel(ARGS.out_xlsx, index=False)
+    else:
+        merged.to_csv(ARGS.out_tabular, sep="\t", index=False)
+
+print("CustomDataGenerator: completed successfully")
 
 if __name__ == '__main__':
     main()
