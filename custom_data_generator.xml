@@ -32,12 +32,7 @@
     </command>
     <inputs>
         <conditional name="cond_model">
-            <param name="model_selector" argument="--model_selector" type="select" label="Model:">
-                <option value="HMRcore">HMRcore</option>
-                <option value="Recon">Recon 2.2</option>
-                <option value="ENGRO2"  selected="true">ENGRO 2</option>
-                <option value="Custom_model">Custom</option>
-            </param>
+            <expand macro="options_model"/>
             <!-- ENGRO2 -->
             <when value="ENGRO2">
                 <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
@@ -96,12 +91,12 @@
     </inputs>
 
     <outputs>
-    <data name="log" format="txt" label="CustomDataGenerator - Log" />
+        <data name="log" format="txt" label="CustomDataGenerator - Log" />
 
-    <data name="out_tabular" format="tabular"
-            label="${cond_model.model_selector}_data_tabular"
-             optional="true"/>
-    </outputs>
+        <data name="out_tabular" format="tabular"
+                label="${cond_model.model_selector}_data_tabular"
+                optional="true"/>
+        </outputs>
 
     <help>
     <![CDATA[

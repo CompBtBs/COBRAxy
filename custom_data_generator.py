@@ -8,7 +8,6 @@ import utils.general_utils as utils
 import utils.rule_parsing  as rulesUtils
 from typing import Optional, Tuple, Union, List, Dict
 import utils.reaction_parsing as reactionUtils
-import openpyxl
 
 ARGS : argparse.Namespace
 def process_args(args: List[str] = None) -> argparse.Namespace:
@@ -268,7 +267,7 @@ def main(args:List[str] = None) -> None:
     if not expected or not os.path.exists(expected) or os.path.getsize(expected) == 0:
         raise utils.DataErr(expected, "Output non creato o vuoto")
 
-print("CustomDataGenerator: completed successfully")
+    print("CustomDataGenerator: completed successfully")
 
 if __name__ == '__main__':
     main()
