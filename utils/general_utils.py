@@ -39,8 +39,10 @@ class FileFormat(Enum):
     # Updated to include compressed variants
     XML    = ("xml", "xml.gz", "xml.zip", "xml.bz2") # SBML files are XML files, sometimes compressed
     JSON   = ("json", "json.gz", "json.zip", "json.bz2") # COBRA models can be stored as JSON files, sometimes compressed
-    
-    TXT = ("txt",) # this is how most output data is written
+    MAT    = ("mat", "mat.gz", "mat.zip", "mat.bz2") # COBRA models can be stored as MAT files, sometimes compressed
+    YML    = ("yml", "yml.gz", "yml.zip", "yml.bz2") # COBRA models can be stored as YML files, sometimes compressed
+
+    TXT    = ("txt",) # this is how most output data is written
     PICKLE = ("pickle", "pk", "p") # this is how all runtime data structures are saved
 
     def __init__(self, *extensions):
@@ -78,15 +80,19 @@ class FileFormat(Enum):
         Returns:
             str : the string representation of the file extension.
         """
-        # If we have an original extension stored (for compressed files), use it
+        # If we have an original extension stored (for compressed files only), use it
         if hasattr(self, '_original_extension') and self._original_extension:
             return self._original_extension
         
-        # For XML and JSON without original extension, use the base extension
+        # For XML, JSON, MAT and YML without original extension, use the base extension
         if self == FileFormat.XML:
             return "xml"
         elif self == FileFormat.JSON:
             return "json"
+        elif self == FileFormat.MAT:
+            return "mat"
+        elif self == FileFormat.YML:
+            return "yml"
         
         return self.value[-1]
 
@@ -614,16 +620,30 @@ class Model(Enum):
                 if(ext == "json"):
                     return cobra.io.load_json_model(file_path.show())
                 else: 
-                    return self.extract_json_model(file_path, ext)
+                    return self.extract_model(file_path, ext, "json")
+
+            if str(ext) in FileFormat.MAT.value:
+                # Compressed files are not automatically handled by cobra
+                if(ext == "mat"):
+                    return cobra.io.load_matlab_model(file_path.show())
+                else: 
+                    return self.extract_model(file_path, ext, "mat")
+
+            if str(ext) in FileFormat.YML.value:
+                # Compressed files are not automatically handled by cobra
+                if(ext == "yml"):
+                    return cobra.io.load_yaml_model(file_path.show())
+                else: 
+                    return self.extract_model(file_path, ext, "yml")
 
         except Exception as e: raise DataErr(file_path, e.__str__())
         raise DataErr(file_path,
-            f"Fomat \"{file_path.ext}\" is not recognized, only JSON and XML files are supported.")
+            f"Fomat \"{file_path.ext}\" is not recognized, only JSON, XML, MAT and YAML (.yml) files are supported.")
     
 
-    def extract_json_model(file_path:FilePath, ext :FileFormat) -> cobra.Model:
+    def extract_model(file_path:FilePath, ext :FileFormat, model_encoding:Literal["json", "mat", "yml"]) -> cobra.Model:
         """
-        Extract json COBRA model from a compressed file (zip, gz, bz2).
+        Extract JSON, MAT and YAML COBRA model from a compressed file (zip, gz, bz2).
         
         Args:
             file_path: File path of the model
@@ -642,13 +662,34 @@ class Model(Enum):
                 with zipfile.ZipFile(file_path.show(), 'r') as zip_ref:
                     with zip_ref.open(zip_ref.namelist()[0]) as json_file:
                         content = json_file.read().decode('utf-8')
-                        return cobra.io.load_json_model(StringIO(content))
+                        if model_encoding == "json":
+                            return cobra.io.load_json_model(StringIO(content))
+                        elif model_encoding == "mat":
+                            return cobra.io.load_matlab_model(StringIO(content))
+                        elif model_encoding == "yml":
+                            return cobra.io.load_yaml_model(StringIO(content))
+                        else:
+                            raise ValueError(f"Unsupported model encoding: {model_encoding}. Supported: json, mat, yml")
             elif '.gz' in ext_str:
                 with gzip.open(file_path.show(), 'rt', encoding='utf-8') as gz_ref:
-                    return cobra.io.load_json_model(gz_ref)
+                    if model_encoding == "json":
+                        return cobra.io.load_json_model(gz_ref)
+                    elif model_encoding == "mat":
+                        return cobra.io.load_matlab_model(gz_ref)
+                    elif model_encoding == "yml":
+                        return cobra.io.load_yaml_model(gz_ref)
+                    else:
+                        raise ValueError(f"Unsupported model encoding: {model_encoding}. Supported: json, mat, yml")
             elif '.bz2' in ext_str:
                 with bz2.open(file_path.show(), 'rt', encoding='utf-8') as bz2_ref:
-                    return cobra.io.load_json_model(bz2_ref)
+                    if model_encoding == "json":
+                        return cobra.io.load_json_model(bz2_ref)
+                    elif model_encoding == "mat":
+                        return cobra.io.load_matlab_model(bz2_ref)
+                    elif model_encoding == "yml":
+                        return cobra.io.load_yaml_model(bz2_ref)
+                    else:
+                        raise ValueError(f"Unsupported model encoding: {model_encoding}. Supported: json, mat, yml")
             else:
                 raise ValueError(f"Compression format not supported: {ext_str}. Supported: .zip, .gz and .bz2")
             
