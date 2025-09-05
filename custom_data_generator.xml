@@ -1,8 +1,4 @@
 <tool id="CustomDataGenerator" name="Custom Data Generator" version="2.0.0">
-    
-    <macros>
-        <import>marea_macros.xml</import>
-    </macros>
 
 	<requirements>
         <requirement type="package" version="1.24.4">numpy</requirement>
@@ -10,6 +6,10 @@
 		<requirement type="package" version="0.29.0">cobra</requirement>
         <requirement type="package" version="5.2.2">lxml</requirement>
 	</requirements>
+
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
 
     <command detect_errors="exit_code">
         <![CDATA[
@@ -33,6 +33,7 @@
     <inputs>
         <conditional name="cond_model">
             <expand macro="options_model"/>
+            
             <!-- ENGRO2 -->
             <when value="ENGRO2">
                 <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
@@ -47,25 +48,14 @@
             <!-- Recon -->
             <when value="Recon">
                 <param name="name" argument="--name" type="text" value="Recon" hidden="true" />
-                <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
-                <option value="Default" selected="true">Default (Recon built-in medium)</option>
-                <option value="Custom">Custom medium file</option>
-                </param>
                 <conditional name="medium_selector">
-                    <when value="Custom">
-                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
+                    <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
+                        <option value="Default" selected="true">Default (Recon built-in medium)</option>
+                        <option value="Custom">Custom medium file</option>
+                    </param>
+                    <when value="Default">
+                        <!-- Nessun parametro aggiuntivo necessario -->
                     </when>
-                </conditional>
-            </when>
-
-            <!-- HMRcore -->
-            <when value="HMRcore">
-                <param name="name" argument="--name" type="text" value="HMRcore" hidden="true" />
-                <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
-                <option value="Default" selected="true">Default (HMRcore built-in medium)</option>
-                <option value="Custom">Custom medium file</option>
-                </param>
-                <conditional name="medium_selector">
                     <when value="Custom">
                         <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
                     </when>
@@ -76,27 +66,26 @@
             <when value="Custom_model">
                 <param name="input" argument="--input" type="data" format="json,xml" label="Custom model file:" />
                 <param name="name" argument="--name" type="text" label="Model's name:" value="CustomModel" />
-                <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
-                    <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>
-                    <option value="Custom">Custom medium file (required)</option>
-                </param>
                 <conditional name="medium_selector">
+                    <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
+                        <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>
+                        <option value="Custom">Custom medium file (required)</option>
+                    </param>
+                    <when value="Default">
+                        <!-- Nessun parametro aggiuntivo necessario -->
+                    </when>
                     <when value="Custom">
                         <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
                     </when>
                 </conditional>
             </when>
         </conditional>
-
     </inputs>
 
     <outputs>
         <data name="log" format="txt" label="CustomDataGenerator - Log" />
-
-        <data name="out_tabular" format="tabular"
-                label="${cond_model.model_selector}_data_tabular"
-                optional="true"/>
-        </outputs>
+        <data name="out_tabular" format="tabular" label="${cond_model.model_selector}_data_tabular" optional="true"/>
+    </outputs>
 
     <help>
     <![CDATA[

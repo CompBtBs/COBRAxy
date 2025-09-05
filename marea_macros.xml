@@ -11,9 +11,8 @@
 
     <xml name="options_model">
         <param name="model_selector" argument="--model_selector" type="select" label="Model:">
-            <option value="HMRcore">HMRcore</option>
-            <option value="Recon">Recon 2.2</option>
             <option value="ENGRO2"  selected="true">ENGRO 2</option>
+            <option value="Recon">Recon 2.2</option>
             <option value="Custom_model">Custom</option>
         </param>
     </xml>
