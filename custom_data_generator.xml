@@ -15,7 +15,7 @@
         <![CDATA[
       	python $__tool_directory__/custom_data_generator.py
         --tool_dir $__tool_directory__
-        --medium_selector $cond_medium.medium_selector
+        --medium_selector $cond_model.medium_selector
         #if $cond_model.model_selector == 'Custom_model'
             --input $cond_model.input
             --name $cond_model.name
