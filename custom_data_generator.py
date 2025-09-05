@@ -36,13 +36,7 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     parser.add_argument("--medium", type=str,
                         help="Custom medium file if medium_selector=Custom")
     
-    parser.add_argument("--output_format", type=str, choices=["tabular", "xlsx"], required=True,
-                        help="Output format: CSV (tabular) or Excel (xlsx)")
-    
     parser.add_argument("--out_tabular", type=str,
-                        help="Output file for the merged dataset (CSV or XLSX)")
-    
-    parser.add_argument("--out_xlsx", type=str,
                         help="Output file for the merged dataset (CSV or XLSX)")
     
     parser.add_argument("--tool_dir", type=str, default=os.path.dirname(__file__),
@@ -199,14 +193,6 @@ def save_as_tabular_df(df: pd.DataFrame, path: str) -> None:
     except Exception as e:
         raise utils.DataErr(path, f"failed writing tabular output: {e}")
 
-def save_as_xlsx_df(df: pd.DataFrame, path: str) -> None:
-    try:
-        if not path.lower().endswith(".xlsx"):
-            path += ".xlsx"
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        df.to_excel(path, index=False)
-    except Exception as e:
-        raise utils.DataErr(path, f"failed writing xlsx output: {e}")
 
 ###############################- ENTRY POINT -################################
 def main(args:List[str] = None) -> None:
@@ -272,17 +258,11 @@ def main(args:List[str] = None) -> None:
 
     ####
 
-    # write only the requested output
-    if ARGS.output_format == "xlsx":
-        if not ARGS.out_xlsx:
-            raise utils.ArgsErr("out_xlsx", "output path (--out_xlsx) is required when output_format == xlsx", ARGS.out_xlsx)
-        save_as_xlsx_df(merged, ARGS.out_xlsx)
-        expected = ARGS.out_xlsx
-    else:
-        if not ARGS.out_tabular:
-            raise utils.ArgsErr("out_tabular", "output path (--out_tabular) is required when output_format == tabular", ARGS.out_tabular)
-        save_as_tabular_df(merged, ARGS.out_tabular)
-        expected = ARGS.out_tabular
+
+    if not ARGS.out_tabular:
+        raise utils.ArgsErr("out_tabular", "output path (--out_tabular) is required when output_format == tabular", ARGS.out_tabular)
+    save_as_tabular_df(merged, ARGS.out_tabular)
+    expected = ARGS.out_tabular
 
     # verify output exists and non-empty
     if not expected or not os.path.exists(expected) or os.path.getsize(expected) == 0:

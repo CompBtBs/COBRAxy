@@ -9,7 +9,6 @@
         <requirement type="package" version="2.0.3">pandas</requirement>
 		<requirement type="package" version="0.29.0">cobra</requirement>
         <requirement type="package" version="5.2.2">lxml</requirement>
-        <requirement type="package" >openpyxl</requirement>
 	</requirements>
 
     <command detect_errors="exit_code">
@@ -17,7 +16,6 @@
       	python $__tool_directory__/custom_data_generator.py
         --tool_dir $__tool_directory__
         --medium_selector $cond_medium.medium_selector
-        --output_format $output_format
         #if $cond_model.model_selector == 'Custom_model'
             --input $cond_model.input
             --name $cond_model.name
@@ -29,19 +27,17 @@
             --medium $cond_medium.medium
         #end if
         --out_log $log
-
-        #if $output_format == 'tabular'
         --out_tabular $out_tabular
-        #end if
-        #if $output_format == 'xlsx'
-        --out_xlsx $out_xlsx
-        #end if
-
         ]]>
     </command>
     <inputs>
         <conditional name="cond_model">
-            <expand macro="options_model"/>
+            <param name="model_selector" argument="--model_selector" type="select" label="Model:">
+                <option value="HMRcore">HMRcore</option>
+                <option value="Recon">Recon 2.2</option>
+                <option value="ENGRO2"  selected="true">ENGRO 2</option>
+                <option value="Custom_model">Custom</option>
+            </param>
             <!-- ENGRO2 -->
             <when value="ENGRO2">
                 <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
@@ -97,14 +93,6 @@
             </when>
         </conditional>
 
-
-        <!-- formato output -->
-        <param name="output_format" argument="--output_format" type="select" label="Output format:">
-            <option value="tabular" selected="true">CSV (tabular)</option>
-            <option value="xlsx">Excel (.xlsx)</option>
-        </param>
-
-
     </inputs>
 
     <outputs>
@@ -112,16 +100,7 @@
 
     <data name="out_tabular" format="tabular"
             label="${cond_model.model_selector}_data_tabular"
-            optional="true"
-            filter="output_format == 'tabular'"/>
-
-    <data name="out_xlsx" format="xlsx"
-            label="${cond_model.model_selector}_data_xlsx"
-            optional="true"
-            filter="output_format == 'xlsx'"/>
-    </outputs>
-
-
+            optional="true"/>
 
     <help>
     <![CDATA[
