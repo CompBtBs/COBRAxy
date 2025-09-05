@@ -23,9 +23,6 @@
             --model $cond_model.model_selector
             --name $cond_model.model_selector
         #end if
-        #if $cond_model.medium_selector == 'Custom'
-            --medium $cond_model.medium
-        #end if
 
         --gene_format $gene_format
         
@@ -42,9 +39,6 @@
                 <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
                 <conditional name="medium_selector">
                     <expand macro="options_ras_to_bounds_medium"/>
-                    <when value="Custom">
-                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
-                    </when>
                 </conditional>
             </when>
 
@@ -54,13 +48,9 @@
                 <conditional name="medium_selector">
                     <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
                         <option value="Default" selected="true">Default (Recon built-in medium)</option>
-                        <option value="Custom">Custom medium file</option>
                     </param>
                     <when value="Default">
                         <!-- Nessun parametro aggiuntivo necessario -->
-                    </when>
-                    <when value="Custom">
-                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
                     </when>
                 </conditional>
             </when>
@@ -72,13 +62,9 @@
                 <conditional name="medium_selector">
                     <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
                         <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>
-                        <option value="Custom">Custom medium file (required)</option>
                     </param>
                     <when value="Default">
                         <!-- Nessun parametro aggiuntivo necessario -->
-                    </when>
-                    <when value="Custom">
-                        <param name="medium" argument="--medium" type="data" format="tabular,csv,tsv" label="Custom medium file:" />
                     </when>
                 </conditional>
             </when>
@@ -86,10 +72,10 @@
 
         <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
             <option value="Default" selected="true">Keep original gene nomenclature</option>
-            <option value="ENSNG">ENSNG (Ensembl Gene ID)</option>
-            <option value="HGNC_SYMBOL">HGNC Symbol</option>
-            <option value="HGNC_ID">HGNC ID</option>
-            <option value="ENTREZ">Entrez Gene ID</option>
+            <option value="ENSG">ENSNG (Ensembl Gene ID)</option>
+            <option value="HGNC symbol">HGNC Symbol</option>
+            <option value="HGNC ID">HGNC ID</option>
+            <option value="entrez_id">Entrez Gene ID</option>
         </param>
     </inputs>
 

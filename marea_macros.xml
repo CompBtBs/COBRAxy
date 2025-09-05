@@ -28,7 +28,6 @@
         <param name="medium_selector" argument="--medium_selector" type="select" label="Medium:">
             <option value="Default" selected="true">Default (ENGRO2 built-in medium)</option>
             <option value="allOpen">Open</option>
-            <option value="Custom">Custom medium</option>
             <option value="RPMI_1640">RPMI 1640</option>
             <option value="DMEM">DMEM</option>
             <option value="EMEM">EMEM</option>

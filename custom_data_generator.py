@@ -31,9 +31,10 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
                         help="Model name (default or custom)")
     
     parser.add_argument("--medium_selector", type=str, required=True,
-                        help="Medium selection option (default/custom)")
-    parser.add_argument("--medium", type=str,
-                        help="Custom medium file if medium_selector=Custom")
+                        help="Medium selection option")
+
+    parser.add_argument("--gene_format", type=str, default="Default",
+                        help="Gene nomenclature format: Default (original), ENSNG, HGNC_SYMBOL, HGNC_ID, ENTREZ")
     
     parser.add_argument("--out_tabular", type=str,
                         help="Output file for the merged dataset (CSV or XLSX)")
@@ -226,7 +227,27 @@ def main(args:List[str] = None) -> None:
             raise utils.DataErr(ARGS.model, f"failed loading built-in model: {e}")
 
     # Determine final model name: explicit --name overrides, otherwise use the model id
+    
     model_name = ARGS.name if ARGS.name else ARGS.model
+    
+    
+    if ARGS.name == "ENGRO2" and ARGS.medium_selector != "Default":
+        df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
+        ARGS.medium_selector = ARGS.medium_selector.replace("_", " ")
+        medium = df_mediums[[ARGS.medium_selector]]
+        medium = medium[ARGS.medium_selector].to_dict()
+
+        # Set all reactions to zero in the medium
+        for rxn_id, _ in model.medium.items():
+            model.reactions.get_by_id(rxn_id).lower_bound = float(0.0)
+        
+        # Set medium conditions
+        for reaction, value in medium.items():
+            if value is not None:
+                model.reactions.get_by_id(reaction).lower_bound = -float(value)
+
+    if ARGS.name == "ENGRO2" and ARGS.gene_format != "Default":
+        utils.convert_genes(model, ARGS.gene_format)
 
     # generate data
     rules = generate_rules(model, asParsed = False)
