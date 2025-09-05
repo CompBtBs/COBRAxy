@@ -249,7 +249,8 @@ def main(args:List[str] = None) -> None:
                 model.reactions.get_by_id(reaction).lower_bound = -float(value)
 
     if ARGS.name == "ENGRO2" and ARGS.gene_format != "Default":
-        model = utils.convert_genes(model, ARGS.gene_format)
+
+        model = utils.convert_genes(model, ARGS.gene_format.replace(" ", "_"))
 
     # generate data
     rules = generate_rules(model, asParsed = False)
