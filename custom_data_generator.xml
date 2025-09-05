@@ -26,6 +26,9 @@
         #if $cond_model.medium_selector == 'Custom'
             --medium $cond_model.medium
         #end if
+
+        --gene_format $gene_format
+        
         --out_log $log
         --out_tabular $out_tabular
         ]]>
@@ -80,6 +83,14 @@
                 </conditional>
             </when>
         </conditional>
+
+        <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
+            <option value="Default" selected="true">Keep original gene nomenclature</option>
+            <option value="ENSNG">ENSNG (Ensembl Gene ID)</option>
+            <option value="HGNC_SYMBOL">HGNC Symbol</option>
+            <option value="HGNC_ID">HGNC ID</option>
+            <option value="ENTREZ">Entrez Gene ID</option>
+        </param>
     </inputs>
 
     <outputs>
