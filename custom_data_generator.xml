@@ -23,8 +23,8 @@
             --model $cond_model.model_selector
             --name $cond_model.model_selector
         #end if
-        #if $cond_medium.medium_selector == 'Custom'
-            --medium $cond_medium.medium
+        #if $cond_model.medium_selector == 'Custom'
+            --medium $cond_model.medium
         #end if
         --out_log $log
         --out_tabular $out_tabular
@@ -100,7 +100,8 @@
 
     <data name="out_tabular" format="tabular"
             label="${cond_model.model_selector}_data_tabular"
-            optional="true"/>
+             optional="true"/>
+    </outputs>
 
     <help>
     <![CDATA[
