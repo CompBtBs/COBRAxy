@@ -641,7 +641,7 @@ class Model(Enum):
             f"Fomat \"{file_path.ext}\" is not recognized, only JSON, XML, MAT and YAML (.yml) files are supported.")
     
 
-    def extract_model(file_path:FilePath, ext :FileFormat, model_encoding:Literal["json", "mat", "yml"]) -> cobra.Model:
+    def extract_model(self, file_path:FilePath, ext :FileFormat, model_encoding:Literal["json", "mat", "yml"]) -> cobra.Model:
         """
         Extract JSON, MAT and YAML COBRA model from a compressed file (zip, gz, bz2).
         
