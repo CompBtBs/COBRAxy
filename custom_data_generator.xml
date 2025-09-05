@@ -89,8 +89,7 @@ This tool generates four files containing reactions, rules, reaction bounds and 
 Reactions and rules can be used as inputs for the RAS and RPS generator tools.
 
 Accepted files:
-    - A model: JSON or XML file reporting reactions and rules contained in the model. Supported compressed formats: .zip, .gz and .bz2 - Filename must end with .json.zip (.xml.zip), .json.gz (.xml.gz) or .json.bz2 (.xml.bz2) for JSON (XML) files.   
-
+    - A model: JSON, XML, MAT or YAML (.yml) file reporting reactions and rules contained in the model. Supported compressed formats: .zip, .gz and .bz2. Filename must follow the pattern: {model_name}.{extension}.[zip|gz|bz2]
 
 Output:
 -------------
