@@ -229,7 +229,9 @@ def main(args:List[str] = None) -> None:
     # Determine final model name: explicit --name overrides, otherwise use the model id
     
     model_name = ARGS.name if ARGS.name else ARGS.model
-    
+    print(ARGS.name)
+    print(model_name)
+    print(ARGS.medium_selector)
     
     if ARGS.name == "ENGRO2" and ARGS.medium_selector != "Default":
         df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
@@ -247,7 +249,7 @@ def main(args:List[str] = None) -> None:
                 model.reactions.get_by_id(reaction).lower_bound = -float(value)
 
     if ARGS.name == "ENGRO2" and ARGS.gene_format != "Default":
-        utils.convert_genes(model, ARGS.gene_format)
+        model = utils.convert_genes(model, ARGS.gene_format)
 
     # generate data
     rules = generate_rules(model, asParsed = False)

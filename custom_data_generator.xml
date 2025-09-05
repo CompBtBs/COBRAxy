@@ -15,7 +15,7 @@
         <![CDATA[
       	python $__tool_directory__/custom_data_generator.py
         --tool_dir $__tool_directory__
-        --medium_selector $cond_model.medium_selector
+        --medium_selector $cond_model.cond_medium.medium_selector
         #if $cond_model.model_selector == 'Custom_model'
             --input $cond_model.input
             --name $cond_model.name
@@ -37,7 +37,7 @@
             <!-- ENGRO2 -->
             <when value="ENGRO2">
                 <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
-                <conditional name="medium_selector">
+                <conditional name="cond_medium">
                     <expand macro="options_ras_to_bounds_medium"/>
                 </conditional>
             </when>
@@ -45,7 +45,7 @@
             <!-- Recon -->
             <when value="Recon">
                 <param name="name" argument="--name" type="text" value="Recon" hidden="true" />
-                <conditional name="medium_selector">
+                <conditional name="cond_medium">
                     <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
                         <option value="Default" selected="true">Default (Recon built-in medium)</option>
                     </param>
@@ -59,7 +59,7 @@
             <when value="Custom_model">
                 <param name="input" argument="--input" type="data" format="json,xml" label="Custom model file:" />
                 <param name="name" argument="--name" type="text" label="Model's name:" value="CustomModel" />
-                <conditional name="medium_selector">
+                <conditional name="cond_medium">
                     <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
                         <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>
                     </param>
