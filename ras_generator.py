@@ -647,14 +647,40 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     #if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
 
     dict_rule = {}
-    for line in utils.readCsv(datFilePath, delimiter = "\t"):
-        if line[2] == "":
-            dict_rule[line[0]] = ruleUtils.OpList([""])
-        else:
-            dict_rule[line[0]] = ruleUtils.parseRuleToNestedList(line[2])
 
+    try:
+        # Proviamo prima con delimitatore tab
+        for line in utils.readCsv(datFilePath, delimiter = "\t"):
+            if len(line) < 3:  # Controlliamo che ci siano almeno 3 colonne
+                utils.logWarning(f"Skipping malformed line: {line}", ARGS.out_log)
+                continue
+            
+            if line[2] == "":
+                dict_rule[line[0]] = ruleUtils.OpList([""])
+            else:
+                dict_rule[line[0]] = ruleUtils.parseRuleToNestedList(line[2])
+                
+    except Exception as e:
+        # Se fallisce con tab, proviamo con virgola
+        try:
+            dict_rule = {}
+            for line in utils.readCsv(datFilePath, delimiter = ","):
+                if len(line) < 3:
+                    utils.logWarning(f"Skipping malformed line: {line}", ARGS.out_log)
+                    continue
+                
+                if line[2] == "":
+                    dict_rule[line[0]] = ruleUtils.OpList([""])
+                else:
+                    dict_rule[line[0]] = ruleUtils.parseRuleToNestedList(line[2])
+        except Exception as e2:
+            raise ValueError(f"Unable to parse rules file. Tried both tab and comma delimiters. Original errors: Tab: {e}, Comma: {e2}")
+
+    if not dict_rule:
+            raise ValueError("No valid rules found in the uploaded file. Please check the file format.")
     # csv rules need to be parsed, those in a pickle format are taken to be pre-parsed.
     return dict_rule
+
 
 def main(args:List[str] = None) -> None:
     """
