@@ -28,7 +28,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         description = "process some value's genes to create a comparison's map.")
     
     parser.add_argument("-rl", "--model_upload", type = str,
-        help = "path to input file with custom rules, if provided")
+        help = "path to input file containing the rules")
 
     parser.add_argument("-rn", "--model_upload_name", type = str, help = "custom rules name")
     # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
