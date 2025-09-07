@@ -27,15 +27,10 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         usage = '%(prog)s [options]',
         description = "process some value's genes to create a comparison's map.")
     
-    parser.add_argument(
-        '-rs', '--rules_selector', 
-        type = utils.Model, default = utils.Model.ENGRO2, choices = list(utils.Model),
-        help = 'chose which type of dataset you want use')
-    
-    parser.add_argument("-rl", "--rule_list", type = str,
+    parser.add_argument("-rl", "--model_upload", type = str,
         help = "path to input file with custom rules, if provided")
 
-    parser.add_argument("-rn", "--rules_name", type = str, help = "custom rules name")
+    parser.add_argument("-rn", "--model_upload_name", type = str, help = "custom rules name")
     # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
     
     parser.add_argument(
@@ -642,9 +637,9 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     Returns:
         Dict[str, ruleUtils.OpList] : dict mapping reaction IDs to rules.
     """
-    datFilePath = utils.FilePath.fromStrPath(ARGS.rule_list) # actual file, stored in galaxy as a .dat
-    
-    try: filenamePath = utils.FilePath.fromStrPath(ARGS.rules_name) # file's name in input, to determine its original ext
+    datFilePath = utils.FilePath.fromStrPath(ARGS.model_upload) # actual file, stored in galaxy as a .dat
+
+    try: filenamePath = utils.FilePath.fromStrPath(ARGS.model_upload_name) # file's name in input, to determine its original ext
     except utils.PathErr as err:
         raise utils.PathErr(filenamePath, f"Please make sure your file's name is a valid file path, {err.msg}")
      
@@ -678,35 +673,46 @@ def main(args:List[str] = None) -> None:
     # remove versioning from gene names
     dataset.iloc[:, 0] = dataset.iloc[:, 0].str.split('.').str[0]
 
+    rules = load_custom_rules()
+    reactions = list(rules.keys())
+
+    save_as_tsv(ras_for_cell_lines(dataset, rules), reactions)
+    if ERRORS: utils.logWarning(
+        f"The following genes are mentioned in the rules but don't appear in the dataset: {ERRORS}",
+        ARGS.out_log)  
+
+
+    ############
+
     # handle custom models
-    model :utils.Model = ARGS.rules_selector
+    #model :utils.Model = ARGS.rules_selector
 
-    if model is utils.Model.Custom:
-        rules = load_custom_rules()
-        reactions = list(rules.keys())
+    #if model is utils.Model.Custom:
+    #    rules = load_custom_rules()
+    #    reactions = list(rules.keys())
 
-        save_as_tsv(ras_for_cell_lines(dataset, rules), reactions)
-        if ERRORS: utils.logWarning(
-            f"The following genes are mentioned in the rules but don't appear in the dataset: {ERRORS}",
-            ARGS.out_log)
+    #    save_as_tsv(ras_for_cell_lines(dataset, rules), reactions)
+    #    if ERRORS: utils.logWarning(
+    #        f"The following genes are mentioned in the rules but don't appear in the dataset: {ERRORS}",
+    #        ARGS.out_log)
         
-        return
+    #    return
     
     # This is the standard flow of the ras_generator program, for non-custom models.
-    name = "RAS Dataset"
-    type_gene = gene_type(dataset.iloc[0, 0], name)
+    #name = "RAS Dataset"
+    #type_gene = gene_type(dataset.iloc[0, 0], name)
 
-    rules      = model.getRules(ARGS.tool_dir)
-    genes      = data_gene(dataset, type_gene, name, None)
-    ids, rules = load_id_rules(rules.get(type_gene))
+    #rules      = model.getRules(ARGS.tool_dir)
+    #genes      = data_gene(dataset, type_gene, name, None)
+    #ids, rules = load_id_rules(rules.get(type_gene))
 
-    resolve_rules, err = resolve(genes, rules, ids, ARGS.none, name)
-    create_ras(resolve_rules, name, rules, ids, ARGS.ras_output)
+    #resolve_rules, err = resolve(genes, rules, ids, ARGS.none, name)
+    #create_ras(resolve_rules, name, rules, ids, ARGS.ras_output)
     
-    if err: utils.logWarning(
-        f"Warning: gene(s) {err} not found in class \"{name}\", " +
-        "the expression level for this gene will be considered NaN",
-        ARGS.out_log)
+    #if err: utils.logWarning(
+    #    f"Warning: gene(s) {err} not found in class \"{name}\", " +
+    #    "the expression level for this gene will be considered NaN",
+    #    ARGS.out_log)
     
     print("Execution succeded")
 
