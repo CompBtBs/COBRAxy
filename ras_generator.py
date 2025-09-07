@@ -639,11 +639,12 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     """
     datFilePath = utils.FilePath.fromStrPath(ARGS.model_upload) # actual file, stored in galaxy as a .dat
 
-    try: filenamePath = utils.FilePath.fromStrPath(ARGS.model_upload_name) # file's name in input, to determine its original ext
-    except utils.PathErr as err:
-        raise utils.PathErr(filenamePath, f"Please make sure your file's name is a valid file path, {err.msg}")
+    #try: filenamePath = utils.FilePath.fromStrPath(ARGS.model_upload_name) # file's name in input, to determine its original ext
+    #except utils.PathErr as err:      
+    #    utils.logWarning(f"Cannot determine file extension from filename '{ARGS.model_upload_name}'. Assuming tabular format.", ARGS.out_log)
+    #    filenamePath = None
      
-    if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
+    #if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
 
     dict_rule = {}
     for line in utils.readCsv(datFilePath, delimiter = "\t"):
