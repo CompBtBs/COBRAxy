@@ -24,7 +24,7 @@
         ]]>
     </command>
     <inputs>
-        <param name="model_upload" argument="--model_upload" type="data" format="sbml, xml, json, json.gz, mat, pickle, p, pk" label="Custom model (optional)" help="If not provided, the selected model will be used." />
+        <param name="model_upload" argument="--model_upload" type="data" format="csv, tsv, tabular" label="Custom model (optional)" help="If not provided, the selected model will be used." />
         <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Gene Expression dataset:" />
         <param name="name" argument="--name" type="text" label="Dataset's name:" value="Dataset_RAS" help="Default: Dataset_RAS. Do not use white spaces or special symbols." />
         <param name="none" argument="--none" type="boolean" checked="true" label="(A and NaN) solved as (A)?" /> 
