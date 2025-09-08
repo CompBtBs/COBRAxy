@@ -9,6 +9,7 @@ import utils.CBS_backend as CBS_backend
 from joblib import Parallel, delayed, cpu_count
 from cobra.sampling import OptGPSampler
 import sys
+import utils.general_utils as utils
 
 
 ################################# process args ###############################

@@ -26,6 +26,8 @@
                 #set $names = $names + $input_temp.element_identifier + ","
             #end for
         #end if
+        --save_models $save_models
+        --save_models_path saved_models/
         --name "$names"
         --out_log $log
         ]]>
@@ -45,6 +47,11 @@
             </when>
         </conditional>  
 
+        <param name="save_models" argument="--save_models" type="select" label="Save models with applied bounds?">
+            <option value="False" selected="true">No</option>
+            <option value="True">Yes</option>
+        </param>
+
     </inputs>
 
     <outputs>
@@ -53,7 +60,10 @@
         <collection name="ras_to_bounds" type="list" label="Ras to Bounds">
             <discover_datasets name = "collection" pattern="__name_and_ext__" directory="ras_to_bounds"/>
         </collection>
-
+        <collection name="saved_models" type="list" label="Saved Models (Tabular Format)">
+            <filter>save_models == "True"</filter>
+            <discover_datasets name = "saved_models_collection" pattern="__name_and_ext__" directory="saved_models"/>
+        </collection>
     </outputs>
 
     <help>

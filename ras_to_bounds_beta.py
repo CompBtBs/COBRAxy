@@ -30,9 +30,6 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
     
     parser.add_argument("-mo", "--model_upload", type = str,
         help = "path to input file with custom rules, if provided")
-    
-    parser.add_argument("-meo", "--medium", type = str,
-        help = "path to input file with custom medium, if provided")
 
     parser.add_argument('-ol', '--out_log', 
                         help = "Output log")
@@ -65,6 +62,21 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
         default='ras_to_bounds/',
         help = 'output path for maps')
     
+    parser.add_argument('-sm', '--save_models',
+                    type=utils.Bool("save_models"),
+                    default=False,
+                    help = 'whether to save models with applied bounds')
+    
+    parser.add_argument('-smp', '--save_models_path',
+                        type = str,
+                        default='saved_models/',
+                        help = 'output path for saved models')
+    
+    parser.add_argument('-smf', '--save_models_format',
+                        type = str,
+                        default='csv',
+                        help = 'format for saved models (csv, xml, json, mat, yaml, tabular)')
+
     
     ARGS = parser.parse_args(args)
     return ARGS
@@ -80,8 +92,9 @@ def warning(s :str) -> None:
     Returns:
       None
     """
-    with open(ARGS.out_log, 'a') as log:
-        log.write(s + "\n\n")
+    if ARGS.out_log:
+        with open(ARGS.out_log, 'a') as log:
+            log.write(s + "\n\n")
     print(s)
 
 ############################ dataset input ####################################
@@ -136,7 +149,99 @@ def apply_ras_bounds(bounds, ras_row):
                 new_bounds.loc[reaction, "upper_bound"] = valMax
     return new_bounds
 
-def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder):
+def save_model(model, filename, output_folder, file_format='csv'):
+    """
+    Save a COBRA model to file in the specified format.
+    
+    Args:
+        model (cobra.Model): The model to save.
+        filename (str): Base filename (without extension).
+        output_folder (str): Output directory.
+        file_format (str): File format ('xml', 'json', 'mat', 'yaml', 'tabular', 'csv').
+    
+    Returns:
+        None
+    """
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    try:
+        if file_format == 'tabular' or file_format == 'csv':
+            # Special handling for tabular format using utils functions
+            filepath = os.path.join(output_folder, f"{filename}.csv")
+            
+            rules = utils.generate_rules(model, asParsed = False)
+            reactions = utils.generate_reactions(model, asParsed = False)
+            bounds = utils.generate_bounds(model)
+            medium = utils.get_medium(model)
+            
+            try:
+                compartments = utils.generate_compartments(model)
+            except:
+                compartments = None
+
+            df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "Rule"])
+            df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
+            df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
+            df_medium = medium.rename(columns = {"reaction": "ReactionID"})
+            df_medium["InMedium"] = True # flag per indicare la presenza nel medium
+
+            merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
+            merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
+            
+            # Add compartments only if they exist and model name is ENGRO2
+            if compartments is not None and hasattr(ARGS, 'name') and ARGS.name == "ENGRO2": 
+                merged = merged.merge(compartments, on = "ReactionID", how = "outer")
+            
+            merged = merged.merge(df_medium, on = "ReactionID", how = "left")
+            merged["InMedium"] = merged["InMedium"].fillna(False)
+            merged = merged.sort_values(by = "InMedium", ascending = False)
+            
+            merged.to_csv(filepath, sep="\t", index=False)
+            
+        else:
+            # Standard COBRA formats
+            filepath = os.path.join(output_folder, f"{filename}.{file_format}")
+            
+            if file_format == 'xml':
+                cobra.io.write_sbml_model(model, filepath)
+            elif file_format == 'json':
+                cobra.io.save_json_model(model, filepath)
+            elif file_format == 'mat':
+                cobra.io.save_matlab_model(model, filepath)
+            elif file_format == 'yaml':
+                cobra.io.save_yaml_model(model, filepath)
+            else:
+                raise ValueError(f"Unsupported format: {file_format}")
+        
+        print(f"Model saved: {filepath}")
+        
+    except Exception as e:
+        warning(f"Error saving model {filename}: {str(e)}")
+
+def apply_bounds_to_model(model, bounds):
+    """
+    Apply bounds from a DataFrame to a COBRA model.
+    
+    Args:
+        model (cobra.Model): The metabolic model to modify.
+        bounds (pd.DataFrame): DataFrame with reaction bounds.
+    
+    Returns:
+        cobra.Model: Modified model with new bounds.
+    """
+    model_copy = model.copy()
+    for reaction_id in bounds.index:
+        try:
+            reaction = model_copy.reactions.get_by_id(reaction_id)
+            reaction.lower_bound = bounds.loc[reaction_id, "lower_bound"]
+            reaction.upper_bound = bounds.loc[reaction_id, "upper_bound"]
+        except KeyError:
+            # Reaction not found in model, skip
+            continue
+    return model_copy
+
+def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder, save_models=False, save_models_path='saved_models/', save_models_format='csv'):
     """
     Process a single RAS cell, apply bounds, and save the bounds to a CSV file.
 
@@ -146,6 +251,9 @@ def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder):
         model (cobra.Model): The metabolic model to be modified.
         rxns_ids (list of str): List of reaction IDs to which the scaling factors will be applied.
         output_folder (str): Folder path where the output CSV file will be saved.
+        save_models (bool): Whether to save models with applied bounds.
+        save_models_path (str): Path where to save models.
+        save_models_format (str): Format for saved models.
     
     Returns:
         None
@@ -153,17 +261,25 @@ def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder):
     bounds = pd.DataFrame([(rxn.lower_bound, rxn.upper_bound) for rxn in model.reactions], index=rxns_ids, columns=["lower_bound", "upper_bound"])
     new_bounds = apply_ras_bounds(bounds, ras_row)
     new_bounds.to_csv(output_folder + cellName + ".csv", sep='\t', index=True)
+    
+    # Save model if requested
+    if save_models:
+        modified_model = apply_bounds_to_model(model, new_bounds)
+        save_model(modified_model, cellName, save_models_path, save_models_format)
+    
     pass
 
-def generate_bounds(model: cobra.Model, ras=None, output_folder='output/') -> pd.DataFrame:
+def generate_bounds(model: cobra.Model, ras=None, output_folder='output/', save_models=False, save_models_path='saved_models/', save_models_format='csv') -> pd.DataFrame:
     """
     Generate reaction bounds for a metabolic model based on medium conditions and optional RAS adjustments.
     
     Args:
         model (cobra.Model): The metabolic model for which bounds will be generated.
-        medium (dict): A dictionary where keys are reaction IDs and values are the medium conditions.
         ras (pd.DataFrame, optional): RAS pandas dataframe. Defaults to None.
         output_folder (str, optional): Folder path where output CSV files will be saved. Defaults to 'output/'.
+        save_models (bool): Whether to save models with applied bounds.
+        save_models_path (str): Path where to save models.
+        save_models_format (str): Format for saved models.
 
     Returns:
         pd.DataFrame: DataFrame containing the bounds of reactions in the model.
@@ -179,11 +295,20 @@ def generate_bounds(model: cobra.Model, ras=None, output_folder='output/') -> pd
         model.reactions.get_by_id(reaction).upper_bound = float(df_FVA.loc[reaction, "maximum"])
 
     if ras is not None:
-        Parallel(n_jobs=cpu_count())(delayed(process_ras_cell)(cellName, ras_row, model, rxns_ids, output_folder) for cellName, ras_row in ras.iterrows())
+        Parallel(n_jobs=cpu_count())(delayed(process_ras_cell)(
+            cellName, ras_row, model, rxns_ids, output_folder, 
+            save_models, save_models_path, save_models_format
+        ) for cellName, ras_row in ras.iterrows())
     else:
         bounds = pd.DataFrame([(rxn.lower_bound, rxn.upper_bound) for rxn in model.reactions], index=rxns_ids, columns=["lower_bound", "upper_bound"])
         newBounds = apply_ras_bounds(bounds, pd.Series([1]*len(rxns_ids), index=rxns_ids))
         newBounds.to_csv(output_folder + "bounds.csv", sep='\t', index=True)
+
+        # Save model if requested
+        if save_models:
+            modified_model = apply_bounds_to_model(model, newBounds)
+            save_model(modified_model, "model_with_bounds", save_models_path, save_models_format)
+    
     pass
 
 ############################# main ###########################################
@@ -196,7 +321,6 @@ def main(args:List[str] = None) -> None:
     """
     if not os.path.exists('ras_to_bounds'):
         os.makedirs('ras_to_bounds')
-
 
     global ARGS
     ARGS = process_args(args)
@@ -236,16 +360,6 @@ def main(args:List[str] = None) -> None:
         ras_combined = ras_combined.div(ras_combined.max(axis=0))
         ras_combined.dropna(axis=1, how='all', inplace=True)
 
-
-    
-    #model_type :utils.Model = ARGS.model_selector
-    #if model_type is utils.Model.Custom:
-    #    model = model_type.getCOBRAmodel(customPath = utils.FilePath.fromStrPath(ARGS.model), customExtension = utils.FilePath.fromStrPath(ARGS.model_name).ext)
-    #else:
-    #    model = model_type.getCOBRAmodel(toolDir=ARGS.tool_dir)
-
-    # TODO LOAD MODEL FROM UPLOAD
-
     model = utils.build_cobra_model_from_csv(ARGS.model_upload)
 
     validation = utils.validate_model(model)
@@ -254,22 +368,15 @@ def main(args:List[str] = None) -> None:
     for key, value in validation.items():
         print(f"{key}: {value}")
 
-    #if(ARGS.medium_selector == "Custom"):
-    #    medium = read_dataset(ARGS.medium, "medium dataset")
-    #    medium.set_index(medium.columns[0], inplace=True)
-    #    medium = medium.astype(float)
-    #    medium = medium[medium.columns[0]].to_dict()
-    #else:
-    #    df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
-    #    ARGS.medium_selector = ARGS.medium_selector.replace("_", " ")
-    #    medium = df_mediums[[ARGS.medium_selector]]
-    #    medium = medium[ARGS.medium_selector].to_dict()
-
     if(ARGS.ras_selector == True):
-        generate_bounds(model, ras = ras_combined, output_folder=ARGS.output_path)
-        class_assignments.to_csv(ARGS.cell_class, sep = '\t', index = False)
+        generate_bounds(model, ras=ras_combined, output_folder=ARGS.output_path,
+                       save_models=ARGS.save_models, save_models_path=ARGS.save_models_path,
+                       save_models_format=ARGS.save_models_format)
+        class_assignments.to_csv(ARGS.cell_class, sep='\t', index=False)
     else:
-        generate_bounds(model, output_folder=ARGS.output_path)
+        generate_bounds(model, output_folder=ARGS.output_path,
+                       save_models=ARGS.save_models, save_models_path=ARGS.save_models_path,
+                       save_models_format=ARGS.save_models_format)
 
     pass
         
