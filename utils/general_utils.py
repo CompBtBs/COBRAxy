@@ -777,46 +777,39 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
     
     # Seconda passata: aggiungi le reazioni
     reactions_added = 0
-    reactions_skipped = 0
     
     for idx, row in df.iterrows():
+        reaction_id = str(row['ReactionID']).strip()
+        reaction_formula = str(row['Reaction']).strip()
+        
+        # Salta reazioni senza formula
+        if not reaction_formula or reaction_formula == 'nan':
+            raise ValueError(f"Formula della reazione mancante {reaction_id}")
+
+        # Crea la reazione
+        reaction = Reaction(reaction_id)
+        reaction.name = reaction_id
+        
+        # Imposta bounds
+        reaction.lower_bound = float(row['lower_bound']) if pd.notna(row['lower_bound']) else -1000.0
+        reaction.upper_bound = float(row['upper_bound']) if pd.notna(row['upper_bound']) else 1000.0
+        
+        # Aggiungi gene rule se presente
+        if pd.notna(row['Rule']) and str(row['Rule']).strip():
+            reaction.gene_reaction_rule = str(row['Rule']).strip()
+        
+        # Parse della formula della reazione
         try:
-            reaction_id = str(row['ReactionID']).strip()
-            reaction_formula = str(row['Reaction']).strip()
-            
-            # Salta reazioni senza formula
-            if not reaction_formula or reaction_formula == 'nan':
-                reactions_skipped += 1
-                continue
-            
-            # Crea la reazione
-            reaction = Reaction(reaction_id)
-            reaction.name = reaction_id
-            
-            # Imposta bounds
-            reaction.lower_bound = float(row['lower_bound']) if pd.notna(row['lower_bound']) else -1000.0
-            reaction.upper_bound = float(row['upper_bound']) if pd.notna(row['upper_bound']) else 1000.0
-            
-            # Aggiungi gene rule se presente
-            if pd.notna(row['Rule']) and str(row['Rule']).strip():
-                reaction.gene_reaction_rule = str(row['Rule']).strip()
-            
-            # Parse della formula della reazione
-            try:
-                parse_reaction_formula(reaction, reaction_formula, metabolites_dict)
-            except Exception as e:
-                print(f"Errore nel parsing della reazione {reaction_id}: {e}")
-                reactions_skipped += 1
-                continue
-            
-            # Aggiungi la reazione al modello
-            model.add_reactions([reaction])
-            reactions_added += 1
-            
+            parse_reaction_formula(reaction, reaction_formula, metabolites_dict)
         except Exception as e:
-            print(f"Errore nell'aggiungere la reazione {reaction_id}: {e}")
+            print(f"Errore nel parsing della reazione {reaction_id}: {e}")
             reactions_skipped += 1
             continue
+        
+        # Aggiungi la reazione al modello
+        model.add_reactions([reaction])
+        reactions_added += 1
+            
     
     print(f"Aggiunte {reactions_added} reazioni, saltate {reactions_skipped} reazioni")
     
