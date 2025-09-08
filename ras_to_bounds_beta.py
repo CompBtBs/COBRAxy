@@ -11,7 +11,7 @@ import sys
 import csv
 from joblib import Parallel, delayed, cpu_count
 import utils.rule_parsing  as rulesUtils
-import utils.reaction_utils as reactionUtils
+import utils.reaction_parsing as reactionUtils
 
 # , medium
 
