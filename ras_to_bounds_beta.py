@@ -1,13 +1,17 @@
 import argparse
 import utils.general_utils as utils
-from typing import Optional, List
+from typing import Optional, Dict, Set, List, Tuple
 import os
 import numpy as np
 import pandas as pd
 import cobra
+from cobra import Model, Reaction, Metabolite
+import re
 import sys
 import csv
 from joblib import Parallel, delayed, cpu_count
+
+# , medium
 
 ################################# process args ###############################
 def process_args(args :List[str] = None) -> argparse.Namespace:
@@ -23,20 +27,9 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
                                      description = 'process some value\'s')
     
-    parser.add_argument(
-        '-ms', '--model_selector', 
-        type = utils.Model, default = utils.Model.ENGRO2, choices = [utils.Model.ENGRO2, utils.Model.Custom],
-        help = 'chose which type of model you want use')
     
-    parser.add_argument("-mo", "--model", type = str,
+    parser.add_argument("-mo", "--model_upload", type = str,
         help = "path to input file with custom rules, if provided")
-    
-    parser.add_argument("-mn", "--model_name", type = str, help = "custom mode name")
-
-    parser.add_argument(
-        '-mes', '--medium_selector', 
-        default = "allOpen",
-        help = 'chose which type of medium you want use')
     
     parser.add_argument("-meo", "--medium", type = str,
         help = "path to input file with custom medium, if provided")
@@ -162,7 +155,7 @@ def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder):
     new_bounds.to_csv(output_folder + cellName + ".csv", sep='\t', index=True)
     pass
 
-def generate_bounds(model: cobra.Model, medium: dict, ras=None, output_folder='output/') -> pd.DataFrame:
+def generate_bounds(model: cobra.Model, ras=None, output_folder='output/') -> pd.DataFrame:
     """
     Generate reaction bounds for a metabolic model based on medium conditions and optional RAS adjustments.
     
@@ -175,17 +168,7 @@ def generate_bounds(model: cobra.Model, medium: dict, ras=None, output_folder='o
     Returns:
         pd.DataFrame: DataFrame containing the bounds of reactions in the model.
     """
-    rxns_ids = [rxn.id for rxn in model.reactions]
-
-    # Set all reactions to zero in the medium
-    for rxn_id, _ in model.medium.items():
-        model.reactions.get_by_id(rxn_id).lower_bound = float(0.0)
-    
-    # Set medium conditions
-    for reaction, value in medium.items():
-        if value is not None:
-            model.reactions.get_by_id(reaction).lower_bound = -float(value)
-            
+    rxns_ids = [rxn.id for rxn in model.reactions]            
             
     # Perform Flux Variability Analysis (FVA) on this medium
     df_FVA = cobra.flux_analysis.flux_variability_analysis(model, fraction_of_optimum=0, processes=1).round(8)
@@ -203,6 +186,276 @@ def generate_bounds(model: cobra.Model, medium: dict, ras=None, output_folder='o
         newBounds.to_csv(output_folder + "bounds.csv", sep='\t', index=True)
     pass
 
+# TODO: VALUTARE QUALI DI QUESTE FUNZIONI METTERE IN UTILS.PY
+def build_cobra_model_from_csv(csv_path: str, model_id: str = "ENGRO2_custom") -> cobra.Model:
+    """
+    Costruisce un modello COBRApy a partire da un file CSV con i dati delle reazioni.
+    
+    Args:
+        csv_path: Path al file CSV (separato da tab)
+        model_id: ID del modello da creare
+        
+    Returns:
+        cobra.Model: Il modello COBRApy costruito
+    """
+    
+    # Leggi i dati dal CSV
+    df = pd.read_csv(csv_path, sep='\t')
+    
+    # Crea il modello vuoto
+    model = Model(model_id)
+    
+    # Dict per tenere traccia di metaboliti e compartimenti
+    metabolites_dict = {}
+    compartments_dict = {}
+    
+    print(f"Costruendo modello da {len(df)} reazioni...")
+    
+    # Prima passata: estrai metaboliti e compartimenti dalle formule delle reazioni
+    for idx, row in df.iterrows():
+        reaction_formula = str(row['Reaction']).strip()
+        if not reaction_formula or reaction_formula == 'nan':
+            continue
+            
+        # Estrai metaboliti dalla formula della reazione
+        metabolites = extract_metabolites_from_reaction(reaction_formula)
+        
+        for met_id in metabolites:
+            compartment = extract_compartment_from_metabolite(met_id)
+            
+            # Aggiungi compartimento se non esiste
+            if compartment not in compartments_dict:
+                compartments_dict[compartment] = compartment
+            
+            # Aggiungi metabolita se non esiste
+            if met_id not in metabolites_dict:
+                metabolites_dict[met_id] = Metabolite(
+                    id=met_id,
+                    compartment=compartment,
+                    name=met_id.replace(f"_{compartment}", "").replace("__", "_")
+                )
+    
+    # Aggiungi compartimenti al modello
+    model.compartments = compartments_dict
+    
+    # Aggiungi metaboliti al modello  
+    model.add_metabolites(list(metabolites_dict.values()))
+    
+    print(f"Aggiunti {len(metabolites_dict)} metaboliti e {len(compartments_dict)} compartimenti")
+    
+    # Seconda passata: aggiungi le reazioni
+    reactions_added = 0
+    reactions_skipped = 0
+    
+    for idx, row in df.iterrows():
+        try:
+            reaction_id = str(row['ReactionID']).strip()
+            if reaction_id == 'EX_thbpt_e':
+              print('qui')
+              print(reaction_id)
+              print(str(row['Reaction']).strip())
+              print('qui')
+            reaction_formula = str(row['Reaction']).strip()
+            
+            # Salta reazioni senza formula
+            if not reaction_formula or reaction_formula == 'nan':
+                reactions_skipped += 1
+                continue
+            
+            # Crea la reazione
+            reaction = Reaction(reaction_id)
+            reaction.name = reaction_id
+            
+            # Imposta bounds
+            reaction.lower_bound = float(row['lower_bound']) if pd.notna(row['lower_bound']) else -1000.0
+            reaction.upper_bound = float(row['upper_bound']) if pd.notna(row['upper_bound']) else 1000.0
+            
+            # Aggiungi gene rule se presente
+            if pd.notna(row['Rule']) and str(row['Rule']).strip():
+                reaction.gene_reaction_rule = str(row['Rule']).strip()
+            
+            # Parse della formula della reazione
+            try:
+                parse_reaction_formula(reaction, reaction_formula, metabolites_dict)
+            except Exception as e:
+                print(f"Errore nel parsing della reazione {reaction_id}: {e}")
+                reactions_skipped += 1
+                continue
+            
+            # Aggiungi la reazione al modello
+            model.add_reactions([reaction])
+            reactions_added += 1
+            
+        except Exception as e:
+            print(f"Errore nell'aggiungere la reazione {reaction_id}: {e}")
+            reactions_skipped += 1
+            continue
+    
+    print(f"Aggiunte {reactions_added} reazioni, saltate {reactions_skipped} reazioni")
+    
+    # Imposta l'obiettivo di biomassa
+    set_biomass_objective(model)
+    
+    # Imposta il medium
+    set_medium_from_data(model, df)
+    
+    print(f"Modello completato: {len(model.reactions)} reazioni, {len(model.metabolites)} metaboliti")
+    
+    return model
+
+
+# Estrae tutti gli ID metaboliti nella formula (gestisce prefissi numerici + underscore)
+def extract_metabolites_from_reaction(reaction_formula: str) -> Set[str]:
+    """
+    Estrae gli ID dei metaboliti da una formula di reazione.
+    Pattern robusto: cattura token che terminano con _<compartimento> (es. _c, _m, _e)
+    e permette che comincino con cifre o underscore.
+    """
+    metabolites = set()
+    # coefficiente opzionale seguito da un token che termina con _<letters>
+    pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+_[a-z]+)'
+    matches = re.findall(pattern, reaction_formula)
+    metabolites.update(matches)
+    return metabolites
+
+
+def extract_compartment_from_metabolite(metabolite_id: str) -> str:
+    """
+    Estrae il compartimento dall'ID del metabolita.
+    """
+    # Il compartimento è solitamente l'ultima lettera dopo l'underscore
+    if '_' in metabolite_id:
+        return metabolite_id.split('_')[-1]
+    return 'c'  # default cytoplasm
+
+
+def parse_reaction_formula(reaction: Reaction, formula: str, metabolites_dict: Dict[str, Metabolite]):
+    """
+    Parsa una formula di reazione e imposta i metaboliti con i loro coefficienti.
+    """
+
+    if reaction.id == 'EX_thbpt_e':
+        print(reaction.id)
+        print(formula)
+    # Dividi in parte sinistra e destra
+    if '<=>' in formula:
+        left, right = formula.split('<=>')
+        reversible = True
+    elif '<--' in formula:
+        left, right = formula.split('<--')
+        reversible = False
+        left, right = left, right
+    elif '-->' in formula:
+        left, right = formula.split('-->')
+        reversible = False
+    elif '<-' in formula:
+        left, right = formula.split('<-')
+        reversible = False
+        left, right = left, right
+    else:
+        raise ValueError(f"Formato reazione non riconosciuto: {formula}")
+    
+    # Parse dei metaboliti e coefficienti
+    reactants = parse_metabolites_side(left.strip())
+    products = parse_metabolites_side(right.strip())
+    
+    # Aggiungi metaboliti alla reazione
+    metabolites_to_add = {}
+    
+    # Reagenti (coefficienti negativi)
+    for met_id, coeff in reactants.items():
+        if met_id in metabolites_dict:
+            metabolites_to_add[metabolites_dict[met_id]] = -coeff
+    
+    # Prodotti (coefficienti positivi)
+    for met_id, coeff in products.items():
+        if met_id in metabolites_dict:
+            metabolites_to_add[metabolites_dict[met_id]] = coeff
+    
+    reaction.add_metabolites(metabolites_to_add)
+
+
+def parse_metabolites_side(side_str: str) -> Dict[str, float]:
+    """
+    Parsa un lato della reazione per estrarre metaboliti e coefficienti.
+    """
+    metabolites = {}
+    if not side_str or side_str.strip() == '':
+        return metabolites
+
+    terms = side_str.split('+')
+    for term in terms:
+        term = term.strip()
+        if not term:
+            continue
+
+        # pattern allineato: coefficiente opzionale + id che termina con _<compartimento>
+        match = re.match(r'(?:(\d+\.?\d*)\s+)?([A-Za-z0-9_]+_[a-z]+)', term)
+        if match:
+            coeff_str, met_id = match.groups()
+            coeff = float(coeff_str) if coeff_str else 1.0
+            metabolites[met_id] = coeff
+
+    return metabolites
+
+
+
+def set_biomass_objective(model: Model):
+    """
+    Imposta la reazione di biomassa come obiettivo.
+    """
+    biomass_reactions = [r for r in model.reactions if 'biomass' in r.id.lower()]
+    
+    if biomass_reactions:
+        model.objective = biomass_reactions[0].id
+        print(f"Obiettivo impostato su: {biomass_reactions[0].id}")
+    else:
+        print("Nessuna reazione di biomassa trovata")
+
+
+def set_medium_from_data(model: Model, df: pd.DataFrame):
+    """
+    Imposta il medium basato sulla colonna InMedium.
+    """
+    medium_reactions = df[df['InMedium'] == True]['ReactionID'].tolist()
+    
+    medium_dict = {}
+    for rxn_id in medium_reactions:
+        if rxn_id in [r.id for r in model.reactions]:
+            reaction = model.reactions.get_by_id(rxn_id)
+            if reaction.lower_bound < 0:  # Solo reazioni di uptake
+                medium_dict[rxn_id] = abs(reaction.lower_bound)
+    
+    if medium_dict:
+        model.medium = medium_dict
+        print(f"Medium impostato con {len(medium_dict)} componenti")
+
+
+def validate_model(model: Model) -> Dict[str, any]:
+    """
+    Valida il modello e fornisce statistiche di base.
+    """
+    validation = {
+        'num_reactions': len(model.reactions),
+        'num_metabolites': len(model.metabolites),
+        'num_genes': len(model.genes),
+        'num_compartments': len(model.compartments),
+        'objective': str(model.objective),
+        'medium_size': len(model.medium),
+        'reversible_reactions': len([r for r in model.reactions if r.reversibility]),
+        'exchange_reactions': len([r for r in model.reactions if r.id.startswith('EX_')]),
+    }
+    
+    try:
+        # Test di crescita
+        solution = model.optimize()
+        validation['growth_rate'] = solution.objective_value
+        validation['status'] = solution.status
+    except Exception as e:
+        validation['growth_rate'] = None
+        validation['status'] = f"Error: {e}"
+    
+    return validation
 
 
 ############################# main ###########################################
@@ -257,28 +510,38 @@ def main(args:List[str] = None) -> None:
 
 
     
-    model_type :utils.Model = ARGS.model_selector
-    if model_type is utils.Model.Custom:
-        model = model_type.getCOBRAmodel(customPath = utils.FilePath.fromStrPath(ARGS.model), customExtension = utils.FilePath.fromStrPath(ARGS.model_name).ext)
-    else:
-        model = model_type.getCOBRAmodel(toolDir=ARGS.tool_dir)
+    #model_type :utils.Model = ARGS.model_selector
+    #if model_type is utils.Model.Custom:
+    #    model = model_type.getCOBRAmodel(customPath = utils.FilePath.fromStrPath(ARGS.model), customExtension = utils.FilePath.fromStrPath(ARGS.model_name).ext)
+    #else:
+    #    model = model_type.getCOBRAmodel(toolDir=ARGS.tool_dir)
 
-    if(ARGS.medium_selector == "Custom"):
-        medium = read_dataset(ARGS.medium, "medium dataset")
-        medium.set_index(medium.columns[0], inplace=True)
-        medium = medium.astype(float)
-        medium = medium[medium.columns[0]].to_dict()
-    else:
-        df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
-        ARGS.medium_selector = ARGS.medium_selector.replace("_", " ")
-        medium = df_mediums[[ARGS.medium_selector]]
-        medium = medium[ARGS.medium_selector].to_dict()
+    # TODO LOAD MODEL FROM UPLOAD
+
+    model = build_cobra_model_from_csv(ARGS.model_upload)
+
+    validation = validate_model(model)
+
+    print("\n=== VALIDAZIONE MODELLO ===")
+    for key, value in validation.items():
+        print(f"{key}: {value}")
+
+    #if(ARGS.medium_selector == "Custom"):
+    #    medium = read_dataset(ARGS.medium, "medium dataset")
+    #    medium.set_index(medium.columns[0], inplace=True)
+    #    medium = medium.astype(float)
+    #    medium = medium[medium.columns[0]].to_dict()
+    #else:
+    #    df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
+    #    ARGS.medium_selector = ARGS.medium_selector.replace("_", " ")
+    #    medium = df_mediums[[ARGS.medium_selector]]
+    #    medium = medium[ARGS.medium_selector].to_dict()
 
     if(ARGS.ras_selector == True):
-        generate_bounds(model, medium, ras = ras_combined, output_folder=ARGS.output_path)
+        generate_bounds(model, ras = ras_combined, output_folder=ARGS.output_path)
         class_assignments.to_csv(ARGS.cell_class, sep = '\t', index = False)
     else:
-        generate_bounds(model, medium, output_folder=ARGS.output_path)
+        generate_bounds(model, output_folder=ARGS.output_path)
 
     pass
         
