@@ -17,8 +17,8 @@ import zipfile
 import gzip
 import bz2
 from io import StringIO
-import rule_parsing  as rulesUtils
-import reaction_parsing as reactionUtils
+import utils.rule_parsing  as rulesUtils
+import utils.reaction_parsing as reactionUtils
 
 
 
