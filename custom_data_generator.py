@@ -147,6 +147,53 @@ def generate_bounds(model:cobra.Model) -> pd.DataFrame:
     return bounds
 
 
+
+def generate_compartments(model: cobra.Model) -> pd.DataFrame:
+    """
+    Generates a DataFrame containing compartment information for each reaction.
+    Creates columns for each compartment position (Compartment_1, Compartment_2, etc.)
+    
+    Args:
+        model: the COBRA model to extract compartment data from.
+        
+    Returns:
+        pd.DataFrame: DataFrame with ReactionID and compartment columns
+    """
+    compartment_data = []
+    
+    # First pass: determine the maximum number of compartments any reaction has
+    max_compartments = 0
+    reaction_compartments = {}
+    
+    for reaction in model.reactions:
+        # Get unique compartments from all metabolites in the reaction
+        if type(reaction.annotation['pathways']) == list:
+            reaction_compartments[reaction.id] = reaction.annotation['pathways']
+            max_compartments = max(max_compartments, len(reaction.annotation['pathways']))
+        else:
+            reaction_compartments[reaction.id] = [reaction.annotation['pathways']]
+    
+    # Create column names for compartments
+    compartment_columns = [f"Compartment_{i+1}" for i in range(max_compartments)]
+
+    # Second pass: create the data
+    for reaction_id, compartments in reaction_compartments.items():
+        row = {"ReactionID": reaction_id}
+        
+        # Fill compartment columns
+        for i in range(max_compartments):
+            col_name = compartment_columns[i]
+            if i < len(compartments):
+                row[col_name] = compartments[i]
+                
+            else:
+                row[col_name] = None  # or "" if you prefer empty strings
+                
+        compartment_data.append(row)
+    
+    return pd.DataFrame(compartment_data)
+
+
 ###############################- FILE SAVING -################################
 def save_as_csv_filePath(data :dict, file_path :utils.FilePath, fieldNames :Tuple[str, str]) -> None:
     """
@@ -229,9 +276,6 @@ def main(args:List[str] = None) -> None:
     # Determine final model name: explicit --name overrides, otherwise use the model id
     
     model_name = ARGS.name if ARGS.name else ARGS.model
-    print(ARGS.name)
-    print(model_name)
-    print(ARGS.medium_selector)
     
     if ARGS.name == "ENGRO2" and ARGS.medium_selector != "Default":
         df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
@@ -257,6 +301,7 @@ def main(args:List[str] = None) -> None:
     reactions = generate_reactions(model, asParsed = False)
     bounds = generate_bounds(model)
     medium = get_medium(model)
+    compartments = generate_compartments(model)
 
     df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "Rule"])
     df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
@@ -267,7 +312,7 @@ def main(args:List[str] = None) -> None:
 
     merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
     merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
-
+    merged = merged.merge(compartments, on = "ReactionID", how = "outer")
     merged = merged.merge(df_medium, on = "ReactionID", how = "left")
 
     merged["InMedium"] = merged["InMedium"].fillna(False)
