@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Generic, List, Literal, Optional, TypeVa
 
 import pandas as pd
 import cobra
-from cobra import Model, Reaction, Metabolite
+from cobra import Model as cobraModel, Reaction, Metabolite
 
 import zipfile
 import gzip
@@ -717,7 +717,7 @@ def convert_genes(model,annotation):
     return model2
 
 
-def build_cobra_model_from_csv(csv_path: str, model_id: str = "ENGRO2_custom") -> cobra.Model:
+def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> cobra.Model:
     """
     Costruisce un modello COBRApy a partire da un file CSV con i dati delle reazioni.
     
@@ -733,7 +733,7 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "ENGRO2_custom") -
     df = pd.read_csv(csv_path, sep='\t')
     
     # Crea il modello vuoto
-    model = Model(model_id)
+    model = cobraModel(model_id)
     
     # Dict per tenere traccia di metaboliti e compartimenti
     metabolites_dict = {}
