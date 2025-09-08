@@ -159,39 +159,38 @@ def generate_compartments(model: cobra.Model) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame with ReactionID and compartment columns
     """
-    compartment_data = []
-    
-    # First pass: determine the maximum number of compartments any reaction has
-    max_compartments = 0
-    reaction_compartments = {}
-    
+    pathway_data = []
+
+    # First pass: determine the maximum number of pathways any reaction has
+    max_pathways = 0
+    reaction_pathways = {}
+
     for reaction in model.reactions:
-        # Get unique compartments from all metabolites in the reaction
+        # Get unique pathways from all metabolites in the reaction
         if type(reaction.annotation['pathways']) == list:
-            reaction_compartments[reaction.id] = reaction.annotation['pathways']
-            max_compartments = max(max_compartments, len(reaction.annotation['pathways']))
+            reaction_pathways[reaction.id] = reaction.annotation['pathways']
+            max_pathways = max(max_pathways, len(reaction.annotation['pathways']))
         else:
-            reaction_compartments[reaction.id] = [reaction.annotation['pathways']]
-    
-    # Create column names for compartments
-    compartment_columns = [f"Compartment_{i+1}" for i in range(max_compartments)]
+            reaction_pathways[reaction.id] = [reaction.annotation['pathways']]
+
+    # Create column names for pathways
+    pathway_columns = [f"Pathway_{i+1}" for i in range(max_pathways)]
 
     # Second pass: create the data
-    for reaction_id, compartments in reaction_compartments.items():
+    for reaction_id, pathways in reaction_pathways.items():
         row = {"ReactionID": reaction_id}
         
-        # Fill compartment columns
-        for i in range(max_compartments):
-            col_name = compartment_columns[i]
-            if i < len(compartments):
-                row[col_name] = compartments[i]
-                
+        # Fill pathway columns
+        for i in range(max_pathways):
+            col_name = pathway_columns[i]
+            if i < len(pathways):
+                row[col_name] = pathways[i]
             else:
                 row[col_name] = None  # or "" if you prefer empty strings
-                
-        compartment_data.append(row)
-    
-    return pd.DataFrame(compartment_data)
+
+        pathway_data.append(row)
+
+    return pd.DataFrame(pathway_data)
 
 
 ###############################- FILE SAVING -################################
@@ -301,7 +300,8 @@ def main(args:List[str] = None) -> None:
     reactions = generate_reactions(model, asParsed = False)
     bounds = generate_bounds(model)
     medium = get_medium(model)
-    compartments = generate_compartments(model)
+    if ARGS.name == "ENGRO2":
+        compartments = generate_compartments(model)
 
     df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "Rule"])
     df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
@@ -312,7 +312,8 @@ def main(args:List[str] = None) -> None:
 
     merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
     merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
-    merged = merged.merge(compartments, on = "ReactionID", how = "outer")
+    if ARGS.name == "ENGRO2": 
+        merged = merged.merge(compartments, on = "ReactionID", how = "outer")
     merged = merged.merge(df_medium, on = "ReactionID", how = "left")
 
     merged["InMedium"] = merged["InMedium"].fillna(False)

@@ -40,6 +40,14 @@
                 <conditional name="cond_medium">
                     <expand macro="options_ras_to_bounds_medium"/>
                 </conditional>
+
+                <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
+                    <option value="Default" selected="true">Keep original gene nomenclature</option>
+                    <option value="ENSG">ENSNG (Ensembl Gene ID)</option>
+                    <option value="HGNC_symbol">HGNC Symbol</option>
+                    <option value="HGNC_ID">HGNC ID</option>
+                    <option value="entrez_id">Entrez Gene ID</option>
+                </param>
             </when>
 
             <!-- Recon -->
@@ -53,6 +61,9 @@
                         <!-- Nessun parametro aggiuntivo necessario -->
                     </when>
                 </conditional>
+                <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
+                    <option value="Default" selected="true">Keep original gene nomenclature</option>
+                </param>
             </when>
 
             <!-- Custom model -->
@@ -67,16 +78,12 @@
                         <!-- Nessun parametro aggiuntivo necessario -->
                     </when>
                 </conditional>
+                <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
+                    <option value="Default" selected="true">Keep original gene nomenclature</option>
+                </param>
             </when>
         </conditional>
 
-        <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
-            <option value="Default" selected="true">Keep original gene nomenclature</option>
-            <option value="ENSG">ENSNG (Ensembl Gene ID)</option>
-            <option value="HGNC_symbol">HGNC Symbol</option>
-            <option value="HGNC_ID">HGNC ID</option>
-            <option value="entrez_id">Entrez Gene ID</option>
-        </param>
     </inputs>
 
     <outputs>
