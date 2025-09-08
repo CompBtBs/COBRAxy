@@ -1,6 +1,6 @@
 import argparse
 import utils.general_utils as utils
-from typing import Optional, Dict, Set, List, Tuple
+from typing import Optional, Dict, Set, List, Tuple, Union
 import os
 import numpy as np
 import pandas as pd
@@ -11,6 +11,7 @@ import sys
 import csv
 from joblib import Parallel, delayed, cpu_count
 import utils.rule_parsing  as rulesUtils
+import utils.reaction_utils as reactionUtils
 
 # , medium
 
