@@ -24,7 +24,7 @@
             --name $cond_model.model_selector
         #end if
 
-        --gene_format $gene_format
+        --gene_format $cond_model.gene_format
         
         --out_log $log
         --out_tabular $out_tabular
