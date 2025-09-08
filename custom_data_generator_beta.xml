@@ -1,0 +1,117 @@
+<tool id="CustomDataGenerator - Beta" name="Custom Data Generator - BETA" version="2.0.0">
+
+	<requirements>
+        <requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2.0.3">pandas</requirement>
+		<requirement type="package" version="0.29.0">cobra</requirement>
+        <requirement type="package" version="5.2.2">lxml</requirement>
+	</requirements>
+
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
+
+    <command detect_errors="exit_code">
+        <![CDATA[
+      	python $__tool_directory__/custom_data_generator_beta.py
+        --tool_dir $__tool_directory__
+        --medium_selector $cond_model.cond_medium.medium_selector
+        #if $cond_model.model_selector == 'Custom_model'
+            --input $cond_model.input
+            --name $cond_model.name
+        #else
+            --model $cond_model.model_selector
+            --name $cond_model.model_selector
+        #end if
+
+        --gene_format $cond_model.gene_format
+        
+        --out_log $log
+        --out_tabular $out_tabular
+        ]]>
+    </command>
+    <inputs>
+        <conditional name="cond_model">
+            <expand macro="options_model"/>
+            
+            <!-- ENGRO2 -->
+            <when value="ENGRO2">
+                <param name="name" argument="--name" type="text" value="ENGRO2" hidden="true" />
+                <conditional name="cond_medium">
+                    <expand macro="options_ras_to_bounds_medium"/>
+                </conditional>
+
+                <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
+                    <option value="Default" selected="true">Keep original gene nomenclature</option>
+                    <option value="ENSG">ENSNG (Ensembl Gene ID)</option>
+                    <option value="HGNC_symbol">HGNC Symbol</option>
+                    <option value="HGNC_ID">HGNC ID</option>
+                    <option value="entrez_id">Entrez Gene ID</option>
+                </param>
+            </when>
+
+            <!-- Recon -->
+            <when value="Recon">
+                <param name="name" argument="--name" type="text" value="Recon" hidden="true" />
+                <conditional name="cond_medium">
+                    <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
+                        <option value="Default" selected="true">Default (Recon built-in medium)</option>
+                    </param>
+                    <when value="Default">
+                        <!-- Nessun parametro aggiuntivo necessario -->
+                    </when>
+                </conditional>
+                <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
+                    <option value="Default" selected="true">Keep original gene nomenclature</option>
+                </param>
+            </when>
+
+            <!-- Custom model -->
+            <when value="Custom_model">
+                <param name="input" argument="--input" type="data" format="json,xml" label="Custom model file:" />
+                <param name="name" argument="--name" type="text" label="Model's name:" value="CustomModel" />
+                <conditional name="cond_medium">
+                    <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
+                        <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>
+                    </param>
+                    <when value="Default">
+                        <!-- Nessun parametro aggiuntivo necessario -->
+                    </when>
+                </conditional>
+                <param name="gene_format" argument="--gene_format" type="select" label="Gene nomenclature format:">
+                    <option value="Default" selected="true">Keep original gene nomenclature</option>
+                </param>
+            </when>
+        </conditional>
+
+    </inputs>
+
+    <outputs>
+        <data name="log" format="txt" label="CustomDataGenerator - Log" />
+        <data name="out_tabular" format="tabular" label="${cond_model.model_selector}_data_tabular" optional="true"/>
+    </outputs>
+
+    <help>
+    <![CDATA[
+What it does
+-------------
+
+This tool generates four files containing reactions, rules, reaction bounds and medium composition respectively, starting from a custom model in JSON or XML format.
+Reactions and rules can be used as inputs for the RAS and RPS generator tools.
+
+Accepted files:
+    - A model: JSON, XML, MAT or YAML (.yml) file reporting reactions and rules contained in the model. Supported compressed formats: .zip, .gz and .bz2. Filename must follow the pattern: {model_name}.{extension}.[zip|gz|bz2]
+
+Output:
+-------------
+
+The tool generates:
+    - rules: reporting the rules for each reaction in the custom model given. Format: csv (tab separated).
+    - reactions: reporting the reactions in the custom model given. Format: csv (tab separated).
+    - reaction bounds: reporting the lower and upper bounds of each model reaction. Format: csv (tab separated).
+    - medium composition: reporting the list of exchange/transport reactions. Format: csv (tab separated).
+    - a log file (.txt).
+    ]]>
+    </help>
+    <expand macro="citations" />
+</tool>
