@@ -10,6 +10,7 @@ from joblib import Parallel, delayed, cpu_count
 from cobra.sampling import OptGPSampler
 import sys
 import utils.general_utils as utils
+import utils.model_utils as model_utils
 
 
 ################################# process args ###############################
@@ -385,9 +386,9 @@ def main(args :List[str] = None) -> None:
     #else:
     #    model = model_type.getCOBRAmodel(toolDir=ARGS.tool_dir)
 
-    model = utils.build_cobra_model_from_csv(ARGS.model_upload)
+    model = model_utils.build_cobra_model_from_csv(ARGS.model_upload)
 
-    validation = utils.validate_model(model)
+    validation = model_utils.validate_model(model)
 
     print("\n=== VALIDAZIONE MODELLO ===")
     for key, value in validation.items():
