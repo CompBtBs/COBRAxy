@@ -69,7 +69,7 @@
             <!-- Custom model -->
             <when value="Custom_model">
                 <param name="input" argument="--input" type="data" format="json,xml" label="Custom model file:" />
-                <param name="name" argument="--name" type="text" label="Model's name:" value="CustomModel" />
+                <param name="name" argument="--name" type="text" label="Model's name:" />
                 <conditional name="cond_medium">
                     <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
                         <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>

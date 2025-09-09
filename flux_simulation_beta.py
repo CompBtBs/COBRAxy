@@ -407,13 +407,19 @@ def main(args :List[str] = None) -> None:
     #ARGS.output_type_analysis = ARGS.output_type_analysis.split(",")
 
     # --- Normalize inputs (the tool may pass comma-separated --input and either --name or --names) ---
-    ARGS.input_files = ARGS.input.split(",") if getattr(ARGS, "input", None) else []
+    ARGS.input_files = ARGS.input.split(",") if ARGS.input else []
     ARGS.file_names = ARGS.name.split(",")
     # output types (required) -> list
-    ARGS.output_types = ARGS.output_type.split(",") if getattr(ARGS, "output_type", None) else []
+    ARGS.output_types = ARGS.output_type.split(",") if ARGS.output_type else []
     # optional analysis output types -> list or empty
-    ARGS.output_type_analysis = ARGS.output_type_analysis.split(",") if getattr(ARGS, "output_type_analysis", None) else []
+    ARGS.output_type_analysis = ARGS.output_type_analysis.split(",") if ARGS.output_type_analysis else []
 
+    print("=== INPUT FILES ===")
+    print(f"{ARGS.input_files}")
+    print(f"{ARGS.file_names}")
+    print(f"{ARGS.output_type}")
+    print(f"{ARGS.output_types}")
+    print(f"{ARGS.output_type_analysis}")
     
     if ARGS.model_and_bounds == "True":
         # MODE 1: Model + bounds (separate files)
