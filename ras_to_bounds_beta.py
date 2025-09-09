@@ -364,9 +364,9 @@ def main(args:List[str] = None) -> None:
         ras_combined = ras_combined.div(ras_combined.max(axis=0))
         ras_combined.dropna(axis=1, how='all', inplace=True)
 
-    model = utils.build_cobra_model_from_csv(ARGS.model_upload)
+    model = modelUtils.build_cobra_model_from_csv(ARGS.model_upload)
 
-    validation = utils.validate_model(model)
+    validation = modelUtils.validate_model(model)
 
     print("\n=== VALIDAZIONE MODELLO ===")
     for key, value in validation.items():
