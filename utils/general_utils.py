@@ -704,15 +704,3 @@ class Model(Enum):
     def __str__(self) -> str: return self.value
 
 
-def convert_genes(model,annotation):
-    from cobra.manipulation import rename_genes
-    model2=model.copy()
-    try:
-        dict_genes={gene.id:gene.notes[annotation]  for gene in model2.genes}
-    except:
-        print("No annotation in gene dict!")
-        return -1
-    rename_genes(model2,dict_genes)
-
-    return model2
-

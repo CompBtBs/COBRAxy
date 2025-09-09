@@ -9,7 +9,6 @@ import utils.CBS_backend as CBS_backend
 from joblib import Parallel, delayed, cpu_count
 from cobra.sampling import OptGPSampler
 import sys
-import utils.general_utils as utils
 import utils.model_utils as model_utils
 
 
@@ -30,6 +29,12 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
     parser.add_argument("-mo", "--model_upload", type = str,
         help = "path to input file with custom rules, if provided")
 
+    parser.add_argument("-mab", "--model_and_bounds", type = str,
+        choices = ['True', 'False'],
+        required = True,
+        help = "upload mode: True for model+bounds, False for complete models")
+
+
     parser.add_argument('-ol', '--out_log', 
                         help = "Output log")
     
@@ -39,11 +44,11 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
                         help = 'your tool directory')
     
     parser.add_argument('-in', '--input',
-                        required = True,
-                        type=str,
-                        help = 'inputs bounds')
+                    required = True,
+                    type=str,
+                    help = 'input bounds files or complete model files')
     
-    parser.add_argument('-ni', '--names',
+    parser.add_argument('-ni', '--name',
                         required = True,
                         type=str,
                         help = 'cell names')
@@ -216,9 +221,10 @@ def CBS_sampler(model:cobra.Model, model_name:str, n_samples:int=1000, n_batches
     pass
 
 
-def model_sampler(model_input_original:cobra.Model, bounds_path:str, cell_name:str)-> List[pd.DataFrame]:
+
+def model_sampler_with_bounds(model_input_original: cobra.Model, bounds_path: str, cell_name: str) -> List[pd.DataFrame]:
     """
-    Prepares the model with bounds from the dataset and performs sampling and analysis based on the selected algorithm.
+    MODE 1: Prepares the model with bounds from separate bounds file and performs sampling.
 
     Args:
         model_input_original (cobra.Model): The original COBRA model.
@@ -231,26 +237,41 @@ def model_sampler(model_input_original:cobra.Model, bounds_path:str, cell_name:s
 
     model_input = model_input_original.copy()
     bounds_df = read_dataset(bounds_path, "bounds dataset")
-    for rxn_index, row in bounds_df.iterrows():
-        model_input.reactions.get_by_id(rxn_index).lower_bound = row.lower_bound
-        model_input.reactions.get_by_id(rxn_index).upper_bound = row.upper_bound
     
+    # Apply bounds to model
+    for rxn_index, row in bounds_df.iterrows():
+        try:
+            model_input.reactions.get_by_id(rxn_index).lower_bound = row.lower_bound
+            model_input.reactions.get_by_id(rxn_index).upper_bound = row.upper_bound
+        except KeyError:
+            warning(f"Warning: Reaction {rxn_index} not found in model. Skipping.")
+    
+    return perform_sampling_and_analysis(model_input, cell_name)
+
+
+def perform_sampling_and_analysis(model_input: cobra.Model, cell_name: str) -> List[pd.DataFrame]:
+    """
+    Common function to perform sampling and analysis on a prepared model.
+
+    Args:
+        model_input (cobra.Model): The prepared COBRA model with bounds applied.
+        cell_name (str): Name of the cell, used to generate filenames for output.
+
+    Returns:
+        List[pd.DataFrame]: A list of DataFrames containing statistics and analysis results.
+    """
     
     if ARGS.algorithm == 'OPTGP':
         OPTGP_sampler(model_input, cell_name, ARGS.n_samples, ARGS.thinning, ARGS.n_batches, ARGS.seed)
-
     elif ARGS.algorithm == 'CBS':
-        CBS_sampler(model_input,  cell_name, ARGS.n_samples, ARGS.n_batches, ARGS.seed)
+        CBS_sampler(model_input, cell_name, ARGS.n_samples, ARGS.n_batches, ARGS.seed)
 
     df_mean, df_median, df_quantiles = fluxes_statistics(cell_name, ARGS.output_types)
 
     if("fluxes" not in ARGS.output_types):
-        os.remove(ARGS.output_path + "/"  +  cell_name + '.csv')
+        os.remove(ARGS.output_path + "/" + cell_name + '.csv')
 
-    returnList = []
-    returnList.append(df_mean)
-    returnList.append(df_median)
-    returnList.append(df_quantiles)
+    returnList = [df_mean, df_median, df_quantiles]
 
     df_pFBA, df_FVA, df_sensitivity = fluxes_analysis(model_input, cell_name, ARGS.output_type_analysis)
 
@@ -333,7 +354,7 @@ def fluxes_analysis(model:cobra.Model,  model_name:str, output_types:List)-> Lis
             model.objective = "Biomass"
             solution = cobra.flux_analysis.pfba(model)
             fluxes = solution.fluxes
-            df_pFBA.loc[0,[rxn._id for rxn in model.reactions]] = fluxes.tolist()
+            df_pFBA.loc[0,[rxn.id for rxn in model.reactions]] = fluxes.tolist()
             df_pFBA = df_pFBA.reset_index(drop=True)
             df_pFBA.index = [model_name]
             df_pFBA = df_pFBA.astype(float).round(6)
@@ -372,38 +393,63 @@ def main(args :List[str] = None) -> None:
         None
     """
 
-    num_processors = cpu_count()
+    num_processors = max(1, cpu_count() - 1)
 
     global ARGS
     ARGS = process_args(args)
 
     if not os.path.exists(ARGS.output_path):
         os.makedirs(ARGS.output_path)
+
+    #ARGS.bounds = ARGS.input.split(",")
+    #ARGS.bounds_name = ARGS.name.split(",")
+    #ARGS.output_types = ARGS.output_type.split(",")
+    #ARGS.output_type_analysis = ARGS.output_type_analysis.split(",")
+
+    # --- Normalize inputs (the tool may pass comma-separated --input and either --name or --names) ---
+    ARGS.input_files = ARGS.input.split(",") if getattr(ARGS, "input", None) else []
+    ARGS.file_names = ARGS.name.split(",")
+    # output types (required) -> list
+    ARGS.output_types = ARGS.output_type.split(",") if getattr(ARGS, "output_type", None) else []
+    # optional analysis output types -> list or empty
+    ARGS.output_type_analysis = ARGS.output_type_analysis.split(",") if getattr(ARGS, "output_type_analysis", None) else []
+
     
-    #model_type :utils.Model = ARGS.model_selector
-    #if model_type is utils.Model.Custom:
-    #    model = model_type.getCOBRAmodel(customPath = utils.FilePath.fromStrPath(ARGS.model), customExtension = utils.FilePath.fromStrPath(ARGS.model_name).ext)
-    #else:
-    #    model = model_type.getCOBRAmodel(toolDir=ARGS.tool_dir)
+    if ARGS.model_and_bounds == "True":
+        # MODE 1: Model + bounds (separate files)
+        print("=== MODE 1: Model + Bounds (separate files) ===")
+        
+        # Load base model
+        if not ARGS.model_upload:
+            sys.exit("Error: model_upload is required for Mode 1")
 
-    model = model_utils.build_cobra_model_from_csv(ARGS.model_upload)
+        base_model = model_utils.build_cobra_model_from_csv(ARGS.model_upload)
 
-    validation = model_utils.validate_model(model)
+        validation = model_utils.validate_model(base_model)
 
-    print("\n=== VALIDAZIONE MODELLO ===")
-    for key, value in validation.items():
-        print(f"{key}: {value}")
+        print("\n=== VALIDAZIONE MODELLO ===")
+        for key, value in validation.items():
+            print(f"{key}: {value}")
 
-    #Set solver verbosity to 1 to see warning and error messages only.
-    model.solver.configuration.verbosity = 1
-    
-    ARGS.bounds = ARGS.input.split(",")
-    ARGS.bounds_name = ARGS.names.split(",")
-    ARGS.output_types = ARGS.output_type.split(",")
-    ARGS.output_type_analysis = ARGS.output_type_analysis.split(",")
+        #Set solver verbosity to 1 to see warning and error messages only.
+        base_model.solver.configuration.verbosity = 1
 
+                # Process each bounds file with the base model
+        results = Parallel(n_jobs=num_processors)(
+            delayed(model_sampler_with_bounds)(base_model, bounds_file, cell_name) 
+            for bounds_file, cell_name in zip(ARGS.input_files, ARGS.file_names)
+        )
 
-    results = Parallel(n_jobs=num_processors)(delayed(model_sampler)(model, bounds_path, cell_name) for bounds_path, cell_name in zip(ARGS.bounds, ARGS.bounds_name))
+    else:
+        # MODE 2: Multiple complete models
+        print("=== MODE 2: Multiple complete models ===")
+        
+        # Process each complete model file
+        results = Parallel(n_jobs=num_processors)(
+            delayed(perform_sampling_and_analysis)(model_utils.build_cobra_model_from_csv(model_file), cell_name) 
+            for model_file, cell_name in zip(ARGS.input_files, ARGS.file_names)
+        )
+
 
     all_mean = pd.concat([result[0] for result in results], ignore_index=False)
     all_median = pd.concat([result[1] for result in results], ignore_index=False)

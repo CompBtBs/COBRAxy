@@ -174,7 +174,7 @@ def main(args:List[str] = None) -> None:
 
     if ARGS.name == "ENGRO2" and ARGS.gene_format != "Default":
 
-        model = utils.convert_genes(model, ARGS.gene_format.replace("HGNC_", "HGNC "))
+        model = modelUtils.convert_genes(model, ARGS.gene_format.replace("HGNC_", "HGNC "))
 
     # generate data
     rules = modelUtils.generate_rules(model, asParsed = False)
