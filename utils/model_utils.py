@@ -7,6 +7,7 @@ import pandas as pd
 from typing import Optional, Tuple, Union, List, Dict
 import utils.general_utils as utils
 import utils.rule_parsing  as rulesUtils
+import utils.reaction_parsing as reactionUtils
 
 ################################- DATA GENERATION -################################
 ReactionId = str
