@@ -14,9 +14,6 @@ import utils.rule_parsing  as rulesUtils
 import utils.reaction_parsing as reactionUtils
 import utils.model_utils as modelUtils
 
-# ras_selector $cond_ras.ras_choice
-# 
-
 ################################# process args ###############################
 def process_args(args :List[str] = None) -> argparse.Namespace:
     """
