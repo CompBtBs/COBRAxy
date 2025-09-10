@@ -19,6 +19,7 @@
         --out_log $log
         --best_cluster $best_cluster
         --cluster_type ${data.clust_type}
+		--scaling $scaling
         #if $data.clust_type == 'kmeans':
         	--k_min ${data.k_min}
         	--k_max ${data.k_max}
@@ -40,7 +41,8 @@
     </command>
     <inputs>
         <param name="input" argument="--input" type="data" format="tabular, csv, tsv" label="Input dataset" />
-        
+		<param name="scaling" argument="--scaling" type="boolean" value="true" label="Apply scaling to the dataset before clustering" />
+    
         <conditional name="data">
 			<param name="clust_type" argument="--cluster_type" type="select" label="Choose clustering type:">
                 	<option value="kmeans" selected="true">KMeans</option>
