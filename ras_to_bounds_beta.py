@@ -14,7 +14,8 @@ import utils.rule_parsing  as rulesUtils
 import utils.reaction_parsing as reactionUtils
 import utils.model_utils as modelUtils
 
-# , medium
+# ras_selector $cond_ras.ras_choice
+# 
 
 ################################# process args ###############################
 def process_args(args :List[str] = None) -> argparse.Namespace:
@@ -50,11 +51,6 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
     parser.add_argument('-rn', '--name',
                 type=str,
                 help = 'ras class names')
-    
-    parser.add_argument('-rs', '--ras_selector',
-                        required = True,
-                        type=utils.Bool("using_RAS"),
-                        help = 'ras selector')
 
     parser.add_argument('-cc', '--cell_class',
                     type = str,
@@ -304,15 +300,7 @@ def generate_bounds_model(model: cobra.Model, ras=None, output_folder='output/',
             save_models, save_models_path, save_models_format
         ) for cellName, ras_row in ras.iterrows())
     else:
-        bounds = pd.DataFrame([(rxn.lower_bound, rxn.upper_bound) for rxn in model.reactions], index=rxns_ids, columns=["lower_bound", "upper_bound"])
-        newBounds = apply_ras_bounds(bounds, pd.Series([1]*len(rxns_ids), index=rxns_ids))
-        newBounds.to_csv(output_folder + "bounds.csv", sep='\t', index=True)
-
-        # Save model if requested
-        if save_models:
-            modified_model = apply_bounds_to_model(model, newBounds)
-            save_model(modified_model, "model_with_bounds", save_models_path, save_models_format)
-    
+        raise ValueError("RAS DataFrame is None. Cannot generate bounds without RAS data.")
     pass
 
 ############################# main ###########################################
@@ -329,34 +317,34 @@ def main(args:List[str] = None) -> None:
     global ARGS
     ARGS = process_args(args)
 
-    if(ARGS.ras_selector == True):
-        ras_file_list = ARGS.input_ras.split(",")
-        ras_file_names = ARGS.name.split(",")
-        if len(ras_file_names) != len(set(ras_file_names)):
-            error_message = "Duplicated file names in the uploaded RAS matrices."
-            warning(error_message)
-            raise ValueError(error_message)
-            pass
-        ras_class_names = []
-        for file in ras_file_names:
-            ras_class_names.append(file.rsplit(".", 1)[0])
-        ras_list = []
-        class_assignments = pd.DataFrame(columns=["Patient_ID", "Class"])
-        for ras_matrix, ras_class_name in zip(ras_file_list, ras_class_names):
-            ras = read_dataset(ras_matrix, "ras dataset")
-            ras.replace("None", None, inplace=True)
-            ras.set_index("Reactions", drop=True, inplace=True)
-            ras = ras.T
-            ras = ras.astype(float)
-            if(len(ras_file_list)>1):
-                #append class name to patient id (dataframe index)
-                ras.index = [f"{idx}_{ras_class_name}" for idx in ras.index]
-            else:
-                ras.index = [f"{idx}" for idx in ras.index]
-            ras_list.append(ras)
-            for patient_id in ras.index:
-                class_assignments.loc[class_assignments.shape[0]] = [patient_id, ras_class_name]
-        
+
+    ras_file_list = ARGS.input_ras.split(",")
+    ras_file_names = ARGS.name.split(",")
+    if len(ras_file_names) != len(set(ras_file_names)):
+        error_message = "Duplicated file names in the uploaded RAS matrices."
+        warning(error_message)
+        raise ValueError(error_message)
+        pass
+    ras_class_names = []
+    for file in ras_file_names:
+        ras_class_names.append(file.rsplit(".", 1)[0])
+    ras_list = []
+    class_assignments = pd.DataFrame(columns=["Patient_ID", "Class"])
+    for ras_matrix, ras_class_name in zip(ras_file_list, ras_class_names):
+        ras = read_dataset(ras_matrix, "ras dataset")
+        ras.replace("None", None, inplace=True)
+        ras.set_index("Reactions", drop=True, inplace=True)
+        ras = ras.T
+        ras = ras.astype(float)
+        if(len(ras_file_list)>1):
+            #append class name to patient id (dataframe index)
+            ras.index = [f"{idx}_{ras_class_name}" for idx in ras.index]
+        else:
+            ras.index = [f"{idx}" for idx in ras.index]
+        ras_list.append(ras)
+        for patient_id in ras.index:
+            class_assignments.loc[class_assignments.shape[0]] = [patient_id, ras_class_name]
+    
         
         # Concatenate all ras DataFrames into a single DataFrame
         ras_combined = pd.concat(ras_list, axis=0)
@@ -372,15 +360,12 @@ def main(args:List[str] = None) -> None:
     for key, value in validation.items():
         print(f"{key}: {value}")
 
-    if(ARGS.ras_selector == True):
-        generate_bounds_model(model, ras=ras_combined, output_folder=ARGS.output_path,
-                       save_models=ARGS.save_models, save_models_path=ARGS.save_models_path,
-                       save_models_format=ARGS.save_models_format)
-        class_assignments.to_csv(ARGS.cell_class, sep='\t', index=False)
-    else:
-        generate_bounds_model(model, output_folder=ARGS.output_path,
-                       save_models=ARGS.save_models, save_models_path=ARGS.save_models_path,
-                       save_models_format=ARGS.save_models_format)
+
+    generate_bounds_model(model, ras=ras_combined, output_folder=ARGS.output_path,
+                    save_models=ARGS.save_models, save_models_path=ARGS.save_models_path,
+                    save_models_format=ARGS.save_models_format)
+    class_assignments.to_csv(ARGS.cell_class, sep='\t', index=False)
+
 
     pass
         
