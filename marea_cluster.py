@@ -47,6 +47,12 @@ def process_args(args_in :List[str] = None) -> argparse.Namespace:
                         default = 'kmeans',
                         help = 'choose clustering algorythm')
     
+    parser.add_argument('-sc', '--scaling',
+                        type = str,
+                        choices = ['true', 'false'],
+                        default = 'true',
+                        help = 'choose if you want to scaling the data')
+    
     parser.add_argument('-k1', '--k_min', 
                         type = int,
                         default = 2,
@@ -514,6 +520,21 @@ def main(args_in:List[str] = None) -> None:
         if any(val is None or np.isnan(val) for val in X[i]):
             X = X.drop(columns=[i])
             
+    if args.scaling == True:
+        list_to_remove = []
+        toll_std=1e-8
+        for i in X.columns:
+            mean_i = X[i].mean()
+            std_i = X[i].std()
+            if std_i >toll_std:
+                #scaling with mean 0 and std 1
+                X[i] = (X[i]-mean_i)/std_i
+            else:
+                #remove feature because std = 0 during clustering
+                list_to_remove.append(i)
+        if len(list_to_remove)>0:
+            X = X.drop(columns=list_to_remove)
+
     if args.k_max != None:
        numero_classi = X.shape[0]
        while args.k_max >= numero_classi:
