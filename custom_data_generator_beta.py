@@ -9,6 +9,7 @@ import utils.rule_parsing  as rulesUtils
 from typing import Optional, Tuple, Union, List, Dict
 import utils.reaction_parsing as reactionUtils
 import utils.model_utils as modelUtils
+import logging
 
 ARGS : argparse.Namespace
 def process_args(args: List[str] = None) -> argparse.Namespace:
@@ -173,8 +174,29 @@ def main(args:List[str] = None) -> None:
                 model.reactions.get_by_id(reaction).lower_bound = -float(value)
 
     if ARGS.name == "ENGRO2" and ARGS.gene_format != "Default":
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
 
-        model = modelUtils.convert_genes(model, ARGS.gene_format.replace("HGNC_", "HGNC "))
+        model = modelUtils.translate_model_genes(
+            model=model,
+            mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv"),
+            target_nomenclature=ARGS.gene_format.replace("HGNC_", "HGNC "),
+            source_nomenclature='HGNC_ID',
+            logger=logger
+        )
+        #model = modelUtils.convert_genes(model, ARGS.gene_format.replace("HGNC_", "HGNC "))
+    
+    if ARGS.name == "Recon" and ARGS.gene_format != "Default":
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+
+        model = modelUtils.translate_model_genes(
+            model=model,
+            mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv"),
+            target_nomenclature=ARGS.gene_format.replace("HGNC_", "HGNC "),
+            source_nomenclature='HGNC_symbol',
+            logger=logger
+        )
 
     # generate data
     rules = modelUtils.generate_rules(model, asParsed = False)
