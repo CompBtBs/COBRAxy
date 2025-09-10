@@ -75,6 +75,29 @@ def get_medium(model:cobraModel) -> pd.DataFrame:
     df_medium["reaction"] = trueMedium
     return df_medium
 
+def extract_objective_coefficients(model: cobraModel) -> pd.DataFrame:
+    """
+    Estrae i coefficienti della funzione obiettivo per ciascuna reazione del modello.
+    
+    Args:
+        model : cobra.Model
+        
+    Returns:
+        pd.DataFrame con colonne: ReactionID, ObjectiveCoefficient
+    """
+    coeffs = []
+    # model.objective.expression è un'espressione lineare
+    objective_expr = model.objective.expression.as_coefficients_dict()
+    
+    for reaction in model.reactions:
+        coeff = objective_expr.get(reaction.forward_variable, 0.0)
+        coeffs.append({
+            "ReactionID": reaction.id,
+            "ObjectiveCoefficient": coeff
+        })
+    
+    return pd.DataFrame(coeffs)
+
 def generate_bounds(model:cobraModel) -> pd.DataFrame:
 
     rxns = []

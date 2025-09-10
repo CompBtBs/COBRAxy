@@ -203,11 +203,13 @@ def main(args:List[str] = None) -> None:
     reactions = modelUtils.generate_reactions(model, asParsed = False)
     bounds = modelUtils.generate_bounds(model)
     medium = modelUtils.get_medium(model)
+    objective_function = modelUtils.extract_objective_coefficients(model)
+    
     if ARGS.name == "ENGRO2":
         compartments = modelUtils.generate_compartments(model)
 
-    df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "Rule"])
-    df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
+    df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "GPR"])
+    df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Formula"])
 
     df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
     df_medium = medium.rename(columns = {"reaction": "ReactionID"})
@@ -215,6 +217,7 @@ def main(args:List[str] = None) -> None:
 
     merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
     merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
+    merged = merged.merge(objective_function, on = "ReactionID", how = "outer")
     if ARGS.name == "ENGRO2": 
         merged = merged.merge(compartments, on = "ReactionID", how = "outer")
     merged = merged.merge(df_medium, on = "ReactionID", how = "left")
