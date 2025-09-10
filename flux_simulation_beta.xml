@@ -44,8 +44,11 @@
         --n_batches $n_batches
         --n_samples $n_samples
         --seed $seed
+        #if $output_types_analysis_cond.fva_fraction == 'FVA'
+            --perc_opt $output_types_analysis_cond.fva_fraction
+        #end if
         --output_type "${",".join(map(str, $output_types))}"
-        --output_type_analysis "${",".join(map(str, $output_types_analysis))}"
+        --output_type_analysis "${",".join(map(str, $output_types_analysis_cond.output_types_analysis))}"
         --out_log $log
         ]]>
     </command>
@@ -95,11 +98,22 @@
             <option value="fluxes" selected="false">All fluxes</option>
         </param>
 
-        <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from flux analysis">
-            <option value="pFBA" selected="false">pFBA</option>
-            <option value="FVA" selected="false">FVA</option>
-            <option value="sensitivity" selected="false">Sensitivity reaction knock-out (Biomass)</option>
-        </param>
+        <conditional name="output_types_analysis_cond">
+            <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from flux analysis">
+                <option value="pFBA" selected="false">pFBA</option>
+                <option value="FVA" selected="false">FVA</option>
+                <option value="sensitivity" selected="false">Sensitivity reaction knock-out (Biomass)</option>
+            </param>
+
+            <when value="FVA">
+                <param name="fva_fraction" argument="--fva_fraction" type="float"
+                        label="FVA fraction of optimality (0-1):"
+                        value="0.9"
+                        min="0.0" max="1.0"
+                        help="Fraction of the optimal objective value to consider for FVA. 0.9 = 90%"/>
+            </when>
+
+        </conditional>
     </inputs>
 
     <outputs>

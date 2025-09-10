@@ -254,9 +254,9 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
     
     print(f"Aggiunte {reactions_added} reazioni, saltate {reactions_skipped} reazioni")
     
-    # Imposta l'obiettivo di biomassa
-    set_biomass_objective(model)
-    
+    # set objective function
+    set_objective_from_csv(model, df, obj_col="ObjectiveCoefficient")
+
     # Imposta il medium
     set_medium_from_data(model, df)
     
@@ -361,17 +361,31 @@ def parse_metabolites_side(side_str: str) -> Dict[str, float]:
 
 
 
-def set_biomass_objective(model: cobraModel):
+def set_objective_from_csv(model: cobra.Model, df: pd.DataFrame, obj_col: str = "ObjectiveCoefficient"):
     """
-    Imposta la reazione di biomassa come obiettivo.
+    Sets the model's objective function based on a column of coefficients in the CSV.
+    Can be any reaction(s), not necessarily biomass.
     """
-    biomass_reactions = [r for r in model.reactions if 'biomass' in r.id.lower()]
+    obj_dict = {}
     
-    if biomass_reactions:
-        model.objective = biomass_reactions[0].id
-        print(f"Obiettivo impostato su: {biomass_reactions[0].id}")
-    else:
-        print("Nessuna reazione di biomassa trovata")
+    for idx, row in df.iterrows():
+        reaction_id = str(row['ReactionID']).strip()
+        coeff = float(row[obj_col]) if pd.notna(row[obj_col]) else 0.0
+        if coeff != 0:
+            # Assicuriamoci che la reazione esista nel modello
+            if reaction_id in model.reactions:
+                obj_dict[model.reactions.get_by_id(reaction_id)] = coeff
+            else:
+                print(f"Warning: reaction {reaction_id} not found in model, skipping for objective.")
+
+    if not obj_dict:
+        raise ValueError("No reactions found with non-zero objective coefficient.")
+
+    # Imposta la funzione obiettivo
+    model.objective = obj_dict
+    print(f"Objective set with {len(obj_dict)} reactions.")
+
+
 
 
 def set_medium_from_data(model: cobraModel, df: pd.DataFrame):

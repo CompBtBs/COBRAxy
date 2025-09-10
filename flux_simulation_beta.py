@@ -80,6 +80,12 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
                         required = True,
                         help = 'choose how many batches')
     
+    parser.add_argument('-opt', '--perc_opt',
+                        type = float,
+                        default=0.9,
+                        required = False,
+                        help = 'choose the fraction of optimality for FVA (0-1)')
+    
     parser.add_argument('-ot', '--output_type', 
                         type = str,
                         required = True,
@@ -359,7 +365,7 @@ def fluxes_analysis(model:cobra.Model,  model_name:str, output_types:List)-> Lis
             df_pFBA.index = [model_name]
             df_pFBA = df_pFBA.astype(float).round(6)
         elif(output_type == "FVA"):
-            fva = cobra.flux_analysis.flux_variability_analysis(model, fraction_of_optimum=0, processes=1).round(8)
+            fva = cobra.flux_analysis.flux_variability_analysis(model, fraction_of_optimum=ARGS.perc_opt, processes=1).round(8)
             columns = []
             for rxn in fva.index.to_list():
                 columns.append(rxn + "_min")
