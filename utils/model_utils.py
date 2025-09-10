@@ -221,7 +221,7 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
     for idx, row in df.iterrows():
 
         reaction_id = str(row['ReactionID']).strip()
-        reaction_formula = str(row['Reaction']).strip()
+        reaction_formula = str(row['Formula']).strip()
         
         # Salta reazioni senza formula
         if not reaction_formula or reaction_formula == 'nan':
@@ -236,8 +236,8 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
         reaction.upper_bound = float(row['upper_bound']) if pd.notna(row['upper_bound']) else 1000.0
         
         # Aggiungi gene rule se presente
-        if pd.notna(row['Rule']) and str(row['Rule']).strip():
-            reaction.gene_reaction_rule = str(row['Rule']).strip()
+        if pd.notna(row['GPR']) and str(row['GPR']).strip():
+            reaction.gene_reaction_rule = str(row['GPR']).strip()
         
         # Parse della formula della reazione
         try:

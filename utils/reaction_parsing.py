@@ -124,6 +124,22 @@ def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
   Returns:
     ReactionsDict : dictionary encoding custom reactions information.
   """
-  reactionsData :Dict[str, str] = {row[0]: row[1] for row in utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath), delimiter = "\t")} 
+  try:
+    rows = utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath), delimiter = "\t", skipHeader=False)
+    if len(rows) <= 1:
+      raise ValueError("The custom reactions file must contain at least one reaction.")
+
+    id_idx, idx_formula = utils.findIdxByName(rows[0], "Formula")
+
+  except Exception as e:
+        
+    rows = utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath), delimiter = "\t", skipHeader=False)
+    if len(rows) <= 1:
+      raise ValueError("The custom reactions file must contain at least one reaction.")
+    
+    id_idx, idx_formula = utils.findIdxByName(rows[0], "Formula")
+  
+  reactionsData = {row[id_idx] : row[idx_formula] for row in rows[1:]}
+  
   return create_reaction_dict(reactionsData)
 

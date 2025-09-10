@@ -505,6 +505,39 @@ def readCsv(path :FilePath, delimiter = ',', *, skipHeader = True) -> List[List[
     """
     with open(path.show(), "r", newline = "") as fd: return list(csv.reader(fd, delimiter = delimiter))[skipHeader:]
 
+def findIdxByName(header: List[str], name: str, colName="name") -> Optional[int]:
+    """
+    Find the indices of the 'ReactionID' column and a user-specified column name
+    within the header row of a tabular file.
+
+    Args:
+        header (List[str]): The header row, as a list of column names.
+        name (str): The name of the column to look for (e.g. 'GPR').
+        colName (str, optional): Label used in error messages for clarity. Defaults to "name".
+
+    Returns:
+        Tuple[int, int]: A tuple containing:
+            - The index of the 'ReactionID' column.
+            - The index of the requested column `name`.
+
+    Raises:
+        ValueError: If 'ReactionID' or the requested column `name` is not found in the header.
+
+    Notes:
+        Both 'ReactionID' and the requested column are mandatory for downstream processing.
+    """
+
+    col_index = {col_name: idx for idx, col_name in enumerate(header)}
+
+    if name not in col_index or "ReactionID" not in col_index:
+        raise ValueError(f"Tabular file must contain 'ReactionID' and {name} columns.")
+
+    id_idx = col_index["ReactionID"]
+    idx_gpr = col_index[name]
+
+    return id_idx, idx_gpr
+
+
 def readSvg(path :FilePath, customErr :Optional[Exception] = None) -> ET.ElementTree:
     """
     Reads the contents of a .svg file, which needs to exist at the given path.

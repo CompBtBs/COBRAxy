@@ -649,30 +649,50 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     dict_rule = {}
 
     try:
+        rows = utils.readCsv(datFilePath, delimiter = "\t", skipHeader=False)
+        if len(rows) <= 1:
+            raise ValueError("Model tabular with 1 column is not supported.")
+
+        if not rows:
+            raise ValueError("Model tabular is file is empty.")
+        
+        id_idx, idx_gpr = utils.findIdxByName(rows[0], "GPR")
+        
         # Proviamo prima con delimitatore tab
-        for line in utils.readCsv(datFilePath, delimiter = "\t"):
-            if len(line) < 3:  # Controlliamo che ci siano almeno 3 colonne
+        for line in rows[1:]:
+            if len(line) <= idx_gpr:
                 utils.logWarning(f"Skipping malformed line: {line}", ARGS.out_log)
                 continue
             
-            if line[2] == "":
-                dict_rule[line[0]] = ruleUtils.OpList([""])
+            if line[idx_gpr] == "":
+                dict_rule[line[id_idx]] = ruleUtils.OpList([""])
             else:
-                dict_rule[line[0]] = ruleUtils.parseRuleToNestedList(line[2])
+                dict_rule[line[id_idx]] = ruleUtils.parseRuleToNestedList(line[idx_gpr])
                 
     except Exception as e:
         # Se fallisce con tab, proviamo con virgola
         try:
-            dict_rule = {}
-            for line in utils.readCsv(datFilePath, delimiter = ","):
-                if len(line) < 3:
+            rows = utils.readCsv(datFilePath, delimiter = ",", skipHeader=False)
+            
+            if len(rows) <= 1:
+                raise ValueError("Model tabular with 1 column is not supported.")
+
+            if not rows:
+                raise ValueError("Model tabular is file is empty.")
+            
+            id_idx, idx_gpr = utils.findIdxByName(rows[0], "GPR")
+            
+            # Proviamo prima con delimitatore tab
+            for line in rows[1:]:
+                if len(line) <= idx_gpr:
                     utils.logWarning(f"Skipping malformed line: {line}", ARGS.out_log)
                     continue
                 
-                if line[2] == "":
-                    dict_rule[line[0]] = ruleUtils.OpList([""])
+                if line[idx_gpr] == "":
+                    dict_rule[line[id_idx]] = ruleUtils.OpList([""])
                 else:
-                    dict_rule[line[0]] = ruleUtils.parseRuleToNestedList(line[2])
+                    dict_rule[line[id_idx]] = ruleUtils.parseRuleToNestedList(line[idx_gpr])
+                    
         except Exception as e2:
             raise ValueError(f"Unable to parse rules file. Tried both tab and comma delimiters. Original errors: Tab: {e}, Comma: {e2}")
 

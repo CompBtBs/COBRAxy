@@ -89,7 +89,7 @@
 
     <outputs>
         <data name="log" format="txt" label="CustomDataGenerator - Log" />
-        <data name="out_tabular" format="tabular" label="${cond_model.model_selector}_data_tabular" optional="true"/>
+        <data name="out_tabular" format="tabular" label="${cond_model.model_selector}_model_tabular" optional="true"/>
     </outputs>
 
     <help>
