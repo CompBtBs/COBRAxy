@@ -13,57 +13,92 @@ import utils.model_utils as modelUtils
 
 ARGS : argparse.Namespace
 def process_args(args: List[str] = None) -> argparse.Namespace:
-    """
-    Parse command-line arguments for CustomDataGenerator.
-    """
-
     parser = argparse.ArgumentParser(
-        usage="%(prog)s [options]",
-        description="Generate custom data from a given model"
+    usage="%(prog)s [options]",
+    description="Convert a tabular/CSV file to a COBRA model"
     )
 
+
     parser.add_argument("--out_log", type=str, required=True,
-                        help="Output log file")
+    help="Output log file")
 
-    parser.add_argument("--input", type=str,
-                        help="Input tabular file")
-    
+
+    parser.add_argument("--input", type=str, required=True,
+    help="Input tabular file (CSV/TSV)")
+
+
     parser.add_argument("--format", type=str, required=True, choices=["sbml", "json", "mat", "yaml"],
-                        help="Model format (SBML, JSON, MATLAB, YAML)")
+    help="Model format (SBML, JSON, MATLAB, YAML)")
 
-    parser.add_argument("--output", type=str,
-                        help="Output model file")
-    
+
+    parser.add_argument("--output", type=str, required=True,
+    help="Output model file path")
+
+
     parser.add_argument("--tool_dir", type=str, default=os.path.dirname(__file__),
-                        help="Tool directory (passed from Galaxy as $__tool_directory__)")
-    
+    help="Tool directory (passed from Galaxy as $__tool_directory__)")
 
 
     return parser.parse_args(args)
 
+
 ###############################- ENTRY POINT -################################
-def main(args:List[str] = None) -> None:
-    """
-    Initializes everything and sets the program in motion based on the fronted input arguments.
-    
-    Returns:
-        None
-    """
-    # get args from frontend (related xml)
+
+def main(args: List[str] = None) -> None:
     global ARGS
     ARGS = process_args(args)
 
-    model = modelUtils.build_cobra_model_from_csv(ARGS.model_upload)
+    # configure logging to the requested log file (overwrite each run)
+    logging.basicConfig(filename=ARGS.out_log,
+                        level=logging.DEBUG,
+                        format='%(asctime)s %(levelname)s: %(message)s',
+                        filemode='w')
 
+    logging.info('Starting fromCSVtoCOBRA tool')
+    logging.debug('Args: input=%s format=%s output=%s tool_dir=%s', ARGS.input, ARGS.format, ARGS.output, ARGS.tool_dir)
 
-    if ARGS.format == "sbml":
-        cobra.io.write_sbml_model(model, ARGS.output)
-    elif ARGS.format == "json":
-        cobra.io.save_json_model(model, ARGS.output)
-    elif ARGS.format == "mat":
-        cobra.io.save_matlab_model(model, ARGS.output)
-    elif ARGS.format == "yaml":
-        cobra.io.save_yaml_model(model, ARGS.output)
+    try:
+        # Basic sanity checks
+        if not os.path.exists(ARGS.input):
+            logging.error('Input file not found: %s', ARGS.input)
+            print(f"ERROR: Input file not found: {ARGS.input}", file=sys.stderr)
+            sys.exit(2)
+
+        out_dir = os.path.dirname(os.path.abspath(ARGS.output))
+        if out_dir and not os.path.isdir(out_dir):
+            try:
+                os.makedirs(out_dir, exist_ok=True)
+                logging.info('Created missing output directory: %s', out_dir)
+            except Exception as e:
+                logging.exception('Cannot create output directory: %s', out_dir)
+                print(f"ERROR: Cannot create output directory: {out_dir}", file=sys.stderr)
+                sys.exit(3)
+
+        # Build the model from the CSV (NOTE: use ARGS.input here)
+        model = modelUtils.build_cobra_model_from_csv(ARGS.input)
+
+        # Save model in requested format
+        if ARGS.format == "sbml":
+            cobra.io.write_sbml_model(model, ARGS.output)
+        elif ARGS.format == "json":
+            cobra.io.save_json_model(model, ARGS.output)
+        elif ARGS.format == "mat":
+            cobra.io.save_matlab_model(model, ARGS.output)
+        elif ARGS.format == "yaml":
+            cobra.io.save_yaml_model(model, ARGS.output)
+        else:
+            logging.error('Unknown format requested: %s', ARGS.format)
+            print(f"ERROR: Unknown format: {ARGS.format}", file=sys.stderr)
+            sys.exit(4)
+
+        logging.info('Model successfully written to %s (format=%s)', ARGS.output, ARGS.format)
+
+    except Exception:
+        # Log full traceback to the out_log so Galaxy users/admins can see what happened
+        logging.exception('Unhandled exception in fromCSVtoCOBRA')
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
+
 
 if __name__ == '__main__':
     main()
