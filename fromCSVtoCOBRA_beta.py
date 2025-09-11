@@ -61,8 +61,6 @@ def main(args: List[str] = None) -> None:
         # Basic sanity checks
         if not os.path.exists(ARGS.input):
             logging.error('Input file not found: %s', ARGS.input)
-            print(f"ERROR: Input file not found: {ARGS.input}", file=sys.stderr)
-            sys.exit(2)
 
         out_dir = os.path.dirname(os.path.abspath(ARGS.output))
         if out_dir and not os.path.isdir(out_dir):
@@ -71,8 +69,6 @@ def main(args: List[str] = None) -> None:
                 logging.info('Created missing output directory: %s', out_dir)
             except Exception as e:
                 logging.exception('Cannot create output directory: %s', out_dir)
-                print(f"ERROR: Cannot create output directory: {out_dir}", file=sys.stderr)
-                sys.exit(3)
 
         # Build the model from the CSV (NOTE: use ARGS.input here)
         model = modelUtils.build_cobra_model_from_csv(ARGS.input)
@@ -88,16 +84,14 @@ def main(args: List[str] = None) -> None:
             cobra.io.save_yaml_model(model, ARGS.output)
         else:
             logging.error('Unknown format requested: %s', ARGS.format)
-            print(f"ERROR: Unknown format: {ARGS.format}", file=sys.stderr)
-            sys.exit(4)
+            print(f"ERROR: Unknown format: {ARGS.format}")
+
 
         logging.info('Model successfully written to %s (format=%s)', ARGS.output, ARGS.format)
 
     except Exception:
         # Log full traceback to the out_log so Galaxy users/admins can see what happened
         logging.exception('Unhandled exception in fromCSVtoCOBRA')
-        traceback.print_exc(file=sys.stderr)
-        sys.exit(1)
 
 
 if __name__ == '__main__':
