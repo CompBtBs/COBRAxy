@@ -193,7 +193,7 @@ def main(args:List[str] = None) -> None:
         model = modelUtils.translate_model_genes(
             model=model,
             mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv", dtype={'entrez_id': str}),
-            target_nomenclature=ARGS.gene_format.replace("HGNC_", "HGNC "),
+            target_nomenclature=ARGS.gene_format,
             source_nomenclature='HGNC_symbol',
             logger=logger
         )
