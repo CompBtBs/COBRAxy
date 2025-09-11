@@ -1,0 +1,69 @@
+<tool id="fromcsvtocobra" name="From CSV to COBRA model" version="1.0.0">
+    <description>Convert a tabular dataset to a COBRA model</description>
+
+    <!-- Python dependencies required for COBRApy -->
+    <requirements>
+        <requirement type="package" version="0.29.0">cobra</requirement>
+        <requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2.0.3">pandas</requirement>
+        <requirement type="package" version="5.2.2">lxml</requirement>
+    </requirements>
+
+    <!-- Import shared macros if available -->
+    <macros>
+        <import>marea_macros.xml</import>
+    </macros>
+
+    <!-- Command to run the Python script -->
+    <command detect_errors="exit_code"><![CDATA[
+        python $__tool_directory__/from_csv_to_cobra.py 
+            --tool_dir $__tool_directory__
+            --input $input 
+            --format $format 
+            --output $output
+            --out_log $log
+    ]]></command>
+
+    <!-- Tool inputs -->
+    <inputs>
+        <param name="input" type="data" format="tabular,csv,tsv" label="Input table"/>
+        <param name="format" type="select" label="Output COBRA model format">
+            <option value="sbml" selected="true">SBML (.xml)</option>
+            <option value="json">JSON (.json)</option>
+            <option value="mat">MATLAB (.mat)</option>
+            <option value="yaml">YAML (.yml)</option>
+        </param>
+    </inputs>
+
+    <!-- Tool outputs -->
+    <outputs>
+        <data name="log" format="txt" label="fromcsvtocobra - Log" />
+        <data name="output" format="xml" label="COBRA model">
+            <change_format>
+                <when input="format" value="sbml" format="xml"/>
+                <when input="format" value="json" format="json"/>
+                <when input="format" value="mat" format="mat"/>
+                <when input="format" value="yaml" format="yaml"/>
+            </change_format>
+        </data>
+    </outputs>
+
+    <!-- Help section -->
+    <help><![CDATA[
+This tool converts a tabular dataset into a COBRA model using COBRApy.
+
+**Input**
+- A tabular/CSV/TSV file describing reactions, metabolites, or stoichiometry.
+
+**Output**
+- A COBRA model in the chosen format:  
+  - SBML (.xml)  
+  - JSON (.json)  
+  - MATLAB (.mat)  
+  - YAML (.yml)  
+
+**Notes**
+- The exact table structure (columns required) depends on how you want to encode reactions and metabolites.  
+- You can extend the Python script to parse specific column formats.  
+    ]]></help>
+</tool>
