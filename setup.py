@@ -13,13 +13,13 @@ setup(
     packages=find_packages(include=["utils", "utils.*"]),  
     py_modules=[
         'custom_data_generator',
-        'flux_simulation',
-        'flux_to_map',
+        'ras_generator',
+        'rps_generator',
         'marea_cluster',
         'marea',
-        'ras_generator',
         'ras_to_bounds',
-        'rps_generator'
+        'flux_simulation',
+        'flux_to_map'
     ],
     include_package_data=True, 
     install_requires=[
@@ -41,13 +41,13 @@ setup(
     entry_points={
         'console_scripts': [
             'custom_data_generator=custom_data_generator:main',
-            'flux_simulation=flux_simulation:main',
-            'flux_to_map=flux_to_map:main',
+            'ras_generator=ras_generator:main',
+            'rps_generator=rps_generator:main',
             'marea_cluster=marea_cluster:main',
             'marea=marea:main',
-            'ras_generator=ras_generator:main',
             'ras_to_bounds=ras_to_bounds:main',
-            'rps_generator=rps_generator:main'
+            'flux_simulation=flux_simulation:main',
+            'flux_to_map=flux_to_map:main'
         ],
     },
     classifiers=[
