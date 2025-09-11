@@ -184,7 +184,7 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
     
     # Prima passata: estrai metaboliti e compartimenti dalle formule delle reazioni
     for idx, row in df.iterrows():
-        reaction_formula = str(row['Reaction']).strip()
+        reaction_formula = str(row['Formula']).strip()
         if not reaction_formula or reaction_formula == 'nan':
             continue
             
