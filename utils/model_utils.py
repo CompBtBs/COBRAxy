@@ -444,8 +444,6 @@ def convert_genes(model,annotation):
 
     return model2
 
-
-
 # ---------- Utility helpers ----------
 def _normalize_colname(col: str) -> str:
     return col.strip().lower().replace(' ', '_')

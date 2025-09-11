@@ -173,26 +173,26 @@ def main(args:List[str] = None) -> None:
             if value is not None:
                 model.reactions.get_by_id(reaction).lower_bound = -float(value)
 
-    if ARGS.name == "ENGRO2" and ARGS.gene_format != "Default":
-        logging.basicConfig(level=logging.INFO)
-        logger = logging.getLogger(__name__)
+    #if ARGS.name == "ENGRO2" and ARGS.gene_format != "Default":
+    #    logging.basicConfig(level=logging.INFO)
+    #    logger = logging.getLogger(__name__)
 
-        model = modelUtils.translate_model_genes(
-            model=model,
-            mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv"),
-            target_nomenclature=ARGS.gene_format.replace("HGNC_", "HGNC "),
-            source_nomenclature='HGNC_ID',
-            logger=logger
-        )
+        #model = modelUtils.translate_model_genes(
+        #    model=model,
+        #    mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv"), dtype={'entrez_id': str},
+        #    target_nomenclature=ARGS.gene_format.replace("HGNC_", "HGNC "),
+        #    source_nomenclature='HGNC_ID',
+        #    logger=logger
+        #)
         #model = modelUtils.convert_genes(model, ARGS.gene_format.replace("HGNC_", "HGNC "))
     
-    if ARGS.name == "Recon" and ARGS.gene_format != "Default":
+    if (ARGS.name == "Recon" or ARGS.name == "ENGRO2") and ARGS.gene_format != "Default":
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
 
         model = modelUtils.translate_model_genes(
             model=model,
-            mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv"),
+            mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv", dtype={'entrez_id': str}),
             target_nomenclature=ARGS.gene_format.replace("HGNC_", "HGNC "),
             source_nomenclature='HGNC_symbol',
             logger=logger
