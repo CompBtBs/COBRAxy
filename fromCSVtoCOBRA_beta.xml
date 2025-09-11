@@ -1,4 +1,4 @@
-<tool id="fromcsvtocobra" name="From CSV to COBRA model" version="1.0.0">
+<tool id="fromCSVtoCOBRA_beta" name="fromCSVtoCOBRA - Beta" version="1.0.0">
     <description>Convert a tabular dataset to a COBRA model</description>
 
     <!-- Python dependencies required for COBRApy -->
@@ -16,7 +16,7 @@
 
     <!-- Command to run the Python script -->
     <command detect_errors="exit_code"><![CDATA[
-        python $__tool_directory__/from_csv_to_cobra.py 
+        python $__tool_directory__/fromCSVtoCOBRA_beta.py 
             --tool_dir $__tool_directory__
             --input $input 
             --format $format 
