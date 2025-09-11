@@ -507,7 +507,7 @@ def main(args_in:List[str] = None) -> None:
 
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
-    
+
     #Data read
     
     X = read_dataset(args.input)
@@ -520,7 +520,7 @@ def main(args_in:List[str] = None) -> None:
         if any(val is None or np.isnan(val) for val in X[i]):
             X = X.drop(columns=[i])
             
-    if args.scaling == True:
+    if args.scaling == "true":
         list_to_remove = []
         toll_std=1e-8
         for i in X.columns:
