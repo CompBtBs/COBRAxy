@@ -459,7 +459,7 @@ def _choose_columns(mapping_df: 'pd.DataFrame') -> Dict[str, str]:
     candidates = {
         'ensg': ['ensg', 'ensembl_gene_id', 'ensembl'],
         'hgnc_id': ['hgnc_id', 'hgnc', 'hgnc:'],
-        'hgnc_symbol': ['hgnc_symbol', 'hgnc_symbol', 'symbol'],
+        'hgnc_symbol': ['hgnc_symbol', 'hgnc symbol', 'symbol'],
         'entrez_id': ['entrez', 'entrez_id', 'entrezgene']
     }
     for key, names in candidates.items():
