@@ -63,6 +63,7 @@ def main(args: List[str] = None) -> None:
             logging.error('Input file not found: %s', ARGS.input)
 
         out_dir = os.path.dirname(os.path.abspath(ARGS.output))
+        
         if out_dir and not os.path.isdir(out_dir):
             try:
                 os.makedirs(out_dir, exist_ok=True)
@@ -70,7 +71,6 @@ def main(args: List[str] = None) -> None:
             except Exception as e:
                 logging.exception('Cannot create output directory: %s', out_dir)
 
-        # Build the model from the CSV (NOTE: use ARGS.input here)
         model = modelUtils.build_cobra_model_from_csv(ARGS.input)
 
         # Save model in requested format
