@@ -1,3 +1,10 @@
+"""
+MAREA: Enrichment and map styling for RAS/RPS data.
+
+This module compares groups of samples using RAS (Reaction Activity Scores) and/or
+RPS (Reaction Propensity Scores), computes statistics (p-values, z-scores, fold change),
+and applies visual styling to an SVG metabolic map (with optional PDF/PNG export).
+"""
 from __future__ import division
 import csv
 from enum import Enum
@@ -26,13 +33,13 @@ ERRORS = []
 ARGS :argparse.Namespace
 def process_args(args:List[str] = None) -> argparse.Namespace:
     """
-    Interfaces the script of a module with its frontend, making the user's choices for various parameters available as values in code.
+    Parse command-line arguments exposed by the Galaxy frontend for this module.
 
     Args:
-        args : Always obtained (in file) from sys.argv
+    args: Optional list of arguments, defaults to sys.argv when None.
 
     Returns:
-        Namespace : An object containing the parsed arguments
+    Namespace: Parsed arguments.
     """
     parser = argparse.ArgumentParser(
         usage = "%(prog)s [options]",
@@ -265,8 +272,6 @@ def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
         tmp.append('stroke-dasharray:' + dash)
     return ';'.join(tmp)
 
-# TODO: remove, there's applyRPS whatever
-# The type of d values is collapsed, losing precision, because the dict containst lists instead of tuples, please fix!
 def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_z_score :float) -> ET.ElementTree:
     """
     Edits the selected SVG map based on the p-value and fold change data (d) and some significance thresholds also passed as inputs.
@@ -343,18 +348,15 @@ def getElementById(reactionId :str, metabMap :ET.ElementTree) -> utils.Result[ET
         f"//*[@id=\"{reactionId}\"]").map(
         lambda xPath : metabMap.xpath(xPath)[0]).mapErr(
         lambda _ : utils.Result.ResultErr(f"No elements with ID \"{reactionId}\" found in map"))
-        # ^^^ we shamelessly ignore the contents of the IndexError, it offers nothing to the user.
 
 def styleMapElement(element :ET.Element, styleStr :str) -> None:
+    """Append/override stroke-related styles on a given SVG element."""
     currentStyles :str = element.get("style", "")
     if re.search(r";stroke:[^;]+;stroke-width:[^;]+;stroke-dasharray:[^;]+$", currentStyles):
-        currentStyles = ';'.join(currentStyles.split(';')[:-3]) # TODO: why the last 3? Are we sure?
-
-    #TODO: this is attempting to solve the styling override problem, not sure it does tho
+        currentStyles = ';'.join(currentStyles.split(';')[:-3])
 
     element.set("style", currentStyles + styleStr)
 
-# TODO: maybe remove vvv
 class ReactionDirection(Enum):
     Unknown = ""
     Direct  = "_F"
@@ -372,6 +374,7 @@ class ReactionDirection(Enum):
         return ReactionDirection.fromDir(reactionId[-2:])
 
 def getArrowBodyElementId(reactionId :str) -> str:
+    """Return the SVG element id for a reaction arrow body, normalizing direction tags."""
     if reactionId.endswith("_RV"): reactionId = reactionId[:-3] #TODO: standardize _RV
     elif ReactionDirection.fromReactionId(reactionId) is not ReactionDirection.Unknown: reactionId = reactionId[:-2]
     return f"R_{reactionId}"
@@ -401,13 +404,9 @@ class ArrowColor(Enum):
     UpRegulated   = "#ecac68" # orange, up-regulated reaction
     DownRegulated = "#6495ed" # lightblue, down-regulated reaction
 
-    UpRegulatedInv = "#FF0000"
-    # ^^^ bright red, up-regulated net value for a reversible reaction with
-    # conflicting enrichment in the two directions.
+    UpRegulatedInv = "#FF0000"  # bright red for reversible with conflicting directions
 
-    DownRegulatedInv = "#0000FF"
-    # ^^^ bright blue, down-regulated net value for a reversible reaction with
-    # conflicting enrichment in the two directions.
+    DownRegulatedInv = "#0000FF"  # bright blue for reversible with conflicting directions
 
     @classmethod
     def fromFoldChangeSign(cls, foldChange :float, *, useAltColor = False) -> "ArrowColor":
@@ -444,7 +443,7 @@ class Arrow:
             ERRORS.append(reactionId)
 
     def styleReactionElements(self, metabMap :ET.ElementTree, reactionId :str, *, mindReactionDir = True) -> None:
-        # If We're dealing with RAS data or in general don't care about the direction of the reaction we only style the arrow body
+    # If direction is irrelevant (e.g., RAS), style only the arrow body
         if not mindReactionDir:
             return self.applyTo(getArrowBodyElementId(reactionId), metabMap, self.toStyleStr())
         
@@ -453,24 +452,6 @@ class Arrow:
         self.applyTo(idOpt1, metabMap, self.toStyleStr(downSizedForTips = True))
         if idOpt2: self.applyTo(idOpt2, metabMap, self.toStyleStr(downSizedForTips = True))
     
-    # TODO: this seems to be unused, remove
-    def getMapReactionId(self, reactionId :str, mindReactionDir :bool) -> str:
-        """
-        Computes the reaction ID as encoded in the map for a given reaction ID from the dataset.
-
-        Args:
-            reactionId: the reaction ID, as encoded in the dataset.
-            mindReactionDir: if True forward (F_) and backward (B_) directions will be encoded in the result.
-    
-        Returns:
-            str : the ID of an arrow's body or tips in the map.
-        """
-        # we assume the reactionIds also don't encode reaction dir if they don't mind it when styling the map.
-        if not mindReactionDir: return "R_" + reactionId
-
-        #TODO: this is clearly something we need to make consistent in RPS
-        return (reactionId[:-3:-1] + reactionId[:-2]) if reactionId[:-2] in ["_F", "_B"] else f"F_{reactionId}" # "Pyr_F" --> "F_Pyr"
-
     def toStyleStr(self, *, downSizedForTips = False) -> str:
         """
         Collapses the styles of this Arrow into a str, ready to be applied as part of the "style" property on an svg element.
@@ -482,13 +463,11 @@ class Arrow:
         if downSizedForTips: width *= 0.8
         return f";stroke:{self.col};stroke-width:{width};stroke-dasharray:{'5,5' if self.dash else 'none'}"
 
-# vvv These constants could be inside the class itself a static properties, but python
-# was built by brainless organisms so here we are!
+# Default arrows used for different significance states
 INVALID_ARROW       = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
 INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
 TRANSPARENT_ARROW   = Arrow(Arrow.MIN_W, ArrowColor.Transparent) # Who cares how big it is if it's transparent
 
-# TODO: A more general version of this can be used for RAS as well, we don't need "fix map" or whatever
 def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float) -> None:
     """
     Applies RPS enrichment results to the provided metabolic map.
@@ -581,7 +560,7 @@ def split_class(classes :pd.DataFrame, dataset_values :Dict[str, List[float]]) -
         
         if l:
             class_pat[classe] = {
-                "values": list(map(list, zip(*l))),  # trasposta
+                "values": list(map(list, zip(*l))),  # transpose
                 "samples": sample_ids
             }
             continue
@@ -592,7 +571,7 @@ def split_class(classes :pd.DataFrame, dataset_values :Dict[str, List[float]]) -
     return class_pat
 
 ############################ conversion ##############################################
-#conversion from svg to png 
+# Conversion from SVG to PNG
 def svg_to_png_with_background(svg_path :utils.FilePath, png_path :utils.FilePath, dpi :int = 72, scale :int = 1, size :Optional[float] = None) -> None:
     """
     Internal utility to convert an SVG to PNG (forced opaque) to aid in PDF conversion.
@@ -660,14 +639,8 @@ def buildOutputPath(dataset1Name :str, dataset2Name = "rest", *, details = "", e
     Returns:
         utils.FilePath : _description_
     """
-    # This function returns a util data structure but is extremely specific to this module.
-    # RAS also uses collections as output and as such might benefit from a method like this, but I'd wait
-    # TODO: until a third tool with multiple outputs appears before porting this to utils.
     return utils.FilePath(
         f"{dataset1Name}_vs_{dataset2Name}" + (f" ({details})" if details else ""),
-        # ^^^ yes this string is built every time even if the form is the same for the same 2 datasets in
-        # all output files: I don't care, this was never the performance bottleneck of the tool and
-        # there is no other net gain in saving and re-using the built string.
         ext,
         prefix = ARGS.output_path)
 
@@ -683,10 +656,8 @@ def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath)
             if sizeMismatch > 0: row.extend([FIELD_NOT_AVAILABLE] * sizeMismatch)
             writer.writerow({ field : data for field, data in zip(fieldNames, row) })
 
-OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]] #TODO: try to use Tuple whenever possible
+OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]]
 def temp_thingsInCommon(tmp :OldEnrichedScores, core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
-    # this function compiles the things always in common between comparison modes after enrichment.
-    # TODO: organize, name better.
     suffix = "RAS" if ras_enrichment else "RPS"
     writeToCsv(
         [ [reactId] + values for reactId, values in tmp.items() ],
@@ -809,7 +780,6 @@ def DESeqPValue(comparisonResult :Dict[str, List[Union[float, FoldChange]]], dat
 # TODO: the net RPS computation should be done in the RPS module
 def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[float]], ids :List[str]) -> Tuple[Dict[str, List[Union[float, FoldChange]]], float, Dict[str, Tuple[np.ndarray, np.ndarray]]]:
 
-    #TODO: the following code still suffers from "dumbvarnames-osis"
     netRPS :Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
     comparisonResult :Dict[str, List[Union[float, FoldChange]]] = {}
     count   = 0
@@ -818,7 +788,7 @@ def compareDatasetPair(dataset1Data :List[List[float]], dataset2Data :List[List[
     for l1, l2 in zip(dataset1Data, dataset2Data):
         reactId = ids[count]
         count += 1
-        if not reactId: continue # we skip ids that have already been processed
+        if not reactId: continue 
 
         try: #TODO: identify the source of these errors and minimize code in the try block
             reactDir = ReactionDirection.fromReactionId(reactId)
@@ -947,13 +917,11 @@ def createOutputMaps(dataset1Name: str, dataset2Name: str, core_map: ET.ElementT
         except Exception as e:
             raise utils.DataErr(pdfPath.show(), f'Error generating PDF file: {e}')
 
-    if not ARGS.generate_svg: # This argument is useless, who cares if the user wants the svg or not
+    if not ARGS.generate_svg:
         os.remove(svgFilePath.show())
 
 ClassPat = Dict[str, List[List[float]]]
 def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, classPath :str, names :List[str]) -> Tuple[List[str], ClassPat, Dict[str, List[str]]]:
-    # TODO: I suggest creating dicts with ids as keys instead of keeping class_pat and ids separate,
-    # for the sake of everyone's sanity.
     columnNames :Dict[str, List[str]] = {} # { datasetName : [ columnName, ... ], ... }
     class_pat :ClassPat = {}
     if ARGS.option == 'datasets':
@@ -983,9 +951,7 @@ def getClassesAndIdsFromDatasets(datasetsPaths :List[str], datasetPath :str, cla
                 columnNames[clas] = ["Reactions", *values_and_samples_id["samples"]]
     
     return ids, class_pat, columnNames
-    #^^^ TODO: this could be a match statement over an enum, make it happen future marea dev with python 3.12! (it's why I kept the ifs)
 
-#TODO: create these damn args as FilePath objects
 def getDatasetValues(datasetPath :str, datasetName :str) -> Tuple[ClassPat, List[str]]:
     """
     Opens the dataset at the given path and extracts the values (expected nullable numerics) and the IDs.
@@ -1025,18 +991,16 @@ def main(args:List[str] = None) -> None:
         ARGS.tool_dir,
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
     
-    # TODO: in the future keep the indices WITH the data and fix the code below.
-
     # Prepare enrichment results containers
     ras_results = []
     rps_results = []
 
     # Compute RAS enrichment if requested
-    if ARGS.using_RAS: #       vvv columnNames only matter with RPS data
+    if ARGS.using_RAS: 
         ids_ras, class_pat_ras, _ = getClassesAndIdsFromDatasets(
             ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
         ras_results, _ = computeEnrichment(class_pat_ras, ids_ras, fromRAS=True)
-        #           ^^^ netRPS only matter with RPS data
+ 
 
     # Compute RPS enrichment if requested
     if ARGS.using_RPS:
@@ -1065,7 +1029,7 @@ def main(args:List[str] = None) -> None:
         # Apply RPS styling to arrow heads
         if res.get('rps'):
             tmp_rps, max_z_rps = res['rps']
-            # applyRpsEnrichmentToMap styles only heads unless only RPS are used
+
             temp_thingsInCommon(tmp_rps, map_copy, max_z_rps, i, j, ras_enrichment=False)
 
         # Output both SVG and PDF/PNG as configured
@@ -1076,7 +1040,6 @@ def main(args:List[str] = None) -> None:
         for datasetName, rows in netRPS.items():
             writeToCsv(
                 [[reactId, *netValues] for reactId, netValues in rows.items()],
-                # vvv In weird comparison modes the dataset names are not recorded properly..
                 columnNames.get(datasetName, ["Reactions"]),
                 utils.FilePath(
                     "Net_RPS_" + datasetName,

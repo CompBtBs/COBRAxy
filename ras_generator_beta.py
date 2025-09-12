@@ -1,5 +1,10 @@
+"""
+Generate Reaction Activity Scores (RAS) from a gene expression dataset and GPR rules.
+
+The script reads a tabular dataset (genes x samples) and a rules file (GPRs),
+computes RAS per reaction for each sample/cell line, and writes a tabular output.
+"""
 from __future__ import division
-# galaxy complains this ^^^ needs to be at the very beginning of the file, for some reason.
 import sys
 import argparse
 import collections
@@ -8,7 +13,6 @@ import pickle as pk
 import utils.general_utils as utils
 import utils.rule_parsing as ruleUtils
 from typing import Union, Optional, List, Dict, Tuple, TypeVar
-import os
 
 ERRORS = []
 ########################## argparse ##########################################
@@ -31,7 +35,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         help = "path to input file containing the rules")
 
     parser.add_argument("-rn", "--model_upload_name", type = str, help = "custom rules name")
-    # ^ I need this because galaxy converts my files into .dat but I need to know what extension they were in
+    # Galaxy converts files into .dat, this helps infer the original extension when needed.
     
     parser.add_argument(
         '-n', '--none',
@@ -49,7 +53,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         help = "Output log")    
     
     parser.add_argument(
-        '-in', '--input', #id è diventato in
+        '-in', '--input',
         type = str,
         help = 'input dataset')
     
@@ -253,14 +257,14 @@ def data_gene(gene: pd.DataFrame, type_gene: str, name: str, gene_custom: Option
 ############################ resolve ##########################################
 def replace_gene_value(l :str, d :str) -> Tuple[Union[int, float], list]:
     """
-    Replace gene identifiers with corresponding values from a dictionary.
+    Replace gene identifiers in a parsed rule expression with values from a dict.
 
     Args:
-        l (str): String of gene identifier.
-        d (str): String corresponding to its value.
+        l: Parsed rule as a nested list structure (strings, lists, and operators).
+        d: Dict mapping gene IDs to numeric values.
 
     Returns:
-        tuple: A tuple containing two lists: the first list contains replaced values, and the second list contains any errors encountered during replacement.
+        tuple: (new_expression, not_found_genes)
     """
     tmp = []
     err = []
@@ -277,16 +281,16 @@ def replace_gene_value(l :str, d :str) -> Tuple[Union[int, float], list]:
         l = l[1:]
     return (tmp, err)
 
-def replace_gene(l :str, d :str) -> Union[int, float]:
+def replace_gene(l: str, d: Dict[str, Union[int, float]]) -> Union[int, float, None]:
     """
     Replace a single gene identifier with its corresponding value from a dictionary.
 
     Args:
         l (str): Gene identifier to replace.
-        d (str): String corresponding to its value.
+        d (dict): Dict mapping gene IDs to numeric values.
 
     Returns:
-        float/int: Corresponding value from the dictionary if found, None otherwise.
+        float/int/None: Corresponding value from the dictionary if found, None otherwise.
 
     Raises:
         sys.exit: If the value associated with the gene identifier is not valid.
@@ -508,9 +512,9 @@ def ras_for_cell_lines(dataset: pd.DataFrame, rules: Dict[str, ruleUtils.OpList]
     Args:
         dataset (pd.DataFrame): Dataset containing gene values.
         rules (dict): The dict containing reaction ids as keys and rules as values.
-
-    Side effects:
-        dataset : mut
+    
+    Note:
+        Modifies dataset in place by setting the first column as index.
     
     Returns:
         dict: A dictionary where each key corresponds to a cell line name and each value is a dictionary
@@ -590,11 +594,11 @@ def ras_op_list(op_list: ruleUtils.OpList, dataset: Dict[str, Expr]) -> Ras:
 
 def save_as_tsv(rasScores: Dict[str, Dict[str, Ras]], reactions :List[str]) -> None:
     """
-    Save computed ras scores to the given path, as a tsv file.
+    Save computed RAS scores to ARGS.ras_output as a TSV file.
 
     Args:
         rasScores : the computed ras scores.
-        path : the output tsv file's path.
+        reactions : the list of reaction IDs, used as the first column.
     
     Returns:
         None
@@ -627,7 +631,7 @@ def translateGene(geneName :str, encoding :str, geneTranslator :Dict[str, Dict[s
     """
     supportedGenesInEncoding = geneTranslator[encoding]
     if geneName in supportedGenesInEncoding: return supportedGenesInEncoding[geneName]
-    raise ValueError(f"Gene \"{geneName}\" non trovato, verifica di star utilizzando il modello corretto!")
+    raise ValueError(f"Gene '{geneName}' not found. Please verify you are using the correct model.")
 
 def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     """
@@ -637,14 +641,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
     Returns:
         Dict[str, ruleUtils.OpList] : dict mapping reaction IDs to rules.
     """
-    datFilePath = utils.FilePath.fromStrPath(ARGS.model_upload) # actual file, stored in galaxy as a .dat
-
-    #try: filenamePath = utils.FilePath.fromStrPath(ARGS.model_upload_name) # file's name in input, to determine its original ext
-    #except utils.PathErr as err:      
-    #    utils.logWarning(f"Cannot determine file extension from filename '{ARGS.model_upload_name}'. Assuming tabular format.", ARGS.out_log)
-    #    filenamePath = None
-     
-    #if filenamePath.ext is utils.FileFormat.PICKLE: return utils.readPickle(datFilePath)
+    datFilePath = utils.FilePath.fromStrPath(ARGS.model_upload)  # actual file, stored in Galaxy as a .dat
 
     dict_rule = {}
 
@@ -658,7 +655,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
         
         id_idx, idx_gpr = utils.findIdxByName(rows[0], "GPR")
         
-        # Proviamo prima con delimitatore tab
+    # First, try using a tab delimiter
         for line in rows[1:]:
             if len(line) <= idx_gpr:
                 utils.logWarning(f"Skipping malformed line: {line}", ARGS.out_log)
@@ -670,7 +667,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
                 dict_rule[line[id_idx]] = ruleUtils.parseRuleToNestedList(line[idx_gpr])
                 
     except Exception as e:
-        # Se fallisce con tab, proviamo con virgola
+        # If parsing with tabs fails, try comma delimiter
         try:
             rows = utils.readCsv(datFilePath, delimiter = ",", skipHeader=False)
             
@@ -682,7 +679,7 @@ def load_custom_rules() -> Dict[str, ruleUtils.OpList]:
             
             id_idx, idx_gpr = utils.findIdxByName(rows[0], "GPR")
             
-            # Proviamo prima con delimitatore tab
+            # Try again parsing row content with the GPR column using comma-separated values
             for line in rows[1:]:
                 if len(line) <= idx_gpr:
                     utils.logWarning(f"Skipping malformed line: {line}", ARGS.out_log)
@@ -729,39 +726,7 @@ def main(args:List[str] = None) -> None:
         ARGS.out_log)  
 
 
-    ############
-
-    # handle custom models
-    #model :utils.Model = ARGS.rules_selector
-
-    #if model is utils.Model.Custom:
-    #    rules = load_custom_rules()
-    #    reactions = list(rules.keys())
-
-    #    save_as_tsv(ras_for_cell_lines(dataset, rules), reactions)
-    #    if ERRORS: utils.logWarning(
-    #        f"The following genes are mentioned in the rules but don't appear in the dataset: {ERRORS}",
-    #        ARGS.out_log)
-        
-    #    return
-    
-    # This is the standard flow of the ras_generator program, for non-custom models.
-    #name = "RAS Dataset"
-    #type_gene = gene_type(dataset.iloc[0, 0], name)
-
-    #rules      = model.getRules(ARGS.tool_dir)
-    #genes      = data_gene(dataset, type_gene, name, None)
-    #ids, rules = load_id_rules(rules.get(type_gene))
-
-    #resolve_rules, err = resolve(genes, rules, ids, ARGS.none, name)
-    #create_ras(resolve_rules, name, rules, ids, ARGS.ras_output)
-    
-    #if err: utils.logWarning(
-    #    f"Warning: gene(s) {err} not found in class \"{name}\", " +
-    #    "the expression level for this gene will be considered NaN",
-    #    ARGS.out_log)
-    
-    print("Execution succeded")
+    print("Execution succeeded")
 
 ###############################################################################
 if __name__ == "__main__":

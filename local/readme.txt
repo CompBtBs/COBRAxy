@@ -5,5 +5,3 @@ Geni:
 
 Regole:
 {keys = possibili codifiche dei geni : value = { keys = nome della reazione/metabolita : [ lista di stringhe contenente la regola nella codifica corrispondente alla keys ] } }
-
-README DA RIVEDERE 

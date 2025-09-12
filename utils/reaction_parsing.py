@@ -1,15 +1,22 @@
+"""
+Helpers to parse reaction strings into structured dictionaries.
+
+Features:
+- Reaction direction detection (forward, backward, reversible)
+- Parsing of custom reaction strings into stoichiometric maps
+- Conversion of a dict of raw reactions into a directional reactions dict
+- Loading custom reactions from a tabular file (TSV)
+"""
 from enum import Enum
 import utils.general_utils as utils
 from typing import Dict
-import csv
 import re
 
 # Reaction direction encoding:
 class ReactionDir(Enum):
   """
-  A reaction can go forwards, backwards or be reversible (able to proceed in both directions).
-  Models created / managed with cobrapy encode this information within the reaction's
-  formula using the arrows this enum keeps as values.
+  A reaction can go forward, backward, or be reversible (both directions).
+  Cobrapy-style formulas encode direction using specific arrows handled here.
   """
   FORWARD    = "-->"
   BACKWARD   = "<--"
@@ -40,34 +47,29 @@ ReactionsDict = Dict[str, Dict[str, float]]
 
 def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -> None:
   """
-  Adds an entry to the given reactionsDict. Each entry consists of a given unique reaction id
-  (key) and a :dict (value) matching each substrate in the reaction to its stoichiometric coefficient.
-  Keys and values are both obtained from the reaction's formula: if a substrate (custom metabolite id)
-  appears without an explicit coeff, the value 1.0 will be used instead.
+  Add one reaction entry to reactionsDict.
+
+  The entry maps each substrate ID to its stoichiometric coefficient.
+  If a substrate appears without an explicit coefficient, 1.0 is assumed.
 
   Args:
-    reactionsDict : dictionary encoding custom reactions information.
-    rId : unique reaction id.
-    reaction : the reaction's formula.
+    reactionsDict: Dict to update in place.
+    rId: Unique reaction ID.
+    reaction: Reaction formula string.
   
   Returns:
     None
 
-  Side effects:
-    reactionsDict : mut
+  Side effects: updates reactionsDict in place.
   """
   reaction = reaction.strip()
   if not reaction: return
 
   reactionsDict[rId] = {}
-  # We assume the '+' separating consecutive metabs in a reaction is spaced from them,
-  # to avoid confusing it for electrical charge:
+  # Assumes ' + ' is spaced to avoid confusion with charge symbols.
   for word in reaction.split(" + "):
     metabId, stoichCoeff = word, 1.0
-    # Implicit stoichiometric coeff is equal to 1, some coeffs are floats.
-
-    # Accepted coeffs can be integer or floats with a dot (.) decimal separator
-    # and must be separated from the metab with a space:
+    # Coefficient can be integer or float (dot decimal) and must be space-separated.
     foundCoeff = re.search(r"\d+(\.\d+)? ", word)
     if foundCoeff:
       wholeMatch  = foundCoeff.group(0)
@@ -81,48 +83,39 @@ def add_custom_reaction(reactionsDict :ReactionsDict, rId :str, reaction :str) -
 
 def create_reaction_dict(unparsed_reactions: Dict[str, str]) -> ReactionsDict:
     """
-    Parses the given dictionary into the correct format.
+  Parse a dict of raw reaction strings into a directional reactions dict.
 
     Args:
-        unparsed_reactions (Dict[str, str]): A dictionary where keys are reaction IDs and values are unparsed reaction strings.
+    unparsed_reactions: Mapping reaction ID -> raw reaction string.
 
     Returns:
-        ReactionsDict: The correctly parsed dict.
+    ReactionsDict: Parsed dict. Reversible reactions produce two entries with _F and _B suffixes.
     """
     reactionsDict :ReactionsDict = {}
     for rId, reaction in unparsed_reactions.items():
         reactionDir = ReactionDir.fromReaction(reaction)
         left, right = reaction.split(f" {reactionDir.value} ")
 
-        # Reversible reactions are split into distinct reactions, one for each direction.
-        # In general we only care about substrates, the product information is lost.
+    # Reversible reactions are split into two: forward (_F) and backward (_B).
         reactionIsReversible = reactionDir is ReactionDir.REVERSIBLE
         if reactionDir is not ReactionDir.BACKWARD:
             add_custom_reaction(reactionsDict, rId + "_F" * reactionIsReversible, left)
         
         if reactionDir is not ReactionDir.FORWARD:
             add_custom_reaction(reactionsDict, rId + "_B" * reactionIsReversible, right)
-        
-        # ^^^ to further clarify: if a reaction is NOT reversible it will not be marked as _F or _B
-        # and whichever direction we DO keep (forward if --> and backward if <--) loses this information.
-        # This IS a small problem when coloring the map in marea.py because the arrow IDs in the map follow
-        # through with a similar convention on ALL reactions and correctly encode direction based on their
-        # model of origin. TODO: a proposed solution is to unify the standard in RPS to fully mimic the maps,
-        # which involves re-writing the "reactions" dictionary.
     
     return reactionsDict
 
 
 def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
   """
-  Creates a custom dictionary encoding reactions information from a csv file containing
-  data about these reactions, the path of which is given as input.
+  Load custom reactions from a tabular file and parse into a reactions dict.
 
   Args:
-    customReactionsPath : path to the reactions information file.
+    customReactionsPath: Path to the reactions file (TSV or CSV-like).
   
   Returns:
-    ReactionsDict : dictionary encoding custom reactions information.
+    ReactionsDict: Parsed reactions dictionary.
   """
   try:
     rows = utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath), delimiter = "\t", skipHeader=False)
@@ -132,7 +125,7 @@ def parse_custom_reactions(customReactionsPath :str) -> ReactionsDict:
     id_idx, idx_formula = utils.findIdxByName(rows[0], "Formula")
 
   except Exception as e:
-        
+    # Fallback re-read with same settings; preserves original behavior
     rows = utils.readCsv(utils.FilePath.fromStrPath(customReactionsPath), delimiter = "\t", skipHeader=False)
     if len(rows) <= 1:
       raise ValueError("The custom reactions file must contain at least one reaction.")

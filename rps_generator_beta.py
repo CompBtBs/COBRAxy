@@ -1,3 +1,10 @@
+"""
+Compute Reaction Propensity Scores (RPS) from metabolite abundances and reaction stoichiometry.
+
+Given a tabular dataset (metabolites x samples) and a reaction set, this script
+maps metabolite names via synonyms, fills missing metabolites, and computes RPS
+per reaction for each sample using a log-normalized formula.
+"""
 import math
 import argparse
 
@@ -22,14 +29,14 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
     Returns:
         Namespace: An object containing parsed arguments.
     """
-    parser = argparse.ArgumentParser(usage = '%(prog)s [options]',
-                                     description = 'process some value\'s'+
-                                     ' abundances and reactions to create RPS scores.')
+    parser = argparse.ArgumentParser(
+        usage='%(prog)s [options]',
+        description='Process abundances and reactions to create RPS scores.'
+    )
     
     parser.add_argument("-rl", "--model_upload", type = str,
         help = "path to input file containing the reactions")
 
-    # model_upload custom
     parser.add_argument('-td', '--tool_dir',
                         type = str,
                         required = True,
@@ -54,8 +61,8 @@ def name_dataset(name_data :str, count :int) -> str:
     Produces a unique name for a dataset based on what was provided by the user. The default name for any dataset is "Dataset", thus if the user didn't change it this function appends f"_{count}" to make it unique.
 
     Args:
-        name_data : name associated with the dataset (from frontend input params)
-        count : counter from 1 to make these names unique (external)
+    name_data: Name associated with the dataset (from frontend input params).
+    count: Counter starting at 1 to make names unique when default.
 
     Returns:
         str : the name made unique
@@ -81,7 +88,7 @@ def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Se
                            Returns None if the cell index is invalid.
     """
     if cell_line_index < 0 or cell_line_index >= len(dataset.index):
-        print(f"Errore: This cell line index: '{cell_line_index}' is not valid.")
+        print(f"Error: cell line index '{cell_line_index}' is not valid.")
         return None
 
     cell_line_name = dataset.columns[cell_line_index]
@@ -138,7 +145,7 @@ def check_missing_metab(reactions: Dict[str, Dict[str, int]], dataset_by_rows: D
         list[str] : list of metabolite names that were missing in the original abundances dictionary and thus their aboundances were set to 1.
 
     Side effects:
-        dataset_by_rows : mut
+        dataset_by_rows: mutated to include missing metabolites with default abundances.
     """
     missing_list = []
     for reaction in reactions.values():
@@ -203,8 +210,8 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     abundances_dict = {}
 
     for row in dataset[1:]:
-        id = get_metabolite_id(row[0], syn_dict) #if translationIsApplied else row[0]
-        if id: 
+        id = get_metabolite_id(row[0], syn_dict)
+        if id:
             abundances_dict[id] = list(map(utils.Float(), row[1:]))
 
     missing_list = check_missing_metab(reactions, abundances_dict, len((cell_lines)))
@@ -217,7 +224,8 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     
     df = pd.DataFrame.from_dict(rps_scores)
     df = df.loc[list(reactions.keys()),:]
-    print(df.head(10))
+    # Optional preview: first 10 rows
+    # print(df.head(10))
     df.index.name = 'Reactions'
     df.to_csv(ARGS.rps_output, sep='\t', na_rep='None', index=True)
 
@@ -232,20 +240,17 @@ def main(args:List[str] = None) -> None:
     global ARGS
     ARGS = process_args(args)
 
-    # TODO:use utils functions vvv
+    # Load support data (black list and synonyms)
     with open(ARGS.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
         black_list = pk.load(bl)
 
     with open(ARGS.tool_dir + '/local/pickle files/synonyms.pickle', 'rb') as sd:
         syn_dict = pk.load(sd)
 
-    dataset = utils.readCsv(utils.FilePath.fromStrPath(ARGS.input), '\t', skipHeader = False)
+    dataset = utils.readCsv(utils.FilePath.fromStrPath(ARGS.input), '\t', skipHeader=False)
     tmp_dict = None
-    #if ARGS.reaction_choice == 'default':
-    #    reactions = pk.load(open(ARGS.tool_dir + '/local/pickle files/reactions.pickle', 'rb'))
-    #    substrateFreqTable = pk.load(open(ARGS.tool_dir + '/local/pickle files/substrate_frequencies.pickle', 'rb'))
-    
-    #elif ARGS.reaction_choice == 'custom':
+
+    # Parse custom reactions from uploaded file
     reactions = reactionUtils.parse_custom_reactions(ARGS.model_upload)
     for r, s in reactions.items():
         tmp_list = list(s.keys())
@@ -258,20 +263,21 @@ def main(args:List[str] = None) -> None:
             if substrateName not in substrateFreqTable: substrateFreqTable[substrateName] = 0
             substrateFreqTable[substrateName] += 1
 
-        print(f"Reactions: {reactions}")
-        print(f"Substrate Frequencies: {substrateFreqTable}")
-        print(f"Synonyms: {syn_dict}")
+    # Debug prints (can be enabled during troubleshooting)
+    # print(f"Reactions: {reactions}")
+    # print(f"Substrate Frequencies: {substrateFreqTable}")
+    # print(f"Synonyms: {syn_dict}")
         tmp_dict = {}
         for metabName, freq in substrateFreqTable.items():
             tmp_metabName = clean_metabolite_name(metabName)
             for syn_key, syn_list in syn_dict.items():
                 if tmp_metabName in syn_list or tmp_metabName == clean_metabolite_name(syn_key):
-                    print(f"Mapping {tmp_metabName} to {syn_key}")
+                    # print(f"Mapping {tmp_metabName} to {syn_key}")
                     tmp_dict[syn_key] = syn_list
                     tmp_dict[syn_key].append(tmp_metabName)
 
     rps_for_cell_lines(dataset, reactions, black_list, syn_dict, substrateFreqTable)
-    print('Execution succeded')
+    print('Execution succeeded')
 
 ##############################################################################
 if __name__ == "__main__": main()

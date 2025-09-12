@@ -1,3 +1,13 @@
+"""
+Apply RAS-based scaling to reaction bounds and optionally save updated models.
+
+Workflow:
+- Read one or more RAS matrices (patients/samples x reactions)
+- Normalize and merge them, optionally adding class suffixes to sample IDs
+- Build a COBRA model from a tabular CSV
+- Run FVA to initialize bounds, then scale per-sample based on RAS values
+- Save bounds per sample and optionally export updated models in chosen formats
+"""
 import argparse
 import utils.general_utils as utils
 from typing import Optional, Dict, Set, List, Tuple, Union
@@ -5,13 +15,9 @@ import os
 import numpy as np
 import pandas as pd
 import cobra
-from cobra import Model, Reaction, Metabolite
-import re
+from cobra import Model
 import sys
-import csv
 from joblib import Parallel, delayed, cpu_count
-import utils.rule_parsing  as rulesUtils
-import utils.reaction_parsing as reactionUtils
 import utils.model_utils as modelUtils
 
 ################################# process args ###############################
@@ -181,7 +187,7 @@ def save_model(model, filename, output_folder, file_format='csv'):
             df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
             df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
             df_medium = medium.rename(columns = {"reaction": "ReactionID"})
-            df_medium["InMedium"] = True # flag per indicare la presenza nel medium
+            df_medium["InMedium"] = True
 
             merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
             merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
@@ -264,7 +270,7 @@ def process_ras_cell(cellName, ras_row, model, rxns_ids, output_folder, save_mod
         modified_model = apply_bounds_to_model(model, new_bounds)
         save_model(modified_model, cellName, save_models_path, save_models_format)
     
-    pass
+    return
 
 def generate_bounds_model(model: cobra.Model, ras=None, output_folder='output/', save_models=False, save_models_path='saved_models/', save_models_format='csv') -> pd.DataFrame:
     """
@@ -298,12 +304,12 @@ def generate_bounds_model(model: cobra.Model, ras=None, output_folder='output/',
         ) for cellName, ras_row in ras.iterrows())
     else:
         raise ValueError("RAS DataFrame is None. Cannot generate bounds without RAS data.")
-    pass
+    return
 
 ############################# main ###########################################
 def main(args:List[str] = None) -> None:
     """
-    Initializes everything and sets the program in motion based on the fronted input arguments.
+    Initialize and execute RAS-to-bounds pipeline based on the frontend input arguments.
 
     Returns:
         None
@@ -321,7 +327,7 @@ def main(args:List[str] = None) -> None:
         error_message = "Duplicated file names in the uploaded RAS matrices."
         warning(error_message)
         raise ValueError(error_message)
-        pass
+        
     ras_class_names = []
     for file in ras_file_names:
         ras_class_names.append(file.rsplit(".", 1)[0])
@@ -334,7 +340,7 @@ def main(args:List[str] = None) -> None:
         ras = ras.T
         ras = ras.astype(float)
         if(len(ras_file_list)>1):
-            #append class name to patient id (dataframe index)
+            # Append class name to patient id (DataFrame index)
             ras.index = [f"{idx}_{ras_class_name}" for idx in ras.index]
         else:
             ras.index = [f"{idx}" for idx in ras.index]
@@ -343,9 +349,9 @@ def main(args:List[str] = None) -> None:
             class_assignments.loc[class_assignments.shape[0]] = [patient_id, ras_class_name]
     
         
-        # Concatenate all ras DataFrames into a single DataFrame
+    # Concatenate all RAS DataFrames into a single DataFrame
         ras_combined = pd.concat(ras_list, axis=0)
-        # Normalize the RAS values by max RAS
+    # Normalize RAS values column-wise by max RAS
         ras_combined = ras_combined.div(ras_combined.max(axis=0))
         ras_combined.dropna(axis=1, how='all', inplace=True)
 
@@ -353,7 +359,7 @@ def main(args:List[str] = None) -> None:
 
     validation = modelUtils.validate_model(model)
 
-    print("\n=== VALIDAZIONE MODELLO ===")
+    print("\n=== MODEL VALIDATION ===")
     for key, value in validation.items():
         print(f"{key}: {value}")
 
@@ -364,7 +370,7 @@ def main(args:List[str] = None) -> None:
     class_assignments.to_csv(ARGS.cell_class, sep='\t', index=False)
 
 
-    pass
+    return
         
 ##############################################################################
 if __name__ == "__main__":

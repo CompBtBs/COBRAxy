@@ -1,8 +1,19 @@
+"""
+Flux sampling and analysis utilities for COBRA models.
+
+This script supports two modes:
+- Mode 1 (model_and_bounds=True): load a base model and apply bounds from
+    separate files before sampling.
+- Mode 2 (model_and_bounds=False): load complete models and sample directly.
+
+Sampling algorithms supported: OPTGP and CBS. Outputs include flux samples
+and optional analyses (pFBA, FVA, sensitivity), saved as tabular files.
+"""
+
 import argparse
 import utils.general_utils as utils
-from typing import Optional, List
+from typing import List
 import os
-import numpy as np
 import pandas as pd
 import cobra
 import utils.CBS_backend as CBS_backend
@@ -121,6 +132,17 @@ def warning(s :str) -> None:
 
 
 def write_to_file(dataset: pd.DataFrame, name: str, keep_index:bool=False)->None:
+    """
+    Write a DataFrame to a TSV file under ARGS.output_path with a given base name.
+
+    Args:
+        dataset: The DataFrame to write.
+        name: Base file name (without extension).
+        keep_index: Whether to keep the DataFrame index in the file.
+
+    Returns:
+        None
+    """
     dataset.index.name = 'Reactions'
     dataset.to_csv(ARGS.output_path + "/" + name + ".csv", sep = '\t', index = keep_index)
 
@@ -180,7 +202,6 @@ def OPTGP_sampler(model:cobra.Model, model_name:str, n_samples:int=1000, thinnin
 
     for i in range(0, n_batches):
         os.remove(ARGS.output_path + "/" +   model_name + '_'+ str(i)+'_OPTGP.csv')
-    pass
 
 
 def CBS_sampler(model:cobra.Model, model_name:str, n_samples:int=1000, n_batches:int=1, seed:int=0)-> None:
@@ -224,7 +245,6 @@ def CBS_sampler(model:cobra.Model, model_name:str, n_samples:int=1000, n_batches
 
     for i in range(0, n_batches):
         os.remove(ARGS.output_path + "/" + model_name + '_'+ str(i)+'_CBS.csv')
-    pass
 
 
 
@@ -393,7 +413,7 @@ def fluxes_analysis(model:cobra.Model,  model_name:str, output_types:List)-> Lis
 ############################# main ###########################################
 def main(args :List[str] = None) -> None:
     """
-    Initializes everything and sets the program in motion based on the fronted input arguments.
+    Initialize and run sampling/analysis based on the frontend input arguments.
 
     Returns:
         None
@@ -406,11 +426,6 @@ def main(args :List[str] = None) -> None:
 
     if not os.path.exists(ARGS.output_path):
         os.makedirs(ARGS.output_path)
-
-    #ARGS.bounds = ARGS.input.split(",")
-    #ARGS.bounds_name = ARGS.name.split(",")
-    #ARGS.output_types = ARGS.output_type.split(",")
-    #ARGS.output_type_analysis = ARGS.output_type_analysis.split(",")
 
     # --- Normalize inputs (the tool may pass comma-separated --input and either --name or --names) ---
     ARGS.input_files = ARGS.input.split(",") if ARGS.input else []
@@ -439,14 +454,14 @@ def main(args :List[str] = None) -> None:
 
         validation = model_utils.validate_model(base_model)
 
-        print("\n=== VALIDAZIONE MODELLO ===")
+        print("\n=== MODEL VALIDATION ===")
         for key, value in validation.items():
             print(f"{key}: {value}")
 
-        #Set solver verbosity to 1 to see warning and error messages only.
+        # Set solver verbosity to 1 to see warning and error messages only.
         base_model.solver.configuration.verbosity = 1
 
-                # Process each bounds file with the base model
+        # Process each bounds file with the base model
         results = Parallel(n_jobs=num_processors)(
             delayed(model_sampler_with_bounds)(base_model, bounds_file, cell_name) 
             for bounds_file, cell_name in zip(ARGS.input_files, ARGS.file_names)
@@ -498,7 +513,7 @@ def main(args :List[str] = None) -> None:
         all_sensitivity = all_sensitivity.sort_index()
         write_to_file(all_sensitivity.T, "sensitivity", True)
 
-    pass
+    return
         
 ##############################################################################
 if __name__ == "__main__":

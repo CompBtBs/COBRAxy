@@ -1,3 +1,10 @@
+"""
+CBS backend utilities using GLPK for constraint-based sampling.
+
+This module builds and solves LP problems from COBRA models, supports random
+objective function generation (CBS), and provides both swiglpk-based and
+COBRApy-based sampling fallbacks.
+"""
 from swiglpk import *
 import random
 import pandas as pd
@@ -6,6 +13,20 @@ import cobra as cb
 
 # Initialize LP problem
 def initialize_lp_problem(S):
+    """
+    Prepare sparse matrix structures for GLPK given a stoichiometric matrix.
+
+    Args:
+        S: Stoichiometric matrix (DOK or similar) as returned by cobra.util.create_stoichiometric_matrix.
+
+    Returns:
+        tuple: (len_vector, values, indexes, ia, ja, ar, nrows, ncol)
+            - len_vector: number of non-zero entries
+            - values: list of non-zero values
+            - indexes: list of (row, col) indices for non-zero entries
+            - ia, ja, ar: GLPK-ready arrays for the sparse matrix
+            - nrows, ncol: matrix shape
+    """
 
     len_vector=len(S.keys())
     values=list(S.values())
@@ -29,9 +50,22 @@ def initialize_lp_problem(S):
     
     
 
-# Solve LP problem from the structure of the metabolic model
 def create_and_solve_lp_problem(lb,ub,nrows, ncol, len_vector, ia, ja, ar, 
                                 obj_coefs,reactions,return_lp=False):
+    """
+    Create and solve a GLPK LP problem for a metabolic model.
+
+    Args:
+        lb, ub: Lower/upper bounds per reaction (lists of floats).
+        nrows, ncol: Dimensions of the S matrix.
+        len_vector, ia, ja, ar: Sparse matrix data prepared for GLPK.
+        obj_coefs: Objective function coefficients (list of floats).
+        reactions: Reaction identifiers (list of str), used for output mapping.
+        return_lp: If True, also return the GLPK problem object (caller must delete).
+
+    Returns:
+        tuple: (fluxes, Z) or (fluxes, Z, lp) if return_lp=True.
+    """
     
     
     lp = glp_create_prob();
@@ -60,8 +94,18 @@ def create_and_solve_lp_problem(lb,ub,nrows, ncol, len_vector, ia, ja, ar,
         raise Exception(e)
     
     
-# Solve LP problem from the structure of the metabolic model
 def solve_lp_problem(lp,obj_coefs,reactions):
+    """
+    Configure and solve an LP with GLPK using provided objective coefficients.
+
+    Args:
+        lp: GLPK problem handle.
+        obj_coefs: Objective coefficients.
+        reactions: Reaction identifiers (unused in computation; length used for output).
+
+    Returns:
+        tuple: (fluxes, Z) where fluxes is a list of primal column values and Z is the objective value.
+    """
    
     # Set the coefficients of the objective function
     i=1
@@ -101,8 +145,16 @@ def solve_lp_problem(lp,obj_coefs,reactions):
         # Re-enable terminal output after solving
         glp_term_out(GLP_ON)
     
-# Create LP structure
 def create_lp_structure(model):
+    """
+    Extract the LP structure (S matrix, bounds, objective) from a COBRA model.
+
+    Args:
+        model (cobra.Model): The COBRA model.
+
+    Returns:
+        tuple: (S, lb, ub, coefs_obj, reactions)
+    """
     
     reactions=[el.id for el in model.reactions]
     coefs_obj=[reaction.objective_coefficient for reaction in model.reactions]
@@ -116,8 +168,19 @@ def create_lp_structure(model):
     
     return S,lb,ub,coefs_obj,reactions
 
-# CBS sampling interface
 def randomObjectiveFunctionSampling(model, nsample, coefficients_df, df_sample):
+    """
+    Sample fluxes using GLPK by iterating over random objective functions.
+
+    Args:
+        model: COBRA model.
+        nsample: Number of samples to generate.
+        coefficients_df: DataFrame of objective coefficients (columns are samples; last row is type_of_problem).
+        df_sample: Output DataFrame to fill with flux samples (index: sample, columns: reactions).
+
+    Returns:
+        None
+    """
 
     S,lb,ub,coefs_obj,reactions = create_lp_structure(model)
     len_vector, values, indexes, ia, ja, ar, nrow, ncol = initialize_lp_problem(S)
@@ -126,7 +189,7 @@ def randomObjectiveFunctionSampling(model, nsample, coefficients_df, df_sample):
       
         coefs_obj=coefficients_df.iloc[:,i].values
             
-        if coefs_obj[-1]==1: #minimize
+        if coefs_obj[-1]==1: # minimize
             coefs_obj= coefs_obj[0:-1] * -1
         else:
             coefs_obj=coefs_obj[0:-1]
@@ -134,17 +197,29 @@ def randomObjectiveFunctionSampling(model, nsample, coefficients_df, df_sample):
         fluxes,Z = create_and_solve_lp_problem(lb,ub, nrow, ncol, len_vector, 
                                                         ia, ja, ar, coefs_obj,reactions,return_lp=False)
         df_sample.loc[i] = fluxes 
-    pass
+    return
 
 def randomObjectiveFunctionSampling_cobrapy(model, nsample, coefficients_df, df_sample):
+    """
+    Fallback sampling using COBRApy's optimize with per-sample randomized objectives.
+
+    Args:
+        model: COBRA model.
+        nsample: Number of samples to generate.
+        coefficients_df: DataFrame of objective coefficients (columns are samples; last row is type_of_problem).
+        df_sample: Output DataFrame to fill with flux samples (index: sample, columns: reactions).
+
+    Returns:
+        None
+    """
     
     for i in range(nsample):
 
         dict_coeff={}
         if(coefficients_df.iloc[-1][i]==1):
-            type_problem = -1 #minimize
+            type_problem = -1 # minimize
         else:
-            type_problem = 1
+            type_problem = 1 # maximize
             
         for rxn in [reaction.id for reaction in model.reactions]:
             dict_coeff[model.reactions.get_by_id(rxn)] = coefficients_df.loc[rxn][i] * type_problem
@@ -154,57 +229,69 @@ def randomObjectiveFunctionSampling_cobrapy(model, nsample, coefficients_df, df_
         for rxn, flux in solution.items():
             df_sample.loc[i][rxn] = flux
 
-    pass
+    return
 
-# Create random coefficients for CBS
 def randomObjectiveFunction(model, n_samples, df_fva, seed=0):
-    
+    """
+    Create random objective function coefficients for CBS sampling.
 
-        #reactions = model.reactions
-        reactions = [reaction.id for reaction in model.reactions]
-        cont=seed
-        list_ex=reactions.copy()
-        list_ex.append("type_of_problem")
-        coefficients_df = pd.DataFrame(index=list_ex,columns=[str(i) for i in range(n_samples)])
+    The last row 'type_of_problem' encodes 0 for maximize and 1 for minimize.
 
-        for i in range(0, n_samples):
-           
-            cont=cont+1
+    Args:
+        model: COBRA model.
+        n_samples: Number of random objectives to generate.
+        df_fva: Flux Variability Analysis results with 'minimum' and 'maximum' per reaction.
+        seed: Seed for reproducibility.
+
+    Returns:
+        pandas.DataFrame: Coefficients DataFrame indexed by reaction IDs plus 'type_of_problem'.
+    """
+    # reactions = model.reactions
+    reactions = [reaction.id for reaction in model.reactions]
+    cont = seed
+    list_ex = reactions.copy()
+    list_ex.append("type_of_problem")
+    coefficients_df = pd.DataFrame(index=list_ex, columns=[str(i) for i in range(n_samples)])
+
+    for i in range(0, n_samples):
+
+        cont = cont + 1
+        random.seed(cont)
+
+        # Generate a random threshold in [0, 1]
+        threshold = random.random()
+
+        for reaction in reactions:
+
+            cont = cont + 1
             random.seed(cont)
-            
-            # Genera un numero casuale tra 0 e 1
-            threshold = random.random() #coefficiente tra 0 e 1
-            
-            for reaction in reactions:
 
-                cont=cont+1
+            val = random.random()
+
+            if val > threshold:
+
+                cont = cont + 1
                 random.seed(cont)
-                        
-                val=random.random()   
-                
-                if val>threshold:
 
-                    cont=cont+1
-                    random.seed(cont)                           
-                   
-                    c=2*random.random()-1 #coefficiente tra -1 e 1
-                    
-                    val_max = np.max([abs(df_fva.loc[reaction,"minimum"]), abs(df_fva.loc[reaction,"maximum"])])
+                # Coefficient in [-1, 1]
+                c = 2 * random.random() - 1
 
-                    if val_max!=0: #solo se la fva è diversa da zero
-                        coefficients_df.loc[reaction,str(i)] = c/val_max #divido per la fva
-                    else:
-                        coefficients_df.loc[reaction,str(i)] = 0
+                val_max = np.max([abs(df_fva.loc[reaction, "minimum"]), abs(df_fva.loc[reaction, "maximum"])])
 
+                if val_max != 0: # only if FVA is non-zero
+                    coefficients_df.loc[reaction, str(i)] = c / val_max # scale by FVA
                 else:
-                    coefficients_df.loc[reaction,str(i)] = 0
+                    coefficients_df.loc[reaction, str(i)] = 0
 
-            cont=cont+1
-            random.seed(cont)
-                    
-            if random.random()<0.5:
-                coefficients_df.loc["type_of_problem",str(i)] = 0 #maximize
             else:
-                coefficients_df.loc["type_of_problem",str(i)] = 1 #minimize
-                            
-        return coefficients_df
+                coefficients_df.loc[reaction, str(i)] = 0
+
+        cont = cont + 1
+        random.seed(cont)
+
+        if random.random() < 0.5:
+            coefficients_df.loc["type_of_problem", str(i)] = 0 # maximize
+        else:
+            coefficients_df.loc["type_of_problem", str(i)] = 1 # minimize
+
+    return coefficients_df

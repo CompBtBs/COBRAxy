@@ -1,10 +1,20 @@
+"""
+Parsing utilities for gene rules (GPRs).
+
+This module provides:
+- RuleErr: structured errors for malformed rules
+- RuleOp: valid logical operators (AND/OR)
+- OpList: nested list structure representing parsed rules with explicit operator
+- RuleStack: helper stack to build nested OpLists during parsing
+- parseRuleToNestedList: main entry to parse a rule string into an OpList
+"""
 from enum import Enum
 import utils.general_utils as utils
 from typing import List, Union, Optional
 
 class RuleErr(utils.CustomErr):
     """
-    CustomErr subclass for rule syntax errors.
+    Error type for rule syntax errors.
     """
     errName = "Rule Syntax Error"
     def __init__(self, rule :str, msg = "no further details provided") -> None:
@@ -14,7 +24,7 @@ class RuleErr(utils.CustomErr):
 
 class RuleOp(Enum):
     """
-    Encodes all operators valid in gene rules.
+    Valid logical operators for gene rules.
     """
     OR  = "or"
     AND = "and"
@@ -27,7 +37,7 @@ class RuleOp(Enum):
 
 class OpList(List[Union[str, "OpList"]]):
     """
-    Represents a parsed rule and each of its nesting levels, including the operator that level uses.
+    Parsed rule structure: a list with an associated operator for that level.
     """
     def __init__(self, op :Optional[RuleOp] = None) -> None:
         """
@@ -70,8 +80,7 @@ class OpList(List[Union[str, "OpList"]]):
 
 class RuleStack:
     """
-    FILO stack structure to save the intermediate representation of a Rule during parsing, with the
-    current nesting level at the top of the stack.
+    FILO stack used during parsing to build nested OpLists; the top is the current level.
     """
     def __init__(self) -> None:
         """
@@ -177,51 +186,49 @@ class RuleStack:
 
 def parseRuleToNestedList(rule :str) -> OpList:
     """
-    Parse a single rule from its string representation to an OpList, making all priority explicit
-    through nesting levels.
+    Parse a rule string into an OpList, making operator precedence explicit via nesting.
 
     Args:
-        rule : the string representation of a rule to be parsed.
+        rule: Rule string to parse (supports parentheses, 'and', 'or').
     
     Raises:
-        RuleErr : whenever something goes wrong during parsing.
+        RuleErr: If the rule is malformed (e.g., mismatched parentheses or misplaced operators).
     
     Returns:
-        OpList : the parsed rule.
+        OpList: Parsed rule as an OpList structure.
     """
     source = iter(rule
-        .replace("(", "( ").replace(")", " )") # Single out parens as words
-        .strip()  # remove whitespace at extremities
+        .replace("(", "( ").replace(")", " )") # single out parentheses as words
+        .strip()  # trim edges
         .split()) # split by spaces
 
     stack = RuleStack()
     nestingErr = RuleErr(rule, "mismatch between open and closed parentheses")
     try:
-        while True: # keep reading until source ends
+        while True: # read until source ends
             while True:
-                operand = next(source, None) # expected name or rule opening
+                operand = next(source, None) # expect operand or '('
                 if operand is None: raise RuleErr(rule, "found trailing open parentheses")
-                if operand == "and" or operand == "or" or operand == ")": # found operator instead, panic
+                if operand in ("and", "or", ")"): # unexpected operator position
                     raise RuleErr(rule, f"found \"{operand}\" in unexpected position")
 
-                if operand != "(": break # found name
+                if operand != "(": break # got a name
 
-                # found rule opening, we add new nesting level but don't know the operator
+                # found rule opening: add a new nesting level
                 stack.push()
 
             stack.current.append(operand)
 
-            while True: # keep reading until operator is found or source ends
-                operator = next(source, None) # expected operator or rule closing
-                if operator and operator != ")": break # found operator
+            while True: # read until operator found or source ends
+                operator = next(source, None) # expect operator or ')'
+                if operator and operator != ")": break # got operator
 
-                if stack.currentIsAnd(): stack.pop() # we close the "and" chain
+                if stack.currentIsAnd(): stack.pop() # close current AND chain
 
                 if not operator: break
-                stack.pop() # we close the parentheses
+                stack.pop() # close parentheses
 
-            # we proceed with operator:
-            if not operator: break # there is no such thing as a double loop break.. yet
+            if not operator: break
             
             if not RuleOp.isOperator(operator): raise RuleErr(
                 rule, f"found \"{operator}\" in unexpected position, expected operator")
@@ -234,7 +241,7 @@ def parseRuleToNestedList(rule :str) -> OpList:
                 stack.push(operator)
                 stack.popForward()
 
-            stack.current.setOpIfMissing(operator) # buffer now knows what operator its data had
+            stack.current.setOpIfMissing(operator)
 
     except RuleErr as err: raise err # bubble up proper errors
     except: raise nestingErr # everything else is interpreted as a nesting error.

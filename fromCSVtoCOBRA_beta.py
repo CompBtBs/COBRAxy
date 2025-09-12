@@ -1,18 +1,25 @@
+"""
+Convert a tabular (CSV/TSV/Tabular) description of a COBRA model into a COBRA file.
+
+Supported output formats: SBML, JSON, MATLAB (.mat), YAML.
+The script logs to a user-provided file for easier debugging in Galaxy.
+"""
+
 import os
-import csv
 import cobra
-import pickle
 import argparse
-import pandas as pd
-import utils.general_utils as utils
-from typing import Optional, Tuple, Union, List, Dict
+from typing import List
 import logging
-import utils.rule_parsing  as rulesUtils
-import utils.reaction_parsing as reactionUtils
 import utils.model_utils as modelUtils
 
 ARGS : argparse.Namespace
 def process_args(args: List[str] = None) -> argparse.Namespace:
+    """
+    Parse command-line arguments for the CSV-to-COBRA conversion tool.
+
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
     parser = argparse.ArgumentParser(
     usage="%(prog)s [options]",
     description="Convert a tabular/CSV file to a COBRA model"
@@ -45,6 +52,13 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
 ###############################- ENTRY POINT -################################
 
 def main(args: List[str] = None) -> None:
+    """
+    Entry point: parse arguments, build the COBRA model from a CSV/TSV file,
+    and save it in the requested format.
+
+    Returns:
+        None
+    """
     global ARGS
     ARGS = process_args(args)
 
