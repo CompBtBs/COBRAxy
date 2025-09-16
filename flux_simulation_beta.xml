@@ -89,7 +89,7 @@
             </when>
         </conditional>
 
-        <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000"/>
+        <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="0" help="Select 0 Set to 0 if you don’t want to perform sampling but only optimization."/>
         <param name="n_batches" argument="--n_batches" type="integer" label="Batches:" value="1" help="This is useful for computational performances."/>
         <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" help="Random seed."/>
 
@@ -100,7 +100,7 @@
             <option value="fluxes" selected="false">All fluxes</option>
         </param>
 
-        <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from flux analysis">
+        <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from optimization">
             <option value="pFBA" selected="false">pFBA</option>
             <option value="FVA" selected="false">FVA</option>
             <option value="sensitivity" selected="false">Sensitivity reaction knock-out (Biomass)</option>
@@ -160,4 +160,5 @@ The tool generates:
 ]]>
     </help>
     <expand macro="citations_fluxes" />
+
 </tool>
