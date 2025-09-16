@@ -96,9 +96,8 @@
     <![CDATA[
 What it does
 -------------
-
-This tool generates four files containing reactions, rules, reaction bounds and medium composition respectively, starting from a custom model in JSON or XML format.
-Reactions and rules can be used as inputs for the RAS and RPS generator tools.
+This tool generates one file containing the main information of the metabolic model, starting from a custom model. 
+This file can be used as input for the RAS  generator tool, RPS generator tools, and flux simulator tool.
 
 Accepted files:
     - A model: JSON, XML, MAT or YAML (.yml) file reporting reactions and rules contained in the model. Supported compressed formats: .zip, .gz and .bz2. Filename must follow the pattern: {model_name}.{extension}.[zip|gz|bz2]
@@ -106,13 +105,11 @@ Accepted files:
 Output:
 -------------
 
-The tool generates:
-    - rules: reporting the rules for each reaction in the custom model given. Format: csv (tab separated).
-    - reactions: reporting the reactions in the custom model given. Format: csv (tab separated).
-    - reaction bounds: reporting the lower and upper bounds of each model reaction. Format: csv (tab separated).
-    - medium composition: reporting the list of exchange/transport reactions. Format: csv (tab separated).
+The tool generates a tabular file containing:
+	- a tabular file (.tabular) containing reaction IDs, reaction formula, GPR rules, reaction bounds, the objective function coefficients, the pathways in which the reaction is involved and which reactions are part of the medium.
     - a log file (.txt).
     ]]>
     </help>
     <expand macro="citations" />
+
 </tool>
