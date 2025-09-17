@@ -87,7 +87,7 @@
 			</when>
 
 			<when value="dataset_class">
-				<param name="input_data_fluxes" argument="--input_data_fluxes" type="data" format="tabular, csv, tsv" label="All fluxes" />
+				<param name="input_data_fluxes" argument="--input_data_fluxes" type="data" format="tabular, csv, tsv" label="Input flux data" />
 				<param name="input_class_fluxes" argument="--input_class_fluxes" type="data" format="tabular, csv, tsv" label="Sample group specification" />
 			</when>
 		</conditional>
@@ -254,4 +254,5 @@ Group-file
 ]]>
 	</help>
 	<expand macro="citations" />
+
 </tool>
