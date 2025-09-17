@@ -1,4 +1,4 @@
-<tool id=""Metabolic model setting" name="Metabolic model setting" version="2.0.0">
+<tool id="Metabolic_model_setting" name="Metabolic model setting" version="2.0.0">
 
 	<requirements>
         <requirement type="package" version="1.24.4">numpy</requirement>
@@ -88,7 +88,7 @@
     </inputs>
 
     <outputs>
-        <data name="log" format="txt" label="CustomDataGenerator - Log" />
+        <data name="log" format="txt" label="MetabolicModelSetting - Log" />
         <data name="out_tabular" format="tabular" label="${cond_model.model_selector}_model_tabular" optional="true"/>
     </outputs>
 
@@ -113,4 +113,5 @@ The tool generates a tabular file containing:
     <expand macro="citations" />
 
 </tool>
+
 
