@@ -57,14 +57,14 @@
 
     <inputs>
         <conditional name="model_and_bounds">
-            <param name="model_and_bounds" argument="--model_and_bounds" type="select" label="Upload mode:" help="Choose whether to upload the model and bounds in separate files or to upload multiple complete model files.">
+            <param name="model_and_bounds" argument="--model_and_bounds" type="select" label="Upload model:" help="Choose whether to upload the model and bounds in separate files or to upload multiple complete model files.">
                 <option value="True" selected="true">Model + bounds (separate files)</option>
                 <option value="False">Multiple complete models</option>
             </param>
 
             <when value="True">
                 <param name="model_upload" argument="--model_upload" type="data" format="csv,tsv,tabular"
-                    label="Model (rules) file:"
+                    label="Model tabular file:"
                     help="Upload a CSV/TSV file that contains the model reaction rules. Recommended columns: ReactionID, Reaction (formula), Rule (GPR). Optional columns: name, lower_bound, upper_bound, InMedium. If bounds are present here they may be overridden by separate bound files." />
 
                 <param name="inputs" argument="--inputs" multiple="true" type="data" format="tabular,csv,tsv"
@@ -95,13 +95,13 @@
 
         <param type="select" argument="--output_types" multiple="true" name="output_types" label="Desired outputs from sampling">
             <option value="mean" selected="true">Mean</option>
-            <option value="median" selected="true">Median</option>
-            <option value="quantiles" selected="true">Quantiles</option>
+            <option value="median" selected="false">Median</option>
+            <option value="quantiles" selected="false">Quantiles</option>
             <option value="fluxes" selected="false">All fluxes</option>
         </param>
 
         <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from optimization">
-            <option value="pFBA" selected="false">pFBA</option>
+            <option value="pFBA" selected="true">pFBA</option>
             <option value="FVA" selected="false">FVA</option>
             <option value="sensitivity" selected="false">Sensitivity reaction knock-out (Biomass)</option>
         </param>
@@ -131,21 +131,18 @@
 What it does
 -------------
 
-This tool generates flux samples starting from metabolic models using CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
+This tool generates flux distributions for each samples using:
+1. a sampling-based strategy: CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
+2. an optimization-based strategy:   parsimonious-FBA (optimized by Biomass), FVA (with configurable optimality percentage), Biomass sensitivity analysis (single reaction knock-out)
 
 Two upload modes are supported:
-1. **Model + bounds**: Upload one base model and multiple bound files (one per context/cell type)
+1. **Model + bounds**: Upload one base model (tabular file) and multiple bound files (one per context/cell type)
 2. **Multiple complete models**: Upload multiple complete model files, each with integrated bounds
 
 It can return sampled fluxes by applying summary statistics: 
    - mean
    - median
    - quantiles (0.25, 0.50, 0.75)
-
-Flux analysis can be performed over the metabolic model:
-   - parsimonious-FBA (optimized by Biomass)
-   - FVA (with configurable optimality percentage)
-   - Biomass sensitivity analysis (single reaction knock-out)
 
 Output:
 -------------
@@ -162,3 +159,4 @@ The tool generates:
     <expand macro="citations_fluxes" />
 
 </tool>
+
