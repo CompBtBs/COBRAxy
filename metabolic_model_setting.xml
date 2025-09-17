@@ -1,4 +1,4 @@
-<tool id="CustomDataGenerator - Beta" name="Custom Data Generator - BETA" version="2.0.0">
+<tool id=""Metabolic model setting" name="Metabolic model setting" version="2.0.0">
 
 	<requirements>
         <requirement type="package" version="1.24.4">numpy</requirement>
@@ -13,7 +13,7 @@
 
     <command detect_errors="exit_code">
         <![CDATA[
-      	python $__tool_directory__/custom_data_generator_beta.py
+      	python $__tool_directory__/metabolic_model_setting.py
         --tool_dir $__tool_directory__
         --medium_selector $cond_model.cond_medium.medium_selector
         #if $cond_model.model_selector == 'Custom_model'
@@ -113,3 +113,4 @@ The tool generates a tabular file containing:
     <expand macro="citations" />
 
 </tool>
+
