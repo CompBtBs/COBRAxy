@@ -9,7 +9,7 @@ long_description: |
 
 tools:
   - tool_panel_section_label: "COBRA Toolbox"
-    file: ./custom_data_generator.xml
+    file: ./metabolic_model_setting.xml
   - tool_panel_section_label: "COBRA Toolbox"
     file: ./ras_generator.xml
   - tool_panel_section_label: "COBRA Toolbox"
