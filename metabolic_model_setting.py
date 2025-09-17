@@ -1,5 +1,5 @@
 """
-Custom data generator for COBRA models.
+Scripts to generate a tabular file of a metabolic model (built-in or custom).
 
 This script loads a COBRA model (built-in or custom), optionally applies
 medium and gene nomenclature settings, derives reaction-related metadata
@@ -20,7 +20,7 @@ import logging
 ARGS : argparse.Namespace
 def process_args(args: List[str] = None) -> argparse.Namespace:
     """
-    Parse command-line arguments for CustomDataGenerator.
+    Parse command-line arguments for metabolic_model_setting.
     """
 
     parser = argparse.ArgumentParser(
@@ -249,7 +249,8 @@ def main(args:List[str] = None) -> None:
     if not expected or not os.path.exists(expected) or os.path.getsize(expected) == 0:
         raise utils.DataErr(expected, "Output not created or empty")
 
-    print("CustomDataGenerator: completed successfully")
+    print("Metabolic_model_setting: completed successfully")
 
 if __name__ == '__main__':
+
     main()
