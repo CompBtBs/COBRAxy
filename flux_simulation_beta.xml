@@ -105,7 +105,7 @@
                     </when>
                 </conditional>
 
-                <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000" min="1" max="10000"/>
+                <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000" min="1" max="1000"/>
                 <param name="n_batches" argument="--n_batches" type="integer" label="Batches:" value="1" help="This is useful for computational performances."/>
                 <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" help="Random seed."/>
 
