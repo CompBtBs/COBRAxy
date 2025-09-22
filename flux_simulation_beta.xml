@@ -36,15 +36,25 @@
             --name $names
         #end if
         
-        --thinning 0
-        #if $algorithm_param.algorithm == 'OPTGP':
-            --thinning $algorithm_param.thinning
+        #if $sampling_params.enable_sampling == 'True':
+            --thinning 0
+            #if $sampling_params.algorithm_param.algorithm == 'OPTGP':
+                --thinning $sampling_params.algorithm_param.thinning
+            #end if
+            --algorithm $sampling_params.algorithm_param.algorithm
+            --n_batches $sampling_params.n_batches
+            --n_samples $sampling_params.n_samples
+            --seed $sampling_params.seed
+            --output_type "${",".join(map(str, $sampling_params.output_types))}"
+        #else:
+            --thinning 0
+            --algorithm CBS
+            --n_batches 1
+            --n_samples 0
+            --seed 0
+            --output_type "mean"
         #end if
-        --algorithm $algorithm_param.algorithm
-        --n_batches $n_batches
-        --n_samples $n_samples
-        --seed $seed
-        --output_type "${",".join(map(str, $output_types))}"
+        
         --output_type_analysis "${",".join(map(str, $output_types_analysis))}"
         
         #if 'FVA' in str($output_types_analysis):
@@ -79,30 +89,40 @@
             </when>
         </conditional>
 
-        <conditional name="algorithm_param">
-            <param name="algorithm" argument="--algorithm" type="select" label="Choose sampling algorithm:">
-                <option value="CBS" selected="true">CBS</option>
-                <option value="OPTGP">OPTGP</option>
+        <conditional name="sampling_params">
+            <param name="enable_sampling" type="select" label="Enable sampling:" help="Choose whether to perform flux sampling in addition to optimization analyses.">
+                <option value="False" selected="true">No sampling (optimization only)</option>
+                <option value="True">Enable sampling</option>
             </param>
-            <when value="OPTGP">
-                <param name="thinning" argument="--thinning" type="integer" label="Thinning:" value="100" help="Number of iterations to wait before taking a sample."/>
+            
+            <when value="True">
+                <conditional name="algorithm_param">
+                    <param name="algorithm" argument="--algorithm" type="select" label="Choose sampling algorithm:">
+                        <option value="CBS" selected="true">CBS</option>
+                        <option value="OPTGP">OPTGP</option>
+                    </param>
+                    <when value="OPTGP">
+                        <param name="thinning" argument="--thinning" type="integer" label="Thinning:" value="100" help="Number of iterations to wait before taking a sample."/>
+                    </when>
+                </conditional>
+
+                <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000" help="Number of samples to generate."/>
+                <param name="n_batches" argument="--n_batches" type="integer" label="Batches:" value="1" help="This is useful for computational performances."/>
+
+                <param type="select" argument="--output_types" multiple="true" name="output_types" label="Desired outputs from sampling">
+                    <option value="mean" selected="true">Mean</option>
+                    <option value="median" selected="false">Median</option>
+                    <option value="quantiles" selected="false">Quantiles</option>
+                    <option value="fluxes" selected="false">All fluxes</option>
+                </param>
+
+                <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" help="Random seed for sampling algorithms."/>
             </when>
         </conditional>
 
-        <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="0" help="Select 0 Set to 0 if you don’t want to perform sampling but only optimization."/>
-        <param name="n_batches" argument="--n_batches" type="integer" label="Batches:" value="1" help="This is useful for computational performances."/>
-        <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" help="Random seed."/>
-
-        <param type="select" argument="--output_types" multiple="true" name="output_types" label="Desired outputs from sampling">
-            <option value="mean" selected="true">Mean</option>
-            <option value="median" selected="false">Median</option>
-            <option value="quantiles" selected="false">Quantiles</option>
-            <option value="fluxes" selected="false">All fluxes</option>
-        </param>
-
         <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from optimization">
-            <option value="pFBA" selected="true">pFBA</option>
-            <option value="FVA" selected="false">FVA</option>
+            <option value="pFBA" selected="false">pFBA</option>
+            <option value="FVA" selected="true">FVA</option>
             <option value="sensitivity" selected="false">Sensitivity reaction knock-out (Biomass)</option>
         </param>
 
@@ -132,17 +152,19 @@ What it does
 -------------
 
 This tool generates flux distributions for each samples using:
-1. a sampling-based strategy: CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
-2. an optimization-based strategy:   parsimonious-FBA (optimized by Biomass), FVA (with configurable optimality percentage), Biomass sensitivity analysis (single reaction knock-out)
+1. a sampling-based strategy (optional): CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
+2. an optimization-based strategy: parsimonious-FBA (optimized by Biomass), FVA (with configurable optimality percentage), Biomass sensitivity analysis (single reaction knock-out)
 
 Two upload modes are supported:
 1. **Model + bounds**: Upload one base model (tabular file) and multiple bound files (one per context/cell type)
 2. **Multiple complete models**: Upload multiple complete model files, each with integrated bounds
 
-It can return sampled fluxes by applying summary statistics: 
+**Sampling (optional)**: When enabled, it can return sampled fluxes by applying summary statistics: 
    - mean
    - median
    - quantiles (0.25, 0.50, 0.75)
+
+**Optimization**: Always available with FVA as the default analysis method.
 
 Output:
 -------------
@@ -159,4 +181,3 @@ The tool generates:
     <expand macro="citations_fluxes" />
 
 </tool>
-
