@@ -46,6 +46,11 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
         required=True,
         help="upload mode: True for model+bounds, False for complete models")
     
+    parser.add_argument("-ens", "--sampling_enabled", type=str,
+        choices=['true', 'false'],
+        required=True,
+        help="enable sampling: 'true' for sampling, 'false' for no sampling")
+    
     parser.add_argument('-ol', '--out_log',
                         help="Output log")
     
@@ -73,7 +78,7 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     parser.add_argument('-th', '--thinning',
                         type=int,
                         default=100,
-                        required=False,
+                        required=True,
                         help='choose thinning')
     
     parser.add_argument('-ns', '--n_samples',
@@ -198,7 +203,7 @@ def OPTGP_sampler(model: cobra.Model, model_name: str, n_samples: int = 1000, th
         
         # Save as numpy array (more memory efficient)
         batch_filename = f"{ARGS.output_path}/{model_name}_{i}_OPTGP.npy"
-        np.save(batch_filename, samples.values)
+        np.save(batch_filename, samples.to_numpy())
         
         seed += 1
     
@@ -207,7 +212,7 @@ def OPTGP_sampler(model: cobra.Model, model_name: str, n_samples: int = 1000, th
     
     for i in range(n_batches):
         batch_filename = f"{ARGS.output_path}/{model_name}_{i}_OPTGP.npy"
-        batch_data = np.load(batch_filename)
+        batch_data = np.load(batch_filename, allow_pickle=True)
         all_samples.append(batch_data)
     
     # Concatenate all batches
@@ -277,20 +282,20 @@ def CBS_sampler(model: cobra.Model, model_name: str, n_samples: int = 1000, n_ba
         # Save as numpy array (more memory efficient)
         batch_filename = f"{ARGS.output_path}/{model_name}_{i}_CBS.npy"
         utils.logWarning(batch_filename, ARGS.out_log)
-        np.save(batch_filename, samples.values)
+        np.save(batch_filename, samples.to_numpy())
     
     # Merge all batches into a single DataFrame
     all_samples = []
     
     for i in range(n_batches):
         batch_filename = f"{ARGS.output_path}/{model_name}_{i}_CBS.npy"
-        batch_data = np.load(batch_filename)
+        batch_data = np.load(batch_filename, allow_pickle=True)
         all_samples.append(batch_data)
     
     # Concatenate all batches
     samplesTotal_array = np.vstack(all_samples)
     
-    # Convert back to DataFrame with proper column names
+    # Convert back to DataFrame with proper column namesq
     samplesTotal = pd.DataFrame(samplesTotal_array, columns=reaction_ids)
     
     # Save the final merged result as CSV
@@ -342,18 +347,22 @@ def perform_sampling_and_analysis(model_input: cobra.Model, cell_name: str) -> L
     Returns:
         List[pd.DataFrame]: A list of DataFrames containing statistics and analysis results.
     """
+
+    returnList = []
+
+    if ARGS.sampling_enabled == "true":
     
-    if ARGS.algorithm == 'OPTGP':
-        OPTGP_sampler(model_input, cell_name, ARGS.n_samples, ARGS.thinning, ARGS.n_batches, ARGS.seed)
-    elif ARGS.algorithm == 'CBS':
-        CBS_sampler(model_input, cell_name, ARGS.n_samples, ARGS.n_batches, ARGS.seed)
+        if ARGS.algorithm == 'OPTGP':
+            OPTGP_sampler(model_input, cell_name, ARGS.n_samples, ARGS.thinning, ARGS.n_batches, ARGS.seed)
+        elif ARGS.algorithm == 'CBS':
+            CBS_sampler(model_input, cell_name, ARGS.n_samples, ARGS.n_batches, ARGS.seed)
 
-    df_mean, df_median, df_quantiles = fluxes_statistics(cell_name, ARGS.output_types)
+        df_mean, df_median, df_quantiles = fluxes_statistics(cell_name, ARGS.output_types)
 
-    if("fluxes" not in ARGS.output_types):
-        os.remove(ARGS.output_path + "/" + cell_name + '.csv')
+        if("fluxes" not in ARGS.output_types):
+            os.remove(ARGS.output_path + "/" + cell_name + '.csv')
 
-    returnList = [df_mean, df_median, df_quantiles]
+        returnList = [df_mean, df_median, df_quantiles]
 
     df_pFBA, df_FVA, df_sensitivity = fluxes_analysis(model_input, cell_name, ARGS.output_type_analysis)
 
@@ -492,7 +501,10 @@ def main(args: List[str] = None) -> None:
     ARGS.output_type_analysis = ARGS.output_type_analysis.split(",") if ARGS.output_type_analysis else []
 
     # Determine if sampling should be performed
-    perform_sampling = ARGS.n_samples > 0
+    if ARGS.sampling_enabled == "true":
+        perform_sampling = True
+    else:
+        perform_sampling = False
 
     print("=== INPUT FILES ===")
     print(f"{ARGS.input_files}")
@@ -560,7 +572,7 @@ def main(args: List[str] = None) -> None:
             all_quantiles = all_quantiles.sort_index()
             write_to_file(all_quantiles.T, "quantiles", True)
     else:
-        print("=== SAMPLING SKIPPED (n_samples = 0) ===")
+        print("=== SAMPLING SKIPPED (n_samples = 0 or sampling disabled) ===")
 
     # Handle optimization analysis outputs (always available)
     print("=== PROCESSING OPTIMIZATION RESULTS ===")

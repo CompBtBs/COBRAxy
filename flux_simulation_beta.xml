@@ -36,7 +36,9 @@
             --name $names
         #end if
         
-        #if $sampling_params.enable_sampling == 'True':
+        --sampling_enabled $sampling_params.sampling_enabled
+        
+        #if $sampling_params.sampling_enabled == 'true':
             --thinning 0
             #if $sampling_params.algorithm_param.algorithm == 'OPTGP':
                 --thinning $sampling_params.algorithm_param.thinning
@@ -48,11 +50,11 @@
             --output_type "${",".join(map(str, $sampling_params.output_types))}"
         #else:
             --thinning 0
-            --algorithm CBS
+            --algorithm 'CBS'
             --n_batches 1
-            --n_samples 0
+            --n_samples 1
             --seed 0
-            --output_type "mean"
+            --output_type 'mean'
         #end if
         
         --output_type_analysis "${",".join(map(str, $output_types_analysis))}"
@@ -67,14 +69,14 @@
 
     <inputs>
         <conditional name="model_and_bounds">
-            <param name="model_and_bounds" argument="--model_and_bounds" type="select" label="Upload model:" help="Choose whether to upload the model and bounds in separate files or to upload multiple complete model files.">
+            <param name="model_and_bounds" argument="--model_and_bounds" type="select" label="Upload mode:" help="Choose whether to upload the model and bounds in separate files or to upload multiple complete model files.">
                 <option value="True" selected="true">Model + bounds (separate files)</option>
                 <option value="False">Multiple complete models</option>
             </param>
 
             <when value="True">
                 <param name="model_upload" argument="--model_upload" type="data" format="csv,tsv,tabular"
-                    label="Model tabular file:"
+                    label="Model (rules) file:"
                     help="Upload a CSV/TSV file that contains the model reaction rules. Recommended columns: ReactionID, Reaction (formula), Rule (GPR). Optional columns: name, lower_bound, upper_bound, InMedium. If bounds are present here they may be overridden by separate bound files." />
 
                 <param name="inputs" argument="--inputs" multiple="true" type="data" format="tabular,csv,tsv"
@@ -90,12 +92,9 @@
         </conditional>
 
         <conditional name="sampling_params">
-            <param name="enable_sampling" type="select" label="Enable sampling:" help="Choose whether to perform flux sampling in addition to optimization analyses.">
-                <option value="False" selected="true">No sampling (optimization only)</option>
-                <option value="True">Enable sampling</option>
-            </param>
+            <param name="sampling_enabled" argument="--sampling_enabled" type="boolean" display="checkboxes" checked="false" label="Enable sampling" help="Enable flux sampling"/>
             
-            <when value="True">
+            <when value="true">
                 <conditional name="algorithm_param">
                     <param name="algorithm" argument="--algorithm" type="select" label="Choose sampling algorithm:">
                         <option value="CBS" selected="true">CBS</option>
@@ -106,23 +105,31 @@
                     </when>
                 </conditional>
 
-                <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000" help="Number of samples to generate."/>
+                <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000" min="1" max="10000"/>
                 <param name="n_batches" argument="--n_batches" type="integer" label="Batches:" value="1" help="This is useful for computational performances."/>
+                <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" help="Random seed."/>
 
-                <param type="select" argument="--output_types" multiple="true" name="output_types" label="Desired outputs from sampling">
+                <param type="select" argument="--output_types" multiple="true" name="output_types" label="Choose outputs from sampling">
                     <option value="mean" selected="true">Mean</option>
-                    <option value="median" selected="false">Median</option>
-                    <option value="quantiles" selected="false">Quantiles</option>
+                    <option value="median" selected="true">Median</option>
+                    <option value="quantiles" selected="true">Quantiles</option>
                     <option value="fluxes" selected="false">All fluxes</option>
                 </param>
-
-                <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" help="Random seed for sampling algorithms."/>
+            </when>
+            
+            <when value="false">
+                <!-- Hidden parameters when sampling is disabled -->
+                <param name="algorithm" type="hidden" value="CBS"/>
+                <param name="n_samples" type="hidden" value="1000"/>
+                <param name="n_batches" type="hidden" value="1"/>
+                <param name="seed" type="hidden" value="0"/>
+                <param name="output_types" type="hidden" value="mean"/>
             </when>
         </conditional>
 
-        <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from optimization">
-            <option value="pFBA" selected="false">pFBA</option>
+        <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Choose outputs from optimization">
             <option value="FVA" selected="true">FVA</option>
+            <option value="pFBA" selected="false">pFBA</option>
             <option value="sensitivity" selected="false">Sensitivity reaction knock-out (Biomass)</option>
         </param>
 
@@ -151,20 +158,21 @@
 What it does
 -------------
 
-This tool generates flux distributions for each samples using:
-1. a sampling-based strategy (optional): CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
-2. an optimization-based strategy: parsimonious-FBA (optimized by Biomass), FVA (with configurable optimality percentage), Biomass sensitivity analysis (single reaction knock-out)
+This tool generates flux samples starting from metabolic models using CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
 
 Two upload modes are supported:
-1. **Model + bounds**: Upload one base model (tabular file) and multiple bound files (one per context/cell type)
+1. **Model + bounds**: Upload one base model and multiple bound files (one per context/cell type)
 2. **Multiple complete models**: Upload multiple complete model files, each with integrated bounds
 
-**Sampling (optional)**: When enabled, it can return sampled fluxes by applying summary statistics: 
+It can return sampled fluxes by applying summary statistics: 
    - mean
    - median
    - quantiles (0.25, 0.50, 0.75)
 
-**Optimization**: Always available with FVA as the default analysis method.
+Flux analysis can be performed over the metabolic model:
+   - parsimonious-FBA (optimized by Biomass)
+   - FVA (with configurable optimality percentage)
+   - Biomass sensitivity analysis (single reaction knock-out)
 
 Output:
 -------------
@@ -179,5 +187,4 @@ The tool generates:
 ]]>
     </help>
     <expand macro="citations_fluxes" />
-
 </tool>
