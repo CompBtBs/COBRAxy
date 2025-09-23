@@ -425,7 +425,8 @@ def fluxes_statistics(model_name: str,  output_types:List)-> List[pd.DataFrame]:
 
 def fluxes_analysis(model:cobra.Model,  model_name:str, output_types:List)-> List[pd.DataFrame]:
     """
-    Performs flux analysis including pFBA, FVA, and sensitivity analysis.
+    Performs flux analysis including pFBA, FVA, and sensitivity analysis. The objective function
+    is assumed to be already set in the model.
 
     Args:
         model (cobra.Model): The COBRA model to analyze.
@@ -442,7 +443,6 @@ def fluxes_analysis(model:cobra.Model,  model_name:str, output_types:List)-> Lis
 
     for output_type in output_types:
         if(output_type == "pFBA"):
-            model.objective = "Biomass"
             solution = cobra.flux_analysis.pfba(model)
             fluxes = solution.fluxes
             df_pFBA.loc[0,[rxn.id for rxn in model.reactions]] = fluxes.tolist()
@@ -463,7 +463,6 @@ def fluxes_analysis(model:cobra.Model,  model_name:str, output_types:List)-> Lis
             df_FVA.index = [model_name]
             df_FVA = df_FVA.astype(float).round(6)
         elif(output_type == "sensitivity"):
-            model.objective = "Biomass"
             solution_original = model.optimize().objective_value
             reactions = model.reactions
             single = cobra.flux_analysis.single_reaction_deletion(model)

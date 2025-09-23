@@ -169,7 +169,7 @@ It can return sampled fluxes by applying summary statistics:
    - median
    - quantiles (0.25, 0.50, 0.75)
 
-Flux analysis can be performed over the metabolic model:
+Flux analysis can be performed over the metabolic model by using the objective function already set in the model. The following analyses are supported:
    - parsimonious-FBA (optimized by Biomass)
    - FVA (with configurable optimality percentage)
    - Biomass sensitivity analysis (single reaction knock-out)
@@ -182,7 +182,9 @@ The tool generates:
    - a log file (.txt).
 
 **TIP**: The Batches parameter helps maintain memory efficiency. For 10,000 samples, use n_samples=1,000 and n_batches=10.
+
 **TIP**: The Thinning parameter for OPTGP helps converge to stationary distribution.
+
 **TIP**: FVA optimality percentage allows you to explore suboptimal flux ranges. 100% restricts to optimal solutions, while lower values (e.g., 90%) allow broader flux ranges.
 ]]>
     </help>
