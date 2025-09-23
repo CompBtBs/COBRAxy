@@ -32,6 +32,7 @@
             <option value="DMEM">DMEM</option>
             <option value="EMEM">EMEM</option>
             <option value="DMEM:F12_=_1:1">DMEM:F12 = 1:1</option>
+            <option value="adv_DMEM:F12_=_1:1">adv DMEM:F12 = 1:1</option>
             <option value="McCoy's_5A">McCoy's 5A</option>
             <option value="IMDM">IMDM</option>
             <option value="MEM">MEM</option>
@@ -46,6 +47,8 @@
             <option value="Medium_199">Medium 199</option>
             <option value="MCDB_105">MCDB 105</option>
             <option value="NEAA">NEAA</option>
+            <option value="mIVC1:adv_DMEM:F12_=_1:1">mIVC1:adv DMEM:F12 = 1:1</option>
+            <option value="E8_ess">E8 ess</option>
             <option value="RPMI:F12_=_1:1">RPMI:F12 = 1:1</option>
             <option value="RPMI:MEM_=_1:1">RPMI:MEM = 1:1</option>
             <option value="RPMI:EMEM_=_1:1">RPMI:EMEM = 1:1</option>
@@ -53,6 +56,10 @@
             <option value="DMEM:RPMI_=_2:1">DMEM:RPMI = 2:1</option>
             <option value="DMEM:IMDM_=_1:1">DMEM:IMDM = 1:1</option>
             <option value="MCDB_105:Medium_199_=_1:1">MCDB 105:Medium 199 = 1:1</option>
+            <option value="mIVC1:adv_DMEM:F12_=_1:1_open">mIVC1:adv DMEM:F12 = 1:1 open</option>
+            <option value="E8_ess_open">E8 ess open</option>
+            <option value="open_10">Open 10</option>
+            <option value="E8_open_10">E8 open 10</option>
         </param>
     </xml>
 
