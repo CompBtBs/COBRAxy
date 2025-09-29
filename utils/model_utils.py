@@ -692,7 +692,7 @@ def _simplify_boolean_expression(expr: str) -> str:
         # If anything goes wrong, return the original expression
         return expr
 
-# ---------- Main public function ----------
+
 def translate_model_genes(model: 'cobra.Model',
                          mapping_df: 'pd.DataFrame',
                          target_nomenclature: str,
