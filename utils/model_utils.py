@@ -18,6 +18,100 @@ from collections import defaultdict
 import utils.rule_parsing  as rulesUtils
 import utils.reaction_parsing as reactionUtils
 from cobra import Model as cobraModel, Reaction, Metabolite
+import sys
+
+
+############################ check_methods ####################################
+def gene_type(l :str, name :str) -> str:
+    """
+    Determine the type of gene ID.
+
+    Args:
+        l (str): The gene identifier to check.
+        name (str): The name of the dataset, used in error messages.
+
+    Returns:
+        str: The type of gene ID ('hugo_id', 'ensembl_gene_id', 'symbol', or 'entrez_id').
+
+    Raises:
+        sys.exit: If the gene ID type is not supported, the execution is aborted.
+    """
+    if check_hgnc(l):
+        return 'hugo_id'
+    elif check_ensembl(l):
+        return 'ensembl_gene_id'
+    elif check_symbol(l):
+        return 'symbol'
+    elif check_entrez(l):
+        return 'entrez_id'
+    else:
+        sys.exit('Execution aborted:\n' +
+                 'gene ID type in ' + name + ' not supported. Supported ID'+
+                 'types are: HUGO ID, Ensemble ID, HUGO symbol, Entrez ID\n')
+
+def check_hgnc(l :str) -> bool:
+    """
+    Check if a gene identifier follows the HGNC format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the HGNC format, False otherwise.
+    """
+    if len(l) > 5:
+        if (l.upper()).startswith('HGNC:'):
+            return l[5:].isdigit()
+        else:
+            return False
+    else:
+        return False
+
+def check_ensembl(l :str) -> bool:
+    """
+    Check if a gene identifier follows the Ensembl format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the Ensembl format, False otherwise.
+    """
+    return l.upper().startswith('ENS')
+ 
+
+def check_symbol(l :str) -> bool:
+    """
+    Check if a gene identifier follows the symbol format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the symbol format, False otherwise.
+    """
+    if len(l) > 0:
+        if l[0].isalpha() and l[1:].isalnum():
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def check_entrez(l :str) -> bool:
+    """
+    Check if a gene identifier follows the Entrez ID format.
+
+    Args:
+        l (str): The gene identifier to check.
+
+    Returns:
+        bool: True if the gene identifier follows the Entrez ID format, False otherwise.
+    """ 
+    if len(l) > 0:
+        return l.isdigit()
+    else: 
+        return False
 
 ################################- DATA GENERATION -################################
 ReactionId = str
