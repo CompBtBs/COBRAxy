@@ -220,11 +220,14 @@ def main(args:List[str] = None) -> None:
             if value is not None:
                 model.reactions.get_by_id(reaction).lower_bound = -float(value)
 
+    # Initialize translation_issues dictionary
+    translation_issues = {}
+    
     if (ARGS.name == "Recon" or ARGS.name == "ENGRO2") and ARGS.gene_format != "Default":
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
 
-        model = modelUtils.translate_model_genes(
+        model, translation_issues = modelUtils.translate_model_genes(
             model=model,
             mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv", dtype={'entrez_id': str}),
             target_nomenclature=ARGS.gene_format,
@@ -246,7 +249,7 @@ def main(args:List[str] = None) -> None:
             source_nomenclature = tmp_check[0]
 
         if source_nomenclature != ARGS.gene_format:
-            model = modelUtils.translate_model_genes(
+            model, translation_issues = modelUtils.translate_model_genes(
                 model=model,
                 mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv", dtype={'entrez_id': str}),
                 target_nomenclature=ARGS.gene_format,
@@ -298,7 +301,7 @@ def main(args:List[str] = None) -> None:
 
         # Convert only if needed
         if source_nomenclature != ARGS.gene_format:
-            model = modelUtils.translate_model_genes(
+            model, translation_issues = modelUtils.translate_model_genes(
                 model=model,
                 mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv", dtype={'entrez_id': str}),
                 target_nomenclature=ARGS.gene_format,
@@ -319,6 +322,12 @@ def main(args:List[str] = None) -> None:
     df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "GPR"])
     df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Formula"])
 
+    # Create DataFrame for translation issues
+    df_translation_issues = pd.DataFrame([
+        {"ReactionID": rxn_id, "TranslationIssues": issues}
+        for rxn_id, issues in translation_issues.items()
+    ])
+    
     df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
     df_medium = medium.rename(columns = {"reaction": "ReactionID"})
     df_medium["InMedium"] = True
@@ -329,6 +338,15 @@ def main(args:List[str] = None) -> None:
     if ARGS.name == "ENGRO2": 
         merged = merged.merge(compartments, on = "ReactionID", how = "outer")
     merged = merged.merge(df_medium, on = "ReactionID", how = "left")
+    
+    # Add translation issues column
+    if not df_translation_issues.empty:
+        merged = merged.merge(df_translation_issues, on = "ReactionID", how = "left")
+        merged["TranslationIssues"] = merged["TranslationIssues"].fillna("")
+    else:
+        # Add empty TranslationIssues column if no issues found
+        #merged["TranslationIssues"] = ""
+        pass
 
     merged["InMedium"] = merged["InMedium"].fillna(False)
 
