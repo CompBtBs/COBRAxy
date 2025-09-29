@@ -4,96 +4,153 @@
         <import>marea_macros.xml</import>
     </macros>
 
-	<requirements>
+    <requirements>
         <requirement type="package" version="1.24.4">numpy</requirement>
         <requirement type="package" version="2.0.3">pandas</requirement>
-		<requirement type="package" version="0.29.0">cobra</requirement>
+        <requirement type="package" version="0.29.0">cobra</requirement>
         <requirement type="package" version="5.2.2">lxml</requirement>
         <requirement type="package" version="1.4.2">joblib</requirement>
         <requirement type="package" version="1.11">scipy</requirement>
-	</requirements>
+    </requirements>
 
     <command detect_errors="exit_code">
         <![CDATA[
         python $__tool_directory__/flux_simulation.py
         --tool_dir $__tool_directory__
-        --model_selector $cond_model.model_selector
-        #if $cond_model.model_selector == 'Custom'
-            --model $model
-            --model_name $model.element_identifier
+        --model_and_bounds $model_and_bounds.model_and_bounds
+        
+        #if $model_and_bounds.model_and_bounds == 'True':
+            --model_upload $model_and_bounds.model_upload
+            --input "${",".join(map(str, $model_and_bounds.inputs))}"
+            #set $names = ""
+            #for $input_temp in $model_and_bounds.inputs:
+                #set $names = $names + $input_temp.element_identifier + ","
+            #end for
+            --name $names
+        #else:
+            --input "${",".join(map(str, $model_and_bounds.model_files))}"
+            #set $names = ""
+            #for $input_temp in $model_and_bounds.model_files:
+                #set $names = $names + $input_temp.element_identifier + ","
+            #end for
+            --name $names
         #end if
-        --input "${",".join(map(str, $inputs))}"
-        #set $names = ""
-        #for $input_temp in $inputs:
-            #set $names = $names + $input_temp.element_identifier + ","
-        #end for
-        --name $names
-        --thinning 0
-        #if $algorithm_param.algorithm == 'OPTGP':
-        	--thinning $algorithm_param.thinning
+        
+        --sampling_enabled $sampling_params.sampling_enabled
+        
+        #if $sampling_params.sampling_enabled == 'true':
+            --thinning 0
+            #if $sampling_params.algorithm_param.algorithm == 'OPTGP':
+                --thinning $sampling_params.algorithm_param.thinning
+            #end if
+            --algorithm $sampling_params.algorithm_param.algorithm
+            --n_batches $sampling_params.n_batches
+            --n_samples $sampling_params.n_samples
+            --seed $sampling_params.seed
+            --output_type "${",".join(map(str, $sampling_params.output_types))}"
+        #else:
+            --thinning 0
+            --algorithm 'CBS'
+            --n_batches 1
+            --n_samples 1
+            --seed 0
+            --output_type 'mean'
         #end if
-        --algorithm $algorithm_param.algorithm
-        --n_batches $n_batches
-        --n_samples $n_samples
-        --seed $seed
-        --output_type "${",".join(map(str, $output_types))}"
+        
         --output_type_analysis "${",".join(map(str, $output_types_analysis))}"
+        
+        #if 'FVA' in str($output_types_analysis):
+            --perc_opt $fva_params.optimality_fraction
+        #end if
+        
         --out_log $log
         ]]>
     </command>
+
     <inputs>
+        <conditional name="model_and_bounds">
+            <param name="model_and_bounds" argument="--model_and_bounds" type="select" label="Upload mode:" help="Choose whether to upload the model and bounds in separate files or to upload multiple complete model files.">
+                <option value="True" selected="true">Model + bounds (separate files)</option>
+                <option value="False">Multiple complete models</option>
+            </param>
 
-        <conditional name="cond_model">
-            <expand macro="options_ras_to_bounds_model"/>
-            <when value="Custom">
-                <param name="model" argument="--model" type="data" format="json, xml" label="Custom model" />
+            <when value="True">
+                <param name="model_upload" argument="--model_upload" type="data" format="csv,tsv,tabular"
+                    label="Model (rules) file:"
+                    help="Upload a CSV/TSV file that contains the model reaction rules. Recommended columns: ReactionID, Reaction (formula), Rule (GPR). Optional columns: name, lower_bound, upper_bound, InMedium. If bounds are present here they may be overridden by separate bound files." />
+
+                <param name="inputs" argument="--inputs" multiple="true" type="data" format="tabular,csv,tsv"
+                    label="Bound file(s):"
+                    help="Upload one or more CSV/TSV files containing reaction bounds. Each file must include at least: ReactionID, lower_bound, upper_bound. Files are applied in the order provided; later files override earlier ones for the same ReactionID." />
             </when>
-        </conditional> 
 
-        <param name="inputs" argument="--inputs" multiple="true" type="data" format="tabular, csv, tsv" label="Bound(s):" />
-        
-        
-        <conditional name="algorithm_param">
-			<param name="algorithm" argument="--algorithm" type="select" label="Choose sampling algorithm:">
-                    <option value="CBS" selected="true">CBS</option>
-                	<option value="OPTGP">OPTGP</option>
-        	</param>
-        	<when value="OPTGP">
-        		<param name="thinning" argument="--thinning" type="integer" label="Thinning:"  value="100" help="Number of iterations to wait before taking a sample."/>
-        	</when>
+            <when value="False">
+                <param name="model_files" argument="--model_files" multiple="true" type="data" format="csv,tsv,tabular"
+                    label="Complete model files:"
+                    help="Upload one or more CSV/TSV files, each containing both model rules and reaction bounds for different contexts/cells. Required columns: ReactionID, Reaction, Rule, lower_bound, upper_bound." />
+            </when>
+        </conditional>
 
-		</conditional>
+        <conditional name="sampling_params">
+            <param name="sampling_enabled" argument="--sampling_enabled" type="boolean" display="checkboxes" checked="false" label="Enable sampling" help="Enable flux sampling"/>
+            
+            <when value="true">
+                <conditional name="algorithm_param">
+                    <param name="algorithm" argument="--algorithm" type="select" label="Choose sampling algorithm:">
+                        <option value="CBS" selected="true">CBS</option>
+                        <option value="OPTGP">OPTGP</option>
+                    </param>
+                    <when value="OPTGP">
+                        <param name="thinning" argument="--thinning" type="integer" label="Thinning:" value="100" help="Number of iterations to wait before taking a sample."/>
+                    </when>
+                </conditional>
 
+                <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000" min="1" max="1000"/>
+                <param name="n_batches" argument="--n_batches" type="integer" label="Batches:" value="1" help="This is useful for computational performances."/>
+                <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" help="Random seed."/>
 
-        <param name="n_samples" argument="--n_samples" type="integer" label="Samples:" value="1000"/>
+                <param type="select" argument="--output_types" multiple="true" name="output_types" label="Choose outputs from sampling">
+                    <option value="mean" selected="true">Mean</option>
+                    <option value="median" selected="true">Median</option>
+                    <option value="quantiles" selected="true">Quantiles</option>
+                    <option value="fluxes" selected="false">All fluxes</option>
+                </param>
+            </when>
+            
+            <when value="false">
+                <!-- Hidden parameters when sampling is disabled -->
+                <param name="algorithm" type="hidden" value="CBS"/>
+                <param name="n_samples" type="hidden" value="1000"/>
+                <param name="n_batches" type="hidden" value="1"/>
+                <param name="seed" type="hidden" value="0"/>
+                <param name="output_types" type="hidden" value="mean"/>
+            </when>
+        </conditional>
 
-        <param name="n_batches" argument="--n_batches" type="integer" label="Batches:" value="1" help="This is useful for computational perfomances."/>
-
-        <param name="seed" argument="--seed" type="integer" label="Seed:" value="0" helph="Random seed."/>
-
-        <param type="select" argument="--output_types" multiple="true" name="output_types" label="Desired outputs from sampling">
-            <option value="mean" selected="true">Mean</option>
-            <option value="median" selected="true">Median</option>
-            <option value="quantiles" selected="true">Quantiles</option>
-            <option value="fluxes" selected="false">All fluxes</option>
-        </param>
-
-        <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Desired outputs from flux analysis">
+        <param type="select" argument="--output_types_analysis" multiple="true" name="output_types_analysis" label="Choose outputs from optimization">
+            <option value="FVA" selected="true">FVA</option>
             <option value="pFBA" selected="false">pFBA</option>
-            <option value="FVA" selected="false">FVA</option>
             <option value="sensitivity" selected="false">Sensitivity reaction knock-out (Biomass)</option>
         </param>
+
+        <conditional name="fva_params">
+            <param name="show_fva_options" type="boolean" display="checkboxes" checked="false" label="Configure FVA parameters" help="Show additional FVA configuration options"/>
+            <when value="true">
+                <param name="optimality_fraction" argument="--fva_optimality" type="float" label="FVA Optimality (fraction):" value="0.90" min="0.0" max="1.0" 
+                    help="Fraction of optimality for FVA analysis. 1.0 means the flux must be optimal, lower values allow suboptimal solutions."/>
+            </when>
+            <when value="false">
+                <param name="optimality_fraction" argument="--fva_optimality" type="hidden" value="1.0"/>
+            </when>
+        </conditional>
+
     </inputs>
 
-        		
     <outputs>
         <data format="txt" name="log" label="Flux Simulation - Log" />
-
         <data name="output" format="tabular" label="Flux Simulation - Output">
-            <discover_datasets pattern="__name_and_ext__"
-                directory="flux_simulation" visible="true" />
+            <discover_datasets pattern="__name_and_ext__" directory="flux_simulation" visible="true" />
         </data>
-
     </outputs>
 
     <help>
@@ -101,21 +158,21 @@
 What it does
 -------------
 
-This tool generates flux samples starting from a model in JSON or XML format by using CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) sampling algorithms.
+This tool generates flux samples starting from metabolic models using CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
 
-It can return sampled fluxes by appliying summary statistics: 
+Two upload modes are supported:
+1. **Model + bounds**: Upload one base model and multiple bound files (one per context/cell type)
+2. **Multiple complete models**: Upload multiple complete model files, each with integrated bounds
+
+It can return sampled fluxes by applying summary statistics: 
    - mean
    - median
-   - quantiles (0.25, 0.50, 0.75). 
+   - quantiles (0.25, 0.50, 0.75)
 
-Flux analysis can be perfomed over the metabolic model:
-   - parsimoniuos-FBA (optimized by Biomass)
-   - FVA
-   - Biomass sensitivity analysis (single reaction knock-out). It is the ratio between the optimal of the Biomass reaction computed by FBA after knocking-out a reaction and the same over the complete model.
-
-Accepted files:
-   - A model: JSON, XML, MAT or YAML (.yml) file reporting reactions and rules contained in the model. Supported compressed formats: .zip, .gz and .bz2. Filename must follow the pattern: {model_name}.{extension}.[zip|gz|bz2]
-   - Context-specific bounds: generated by RAS to Bounds tool. This can be a collection of bounds too (one bounds file per context).
+Flux analysis can be performed over the metabolic model by using the objective function already set in the model. The following analyses are supported:
+   - parsimonious-FBA (optimized by Biomass)
+   - FVA (with configurable optimality percentage)
+   - Biomass sensitivity analysis (single reaction knock-out)
 
 Output:
 -------------
@@ -124,11 +181,14 @@ The tool generates:
    - Samples: reporting the sampled fluxes for each reaction (reaction names on the rows and sample names on the columns). Format: tab-separated.
    - a log file (.txt).
 
-**TIP**: The Batches parameter is useful to mantain in memory just a batch of samples at time. For example, if you wish to sample 10.000 points, than it is suggested to select n_samples = 1.000 and n_batches=10.
-**TIP**: The Thinning parameter of the OPTGP algorithm is useful to converge to a stationary distribution (see cited articles by Galuzzi, Milazzo and Damiani).
+**TIP**: Bounds generated by RAStoBound are grouped in a collection. You can select collections by clicking on "Dataset Collection" option in the "Bound file(s):" input parameter.
 
+**TIP**: The Batches parameter helps maintain memory efficiency. For 10,000 samples, use n_samples=1,000 and n_batches=10.
+
+**TIP**: The Thinning parameter for OPTGP helps converge to stationary distribution.
+
+**TIP**: FVA optimality percentage allows you to explore suboptimal flux ranges. 100% restricts to optimal solutions, while lower values (e.g., 90%) allow broader flux ranges.
 ]]>
     </help>
     <expand macro="citations_fluxes" />
- 
 </tool>
