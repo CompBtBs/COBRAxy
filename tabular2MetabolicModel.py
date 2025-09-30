@@ -41,7 +41,6 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     parser.add_argument("--output", type=str, required=True,
     help="Output model file path")
 
-
     parser.add_argument("--tool_dir", type=str, default=os.path.dirname(__file__),
     help="Tool directory (passed from Galaxy as $__tool_directory__)")
 
@@ -86,8 +85,11 @@ def main(args: List[str] = None) -> None:
                 logging.exception('Cannot create output directory: %s', out_dir)
 
         model = modelUtils.build_cobra_model_from_csv(ARGS.input)
+        
+        
+        logging.info('Created model with name: %s (ID: %s)', model.name, model.id)
 
-        # Save model in requested format
+        # Save model in requested format - Galaxy handles the filename
         if ARGS.format == "sbml":
             cobra.io.write_sbml_model(model, ARGS.output)
         elif ARGS.format == "json":
@@ -98,14 +100,17 @@ def main(args: List[str] = None) -> None:
             cobra.io.save_yaml_model(model, ARGS.output)
         else:
             logging.error('Unknown format requested: %s', ARGS.format)
-            print(f"ERROR: Unknown format: {ARGS.format}")
+            raise ValueError(f"Unknown format: {ARGS.format}")
 
 
         logging.info('Model successfully written to %s (format=%s)', ARGS.output, ARGS.format)
+        print(f"Model created successfully in {ARGS.format.upper()} format")
 
-    except Exception:
+    except Exception as e:
         # Log full traceback to the out_log so Galaxy users/admins can see what happened
         logging.exception('Unhandled exception in fromCSVtoCOBRA')
+        print(f"ERROR: {str(e)}")
+        raise
 
 
 if __name__ == '__main__':

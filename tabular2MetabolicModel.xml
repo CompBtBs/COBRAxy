@@ -19,7 +19,7 @@
         python $__tool_directory__/tabular2MetabolicModel.py
             --tool_dir $__tool_directory__
             --input $input 
-            --format $format 
+            --format $format
             --output $output
             --out_log $log
     ]]></command>
@@ -27,6 +27,7 @@
     <!-- Tool inputs -->
     <inputs>
         <param name="input" type="data" format="tabular,csv,tsv" label="Input table"/>
+        <param name="model_name" type="text" value="Converted_Model" label="Model name" help="Name for the created COBRA model"/>
         <param name="format" type="select" label="Output COBRA model format">
             <option value="sbml" selected="true">SBML (.xml)</option>
             <option value="json">JSON (.json)</option>
@@ -37,8 +38,8 @@
 
     <!-- Tool outputs -->
     <outputs>
-        <data name="log" format="txt" label="fromcsvtocobra - Log" />
-        <data name="output" format="xml" label="COBRA model">
+        <data name="log" format="txt" label="Tabular to Model Conversion - Log" />
+        <data name="output" format="xml" label="${model_name}.${format}">
             <change_format>
                 <when input="format" value="sbml" format="xml"/>
                 <when input="format" value="json" format="json"/>

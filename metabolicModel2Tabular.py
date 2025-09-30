@@ -36,7 +36,7 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     parser.add_argument("--model", type=str,
                         help="Built-in model identifier (e.g., ENGRO2, Recon, HMRcore)")
     parser.add_argument("--input", type=str,
-                        help="Custom model file (JSON or XML)")
+                        help="Custom model file (JSON, XML, MAT, YAML)")
     parser.add_argument("--name", nargs='*', required=True,
                         help="Model name (default or custom)")
     
@@ -56,6 +56,43 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     return parser.parse_args(args)
 
 ################################- INPUT DATA LOADING -################################
+def detect_file_format(file_path: str) -> utils.FileFormat:
+    """
+    Detect file format by examining file content and extension.
+    Handles Galaxy .dat files by looking at content.
+    """
+    try:
+        with open(file_path, 'r') as f:
+            first_lines = ''.join([f.readline() for _ in range(5)])
+        
+        # Check for XML (SBML)
+        if '<?xml' in first_lines or '<sbml' in first_lines:
+            return utils.FileFormat.XML
+        
+        # Check for JSON
+        if first_lines.strip().startswith('{'):
+            return utils.FileFormat.JSON
+            
+        # Check for YAML
+        if any(line.strip().endswith(':') for line in first_lines.split('\n')[:3]):
+            return utils.FileFormat.YML
+            
+    except:
+        pass
+    
+    # Fall back to extension-based detection
+    if file_path.endswith('.xml') or file_path.endswith('.sbml'):
+        return utils.FileFormat.XML
+    elif file_path.endswith('.json'):
+        return utils.FileFormat.JSON
+    elif file_path.endswith('.mat'):
+        return utils.FileFormat.MAT
+    elif file_path.endswith('.yml') or file_path.endswith('.yaml'):
+        return utils.FileFormat.YML
+    
+    # Default to XML for unknown extensions
+    return utils.FileFormat.XML
+
 def load_custom_model(file_path :utils.FilePath, ext :Optional[utils.FileFormat] = None) -> cobra.Model:
     """
     Loads a custom model from a file, either in JSON, XML, MAT, or YML format.
@@ -186,9 +223,9 @@ def main(args:List[str] = None) -> None:
         ARGS.name = ' '.join(ARGS.name)
 
     if ARGS.input:
-        # Load a custom model from file
-        model = load_custom_model(
-            utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.input).ext)
+        # Load a custom model from file with auto-detected format
+        detected_format = detect_file_format(ARGS.input)
+        model = load_custom_model(utils.FilePath.fromStrPath(ARGS.input), detected_format)
     else:
         # Load a built-in model
         if not ARGS.model:

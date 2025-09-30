@@ -400,7 +400,7 @@ def applyFluxesEnrichmentToMap(fluxesEnrichmentRes :Dict[str, Union[Tuple[float,
             continue
 
         if isinstance(foldChange, str): foldChange = float(foldChange)
-        if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
+        if pValue > ARGS.pValue: # pValue above tresh: dashed arrow
             INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId)
             INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
 

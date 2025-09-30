@@ -491,7 +491,7 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         if math.isnan(pValue) or (isinstance(foldChange, float) and math.isnan(foldChange)): continue
 
         if isinstance(foldChange, str): foldChange = float(foldChange)
-        if pValue >= ARGS.pValue: # pValue above tresh: dashed arrow
+        if pValue > ARGS.pValue: # pValue above tresh: dashed arrow
             INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId)
             continue
 
