@@ -3,7 +3,7 @@
 A Python toolkit for metabolic flux analysis and visualization, with Galaxy integration.
 
 COBRAxy transforms gene expression and metabolite data into meaningful metabolic insights through flux sampling and interactive pathway maps.
-
+DOC: https://compbtbs.github.io/COBRAxy
 ## Features
 
 - **Reaction Activity Scores (RAS)** from gene expression data
