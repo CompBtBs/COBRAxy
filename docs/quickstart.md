@@ -1,12 +1,6 @@
 # Quick Start Guide
 
-Get started with COBRAxy in 5 minutes! This guide walks you through your first metabolic analysis.
-
-## Prerequisites
-
-- ✅ COBRAxy installed ([Installation Guide](installation.md))
-- ✅ Sample gene expression data
-- ✅ 5 minutes of time
+Get started with COBRAxy! This guide walks you through your first metabolic analysis.
 
 ## Step 1: Verify Installation
 
