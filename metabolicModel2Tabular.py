@@ -188,7 +188,7 @@ def main(args:List[str] = None) -> None:
     if ARGS.input:
         # Load a custom model from file
         model = load_custom_model(
-            utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.name).ext)
+            utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.input).ext)
     else:
         # Load a built-in model
         if not ARGS.model:
