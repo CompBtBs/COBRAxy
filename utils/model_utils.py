@@ -279,7 +279,18 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
         cobra.Model: The constructed COBRApy model.
     """
     
-    df = pd.read_csv(csv_path, sep='\t')
+    # Try to detect separator
+    with open(csv_path, 'r') as f:
+        first_line = f.readline()
+        sep = '\t' if '\t' in first_line else ','
+    
+    df = pd.read_csv(csv_path, sep=sep)
+    
+    # Check required columns
+    required_cols = ['ReactionID', 'Formula']
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        raise ValueError(f"Missing required columns: {missing_cols}. Available columns: {list(df.columns)}")
     
     model = cobraModel(model_id)
     
@@ -387,8 +398,8 @@ def extract_metabolites_from_reaction(reaction_formula: str) -> Set[str]:
     """
     pattern = re.compile(
         r'(?:^|(?<=\s)|(?<=\+)|(?<=,)|(?<==)|(?<=:))'              # left boundary (start, space, +, comma, =, :)
-        r'(?:\d+(?:\.\d+)?\s*)?'                                   # optional coefficient
-        r'([A-Za-z0-9_]+(?:\[[A-Za-z0-9]+\]|_[A-Za-z0-9]+))'       # metabolite + compartment
+        r'(?:\d+(?:\.\d+)?\s+)?'                                   # optional coefficient (requires space after)
+        r'([A-Za-z0-9][A-Za-z0-9_]*(?:\[[A-Za-z0-9]+\]|_[A-Za-z0-9]+))'  # metabolite + compartment (can start with number)
     )
     return {m.group(1) for m in pattern.finditer(reaction_formula)}
 
@@ -407,22 +418,28 @@ def parse_reaction_formula(reaction: Reaction, formula: str, metabolites_dict: D
     """Parse a reaction formula and set metabolites with their coefficients."""
 
     if '<=>' in formula:
-        left, right = formula.split('<=>')
+        parts = formula.split('<=>')
         reversible = True
     elif '<--' in formula:
-        left, right = formula.split('<--')
+        parts = formula.split('<--')
         reversible = False
     elif '-->' in formula:
-        left, right = formula.split('-->')
+        parts = formula.split('-->')
         reversible = False
     elif '<-' in formula:
-        left, right = formula.split('<-')
+        parts = formula.split('<-')
         reversible = False
     else:
         raise ValueError(f"Unrecognized reaction format: {formula}")
     
-    reactants = parse_metabolites_side(left.strip())
-    products = parse_metabolites_side(right.strip())
+    # Handle cases where one side might be empty (exchange reactions)
+    if len(parts) != 2:
+        raise ValueError(f"Invalid reaction format, expected 2 parts: {formula}")
+    
+    left, right = parts[0].strip(), parts[1].strip()
+    
+    reactants = parse_metabolites_side(left) if left else {}
+    products = parse_metabolites_side(right) if right else {}
     
     metabolites_to_add = {}
     
@@ -449,12 +466,26 @@ def parse_metabolites_side(side_str: str) -> Dict[str, float]:
         if not term:
             continue
 
-        # optional coefficient + id ending with _<compartment>
-        match = re.match(r'(?:(\d+\.?\d*)\s+)?([A-Za-z0-9_]+_[a-z]+)', term)
-        if match:
-            coeff_str, met_id = match.groups()
-            coeff = float(coeff_str) if coeff_str else 1.0
-            metabolites[met_id] = coeff
+        # First check if term has space-separated coefficient and metabolite
+        parts = term.split()
+        if len(parts) == 2:
+            # Two parts: potential coefficient + metabolite
+            try:
+                coeff = float(parts[0])
+                met_id = parts[1]
+                # Verify the second part looks like a metabolite with compartment
+                if re.match(r'[A-Za-z0-9_]+(?:\[[A-Za-z0-9]+\]|_[A-Za-z0-9]+)', met_id):
+                    metabolites[met_id] = coeff
+                    continue
+            except ValueError:
+                pass
+        
+        # Single term - check if it's a metabolite (no coefficient)  
+        # Updated pattern to include metabolites starting with numbers
+        if re.match(r'[A-Za-z0-9][A-Za-z0-9_]*(?:\[[A-Za-z0-9]+\]|_[A-Za-z0-9]+)', term):
+            metabolites[term] = 1.0
+        else:
+            print(f"Warning: Could not parse metabolite term: '{term}'")
 
     return metabolites
 
@@ -487,20 +518,24 @@ def set_objective_from_csv(model: cobra.Model, df: pd.DataFrame, obj_col: str = 
 
 def set_medium_from_data(model: cobraModel, df: pd.DataFrame):
     """Set the medium based on the 'InMedium' column in the dataframe."""
+    if 'InMedium' not in df.columns:
+        print("No 'InMedium' column found, skipping medium setup")
+        return
+        
     medium_reactions = df[df['InMedium'] == True]['ReactionID'].tolist()
     
     medium_dict = {}
     for rxn_id in medium_reactions:
         if rxn_id in [r.id for r in model.reactions]:
             reaction = model.reactions.get_by_id(rxn_id)
-            if reaction.lower_bound < 0:  # Solo reazioni di uptake
+            if reaction.lower_bound < 0: 
                 medium_dict[rxn_id] = abs(reaction.lower_bound)
     
     if medium_dict:
         model.medium = medium_dict
         print(f"Medium set with {len(medium_dict)} components")
-
-
+    else:
+        print("No medium components found")
 def validate_model(model: cobraModel) -> Dict[str, any]:
     """Validate the model and return basic statistics."""
     validation = {
