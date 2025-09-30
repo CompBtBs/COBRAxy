@@ -4,301 +4,173 @@ Learn how to set up a local Galaxy instance with COBRAxy tools for web-based met
 
 ## Overview
 
-Galaxy provides a web interface for running COBRAxy tools without command line knowledge. This tutorial covers:
+This tutorial provides guidance and references to official Galaxy documentation for:
 
-- Installing Galaxy locally
-- Adding COBRAxy tools to Galaxy
-- Running your first analysis through the web interface
-- Creating reusable workflows
+- Installing Galaxy locally (using official Galaxy guides)
+- Adding COBRAxy tools to your Galaxy instance
+- Running COBRAxy analyses through the web interface
 
-**Time required**: ~30 minutes  
-**Difficulty**: Beginner  
-**Prerequisites**: Basic computer administration skills
+**Time required**: Variable (depends on experience)  
+**Difficulty**: Intermediate  
+**Prerequisites**: System administration experience recommended
 
-## Step 1: Install Galaxy
+## Step 1: Install Galaxy Locally
 
-### Download and Setup Galaxy
+For installing Galaxy on your local machine, follow the official documentation:
 
-```bash
-# Clone Galaxy repository (stable release)
-git clone -b release_23.1 https://github.com/galaxyproject/galaxy.git
-cd galaxy
+### 📖 Official Installation Guides
 
-# Copy sample configuration
-cp config/galaxy.yml.sample config/galaxy.yml
-```
+- **[Galaxy Installation Guide](https://docs.galaxyproject.org/en/master/admin/)**
+  - Complete administrator documentation
+  - System requirements and dependencies
+  - Configuration options
 
-### Configure Galaxy
+- **[Galaxy Quick Start](https://docs.galaxyproject.org/en/master/admin/production.html)**
+  - Fast setup for testing and development
+  - Single-user and multi-user configurations
 
-Edit `config/galaxy.yml` to customize your installation:
+- **[Galaxy Training: Admin Track](https://training.galaxyproject.org/training-material/topics/admin/)**
+  - Step-by-step tutorials with hands-on exercises
+  - Best practices for Galaxy administration
 
-```yaml
-galaxy:
-  # Basic configuration
-  admin_users: admin@galaxy.local
-  database_connection: sqlite:///database/universe.sqlite?isolation_level=IMMEDIATE
-  file_path: database/files
-  tool_dependency_dir: database/dependencies
-  
-  # Security settings  
-  id_secret: your-secret-key-here
-  use_remote_user: false
-  
-  # Job configuration
-  job_config_file: config/job_conf.yml
-```
+### 🚀 Quick Summary
 
-### Start Galaxy
+1. Clone Galaxy repository: `git clone https://github.com/galaxyproject/galaxy.git`
+2. Run setup script: `sh run.sh`  
+3. Access at: `http://localhost:8080`
 
-```bash
-# Start Galaxy server
-sh run.sh
+**Note**: Refer to official documentation for detailed configuration, security settings, and production deployment.
 
-# Galaxy will be available at: http://localhost:8080
-# First startup takes 10-15 minutes to initialize database
-```
+## Step 2: Add COBRAxy Tools to Galaxy
 
-**Note**: Keep the terminal open - Galaxy runs in the foreground.
+For adding custom tools to Galaxy, refer to the official documentation:
 
-## Step 2: Install COBRAxy Tools
+### 📖 Official Tool Installation Guides
 
-### Method 1: Copy Tool Files
+- **[Adding Tools to Galaxy](https://docs.galaxyproject.org/en/master/admin/tool_panel.html)**
+  - How to configure tool_conf.xml
+  - Tool directory structure and organization
 
-```bash
-# Create COBRAxy tool directory
-mkdir -p tools/cobraxy
+- **[Tool Development Tutorial](https://training.galaxyproject.org/training-material/topics/dev/)**
+  - Understanding Galaxy tool wrappers
+  - XML tool definition format
 
-# Copy COBRAxy XML files (adjust path to your COBRAxy installation)
-cp /path/to/COBRAxy/*.xml tools/cobraxy/
-cp -r /path/to/COBRAxy/utils tools/cobraxy/
-cp -r /path/to/COBRAxy/local tools/cobraxy/
-```
+- **[Galaxy Tool Installation](https://planemo.readthedocs.io/en/latest/)**
+  - Using Planemo for tool development and testing
+  - Best practices for tool integration
 
-### Method 2: Symlink (Development)
+### 🛠️ COBRAxy-Specific Setup
 
-```bash
-# Create symlinks for development
-mkdir -p tools/cobraxy
-ln -s /path/to/COBRAxy/*.xml tools/cobraxy/
-ln -s /path/to/COBRAxy/*.py tools/cobraxy/
-ln -s /path/to/COBRAxy/utils tools/cobraxy/utils
-ln -s /path/to/COBRAxy/local tools/cobraxy/local
-```
+1. **Copy COBRAxy files** to Galaxy's tools directory:
+   ```bash
+   mkdir -p tools/cobraxy
+   cp /path/to/COBRAxy/*.xml tools/cobraxy/
+   cp /path/to/COBRAxy/*.py tools/cobraxy/
+   cp -r /path/to/COBRAxy/utils tools/cobraxy/
+   cp -r /path/to/COBRAxy/local tools/cobraxy/
+   ```
 
-### Register Tools in Galaxy
+2. **Add tools to Galaxy configuration**:
+   Edit `config/tool_conf.xml` and add a COBRAxy section with all tool XML files.
 
-Edit `config/tool_conf.xml` to add COBRAxy tools:
+3. **Restart Galaxy** to load the new tools.
 
-```xml
-<?xml version='1.0' encoding='utf-8'?>
-<toolbox monitor="true">
-  <!-- Other tool sections... -->
-  
-  <section id="cobraxy" name="COBRAxy - Metabolic Analysis">
-    <tool file="cobraxy/ras_generator.xml" />
-    <tool file="cobraxy/rps_generator.xml" />
-    <tool file="cobraxy/marea.xml" />
-    <tool file="cobraxy/ras_to_bounds.xml" />
-    <tool file="cobraxy/flux_simulation.xml" />
-    <tool file="cobraxy/flux_to_map.xml" />
-    <tool file="cobraxy/metabolicModel2Tabular.xml" />
-    <tool file="cobraxy/tabular2MetabolicModel.xml" />
-    <tool file="cobraxy/marea_cluster.xml" />
-  </section>
-</toolbox>
-```
+**Note**: Consult the official Galaxy documentation for detailed instructions on tool installation, dependency management, and troubleshooting.
 
-### Restart Galaxy
+## Step 3: Using COBRAxy in Galaxy
 
-```bash
-# Stop Galaxy (Ctrl+C in terminal)
-# Restart
-sh run.sh
-```
+### Verify Installation
 
-## Step 3: Verify Installation
+After following the official Galaxy setup and tool installation procedures:
 
-### Access Galaxy Interface
+1. Access your Galaxy instance (typically `http://localhost:8080`)
+2. Check that COBRAxy tools appear in the tool panel
+3. Verify Python dependencies are available in Galaxy's environment
 
-1. Open http://localhost:8080 in your browser
-2. Create an admin account (use email from `admin_users` config)
-3. Look for "COBRAxy - Metabolic Analysis" in the left tool panel
+### Basic Usage
 
-### Test Tool Installation
+1. **Upload data** using Galaxy's data upload interface
+2. **Select COBRAxy tools** from the tool panel
+3. **Configure parameters** through the web interface
+4. **Execute analyses** and monitor job progress
+5. **Download results** from Galaxy's history panel
 
-1. Click on **RAS Generator** in the tool panel
-2. You should see the tool interface with parameter options
-3. If you see error messages, check:
-   - File paths in tool XMLs are correct
-   - Python dependencies are installed
-   - COBRAxy files have proper permissions
+## Creating COBRAxy Workflows
 
-## Step 4: Upload Sample Data
+### Workflow Development Resources
 
-### Prepare Test Dataset
+For creating workflows with COBRAxy tools in Galaxy:
 
-Create a sample gene expression file:
+- **[Galaxy Workflow Tutorial](https://training.galaxyproject.org/training-material/topics/galaxy-interface/tutorials/workflow-editor/tutorial.html)**
+  - Creating, editing, and sharing workflows
+  - Workflow best practices
 
-```tsv
-Gene_ID	Control_1	Control_2	Treatment_1	Treatment_2
-HGNC:5	10.5	11.2	15.7	14.3
-HGNC:10	3.2	4.1	8.8	7.9
-HGNC:15	7.9	8.2	4.4	5.1
-HGNC:25	12.1	13.5	18.2	17.8
-```
+- **[Workflow Management](https://docs.galaxyproject.org/en/master/user/galaxy_workflow.html)**
+  - Official workflow documentation
+  - Advanced workflow features
 
-### Upload to Galaxy
+### Example COBRAxy Workflow
 
-1. Click **Upload Data** icon (📁) in Galaxy
-2. Choose **Choose local files**
-3. Select your test file
-4. Set **Type** to `tabular`
-5. Click **Start** to upload
+A typical COBRAxy workflow might include:
 
-## Step 5: Run Your First Analysis
+1. **RAS Generator** → Generate activity scores from gene expression
+2. **MAREA** → Perform statistical analysis and create pathway maps
+3. **RAS to Bounds** → Apply constraints (optional, for flux analysis)
+4. **Flux Simulation** → Sample metabolic fluxes (optional)
+5. **Flux to Map** → Create final visualizations (optional)
 
-### Generate RAS Scores
+## Additional Resources
 
-1. Select **RAS Generator** from tools panel
-2. Configure parameters:
-   - **Input dataset**: Your uploaded gene expression file
-   - **Rule selector**: ENGRO2
-   - **Output name**: `ras_scores`
-3. Click **Execute**
+### Galaxy Administration Resources
 
-### Monitor Job Progress
+- **[Galaxy Admin Documentation](https://docs.galaxyproject.org/en/master/admin/)**
+  - Complete administrator guide
+  - Configuration, security, and maintenance
 
-- Jobs appear in the **History** panel (right side)
-- Wait for job to turn green (completed)
-- Red indicates error - check job details
+- **[Galaxy Training Materials](https://training.galaxyproject.org/)**
+  - Hands-on tutorials for administrators and users
+  - Best practices and troubleshooting
 
-### Generate Pathway Maps
+- **[Galaxy Community Hub](https://galaxyproject.org/)**
+  - Community support and resources
+  - Tool repositories and shared workflows
 
-1. Select **MAREA** from tools panel
-2. Configure parameters:
-   - **Use RAS**: Yes
-   - **Input data**: Select your RAS output
-   - **Map choice**: ENGRO2
-   - **Gene set analysis**: Yes
-3. Click **Execute**
+### COBRAxy-Specific Resources
 
-## Step 6: Create Reusable Workflows
-
-### Extract Workflow
-
-1. Go to **Workflow** menu → **Extract Workflow**
-2. Select history containing your analysis
-3. Name workflow: "COBRAxy Basic Analysis"
-4. Click **Create Workflow**
-
-### Edit Workflow
-
-1. Go to **Workflow** menu → **Edit**
-2. Select your workflow
-3. Add tool descriptions and annotations
-4. Connect tools with clear parameter flow
-5. Save workflow
-
-### Share Workflow
-
-1. Go to **Workflow** menu → **Share or Publish**
-2. Make workflow public or share with collaborators
-3. Export workflow file for distribution
-
-## Advanced Configuration
-
-### Install Dependencies
-
-Install required packages in Galaxy's environment:
-
-```bash
-# Install in Galaxy's Python environment
-source .venv/bin/activate  # or your Galaxy venv
-
-# Install COBRAxy dependencies
-pip install cobra pandas numpy scipy
-
-# Install optional solver
-pip install swiglpk  # GLPK solver
-```
-
-### Configure Job Runners
-
-Edit `config/job_conf.yml` for better job management:
-
-```yaml
-runners:
-  local:
-    load: galaxy.jobs.runners.local:LocalJobRunner
-    workers: 4
-
-execution:
-  default: local
-  environments:
-    local:
-      runner: local
-      tmp_dir: true
-```
-
-### Set Up Tool Dependencies
-
-```bash
-# Install via conda (recommended)
-conda install -c conda-forge cobra glpk
-
-# Or use Galaxy's dependency system
-mkdir -p database/dependencies
-# Install tools through Galaxy admin interface
-```
+- **Dependencies**: Ensure `cobra`, `pandas`, `numpy`, `scipy` are installed in Galaxy's Python environment
+- **Tool Files**: All COBRAxy XML and Python files should be accessible to Galaxy
+- **Configuration**: Follow Galaxy's tool installation procedures for proper integration
 
 ## Troubleshooting
 
-### Common Issues
+For troubleshooting Galaxy installations and tool integration issues:
 
-**COBRAxy tools not appearing**
-- Check `tool_conf.xml` syntax
-- Verify file paths in XML files
-- Restart Galaxy after changes
+### Official Troubleshooting Resources
 
-**Tool execution failures**
-- Check Galaxy logs: `tail -f main.log`
-- Verify Python dependencies installed
-- Check file permissions on COBRAxy files
+- **[Galaxy FAQ](https://docs.galaxyproject.org/en/master/admin/faq.html)**
+  - Common installation and configuration issues
+  - Performance optimization tips
 
-**Slow execution**
-- Increase worker count in `job_conf.yml`
-- Install optional dependencies (GLPK, etc.)
-- Check system resources
+- **[Galaxy Help Forum](https://help.galaxyproject.org/)**
+  - Community-driven support
+  - Search existing solutions or ask new questions
 
-### Debug Mode
+- **[Galaxy GitHub Issues](https://github.com/galaxyproject/galaxy/issues)**
+  - Report bugs and technical issues
+  - Feature requests and discussions
 
-Run Galaxy in debug mode for detailed error messages:
+### COBRAxy-Specific Issues
 
-```bash
-# Enable debug mode
-export GALAXY_CONFIG_DEBUG=true
-sh run.sh
-```
+For issues specific to COBRAxy tools in Galaxy:
 
-### Log Files
+- **Tool not appearing**: Check tool_conf.xml configuration and restart Galaxy
+- **Execution failures**: Verify Python dependencies and file permissions  
+- **Parameter errors**: Ensure input data formats match tool requirements
 
-Check these log files for troubleshooting:
-- `main.log` - Galaxy server logs
-- `handler.log` - Job execution logs
-- `uwsgi.log` - Web server logs
+Refer to the [COBRAxy Tools Documentation](../tools/) for detailed parameter information and data format requirements.
 
-## Next Steps
+## Summary
 
-Now that Galaxy is set up:
+This tutorial provides guidance for setting up Galaxy with COBRAxy tools by referencing official Galaxy documentation. For detailed installation procedures, always consult the official Galaxy administrator guides, as they are regularly updated with the latest best practices and troubleshooting information.
 
-1. **[Basic Workflow Tutorial](workflow.md)** - Learn complete analysis pipeline
-2. **[Data Formats Guide](data-formats.md)** - Prepare your own data
-3. **Create custom workflows** for your specific analysis needs
-4. **Set up multi-user access** for your lab or organization
-
-## Resources
-
-- [Galaxy Documentation](https://docs.galaxyproject.org/)
-- [Galaxy Training Materials](https://training.galaxyproject.org/)
-- [Galaxy Tool Development](https://planemo.readthedocs.io/)
-- [COBRAxy Galaxy Tools](https://github.com/CompBtBs/COBRAxy/tree/main/Galaxy_tools)
+The combination of Galaxy's web interface with COBRAxy's metabolic analysis capabilities provides a powerful platform for researchers who prefer graphical interfaces over command-line tools.
