@@ -203,8 +203,6 @@ def main(args:List[str] = None) -> None:
 
     # Determine final model name: explicit --name overrides, otherwise use the model id
     
-    model_name = ARGS.name if ARGS.name else ARGS.model
-    
     if ARGS.name == "ENGRO2" and ARGS.medium_selector != "Default":
         df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
         ARGS.medium_selector = ARGS.medium_selector.replace("_", " ")
