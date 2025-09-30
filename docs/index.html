@@ -27,9 +27,16 @@
     }
     
     .app-name img {
-      max-height: 40px;
-      max-width: 200px;
+      max-height: 50px;
+      max-width: 250px;
       margin-right: 10px;
+      vertical-align: middle;
+    }
+    
+    /* Assicura che il logo venga visualizzato correttamente */
+    .sidebar > h1 > img {
+      max-height: 50px;
+      width: auto;
     }
     
     .markdown-section code {
@@ -49,7 +56,7 @@
     window.$docsify = {
       name: 'COBRAxy',
       repo: 'https://github.com/CompBtBs/COBRAxy',
-      logo: '_media/logo.png',
+      logo: './_media/logo.png',
       loadSidebar: true,
       loadNavbar: false,
       subMaxLevel: 3,
