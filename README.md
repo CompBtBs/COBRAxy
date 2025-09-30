@@ -1,289 +1,309 @@
-<p align="center">
-	<img src="https://opencobra.github.io/cobrapy/_static/img/cobrapy_logo.png" alt="COBRApy logo" width="120"/>
-</p>
+# COBRAxy
 
-# COBRAxy — Metabolic analysis and visualization toolkit (Galaxy-ready)
+A Python toolkit for metabolic flux analysis and visualization, with Galaxy integration.
 
-COBRAxy (COBRApy in Galaxy) is a toolkit to compute, analyze, and visualize metabolism at the reaction level from transcriptomics and metabolomics data. It enables users to:
+COBRAxy transforms gene expression and metabolite data into meaningful metabolic insights through flux sampling and interactive pathway maps.
 
-- derive Reaction Activity Scores (RAS) from gene expression and Reaction Propensity Scores (RPS) from metabolite abundances,
-- integrate RAS into model bounds,
-- perform flux sampling with either CBS (constraint-based sampling) or OPTGP,
-- compute statistics (pFBA, FVA, sensitivity) and generate styled SVG/PDF metabolic maps,
-- run all tools as Galaxy wrappers or via CLI on any machine.
+## Features
 
-It extends the MaREA 2 (Metabolic Reaction Enrichment Analysis) concept by adding sampling-based flux comparison and rich visualization. The repository ships both Python CLIs and Galaxy tool XMLs.
+- **Reaction Activity Scores (RAS)** from gene expression data
+- **Reaction Propensity Scores (RPS)** from metabolite abundance
+- **Flux sampling** with CBS or OptGP algorithms  
+- **Statistical analysis** with pFBA, FVA, and sensitivity analysis
+- **Interactive maps** with SVG/PDF export and custom styling
+- **Galaxy tools** for web-based analysis
+- **Built-in models** including ENGRO2 and Recon
 
-## Table of contents
+## Quick Start
 
-- Overview and features
-- Requirements
-- Installation (pip/conda)
-- Quick start (CLI)
-- Tools and usage
-	- custom_data_generator
-	- ras_generator (RAS)
-	- rps_generator (RPS)
-	- ras_to_bounds
-	- flux_simulation (CBS/OPTGP)
-	- marea (enrichment + maps)
-	- flux_to_map (maps from fluxes)
-	- marea_cluster (clustering auxiliaries)
-- Typical workflow
-- Input/output formats
-- Galaxy usage
-- Troubleshooting
-- Contributing
-- License and citations
-- Useful links
-
-## Overview and features
-
-COBRAxy builds on COBRApy to deliver end‑to‑end analysis from expression/metabolite data to flux statistics and map rendering:
-
-- RAS and RPS computation from tabular inputs
-- Bounds integration and model preparation
-- Flux sampling: CBS (GLPK backend) with automatic fallback to a COBRApy interface, or OPTGP
-- Flux statistics: mean/median/quantiles, pFBA, FVA, sensitivity
-- Map styling/export: SVG with optional PDF/PNG export
-- Ready-made Galaxy wrappers for all tools
-
-Bundled resources in `local/` include example models (ENGRO2, Recon), gene mappings, a default medium, and SVG maps.
-
-## Requirements
-
-- OS: Linux, macOS, or Windows (Linux recommended; Galaxy typically runs on Linux)
-- Python: 3.8.20 ≤ version < 3.12 (as per `setup.py`)
-- Python packages (installed automatically by `pip install .`):
-	- cobra==0.29.0, numpy==1.24.4, pandas==2.0.3, scipy==1.11, scikit-learn==1.3.2, seaborn==0.13.0
-	- matplotlib==3.7.3, lxml==5.2.2, cairosvg==2.7.1, svglib==1.5.1, pyvips==2.2.3, Pillow
-	- joblib==1.4.2, anndata==0.8.0, pydeseq2==0.5.1
-- Optional but recommended for CBS sampling performance:
-	- GLPK solver and Python bindings
-		- System library: glpk (e.g., Ubuntu: `apt-get install glpk-utils libglpk40`)
-		- Python: `swiglpk` (note: CBS falls back to a COBRApy interface if GLPK is unavailable)
-- For pyvips: system libvips (e.g., Ubuntu: `apt-get install libvips`)
-
-Notes:
-- If you hit system-level library errors for SVG/PDF/PNG conversion or vips, install the corresponding OS packages.
-- GPU is not required.
-
-## Installation
-
-Python virtual environment is strongly recommended.
-
-### Install from source (pip)
-
-1) Clone the repo and install:
+### Installation
 
 ```bash
 git clone https://github.com/CompBtBs/COBRAxy.git
 cd COBRAxy
-python3 -m venv .venv && source .venv/bin/activate
-pip install --upgrade pip
 pip install .
 ```
 
-This installs console entry points: `custom_data_generator`, `ras_generator`, `rps_generator`, `ras_to_bounds`, `flux_simulation`, `flux_to_map`, `marea`, `marea_cluster`.
-
-### Install with conda (alternative)
+### Basic Workflow
 
 ```bash
-conda create -n cobraxy python=3.10 -y
-conda activate cobraxy
-pip install .
-# Optional system deps (Ubuntu): sudo apt-get install libvips libxml2 libxslt1.1 glpk-utils
-# Optional Python bindings for GLPK: pip install swiglpk
+# 1. Generate RAS from expression data
+ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
+
+# 2. Generate RPS from metabolite data (optional)
+rps_generator -td $(pwd) -id metabolites.tsv -rp rps_output.tsv
+
+# 3. Create enriched pathway maps with statistical analysis
+marea -td $(pwd) -using_RAS true -input_data ras_output.tsv -choice_map ENGRO2 -gs true -idop base_maps
+
+# 4. Apply RAS constraints to model for flux simulation
+ras_to_bounds -td $(pwd) -ms ENGRO2 -ir ras_output.tsv -rs true -idop bounds_output
+
+# 5. Sample metabolic fluxes with constrained model
+flux_simulation -td $(pwd) -ms ENGRO2 -in bounds_output/*.tsv -a CBS -ns 1000 -idop flux_results
+
+# 6. Add flux data to enriched maps
+flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_maps
 ```
 
-## Quick start (CLI)
+## Tools
 
-All tools provide `-h/--help` for details. Outputs are TSV/CSV and SVG/PDF files depending on the tool and flags.
+| Tool | Purpose | Input | Output |
+|------|---------|--------|---------|
+| `metabolic_model_setting` | Extract model components | SBML model | Rules, reactions, bounds, medium |
+| `ras_generator` | Compute reaction activity scores | Gene expression data | RAS values |
+| `rps_generator` | Compute reaction propensity scores | Metabolite abundance | RPS values |
+| `marea` | Statistical pathway analysis | RAS + RPS data | Enrichment + base maps |
+| `ras_to_bounds` | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
+| `flux_simulation` | Sample metabolic fluxes | Constrained model | Flux distributions |
+| `flux_to_map` | Add fluxes to enriched maps | Flux samples + base maps | Final styled maps |
+| `marea_cluster` | Cluster analysis | Expression/flux data | Sample clusters |
 
-Example minimal flow (using built-in ENGRO2 model and provided assets):
+## Requirements
 
+- **Python**: 3.8-3.11
+- **OS**: Linux, macOS, Windows (Linux recommended)
+- **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
+
+**Optional system libraries** (for enhanced features):
 ```bash
-# 1) Generate rules/reactions/bounds/medium from a model (optional if using bundled ones)
-custom_data_generator \
-	-id local/models/ENGRO2.xml \
-	-mn ENGRO2.xml \
-	-orules out/ENGRO2_rules.tsv \
-	-orxns out/ENGRO2_reactions.tsv \
-	-omedium out/ENGRO2_medium.tsv \
-	-obnds out/ENGRO2_bounds.tsv
+# Ubuntu/Debian
+sudo apt-get install libvips libglpk40 glpk-utils
 
-# 2) Compute RAS from expression data
-ras_generator \
-	-td $(pwd) \
-	-in my_expression.tsv \
-	-ra out/ras.tsv \
-	-rs ENGRO2
-
-# 3) Integrate RAS into bounds
-ras_to_bounds \
-	-td $(pwd) \
-	-ms ENGRO2 \
-	-ir out/ras.tsv \
-	-rs true \
-	-idop out/ras_bounds
-
-# 4) Flux sampling (CBS)
-flux_simulation \
-	-td $(pwd) \
-	-ms ENGRO2 \
-	-in out/ras_bounds/sample1.tsv,out/ras_bounds/sample2.tsv \
-	-ni sample1,sample2 \
-	-a CBS -ns 500 -sd 0 -nb 1 \
-	-ot mean,median,quantiles \
-	-ota pFBA,FVA,sensitivity \
-	-idop out/flux
-
-# 5) Enrichment + map styling (RAS/RPS or fluxes)
-marea \
-	-td $(pwd) \
-	-using_RAS true -input_data out/ras.tsv \
-	-comparison manyvsmany -test ks \
-	-generate_svg true -generate_pdf true \
-	-choice_map ENGRO2 -idop out/maps
+# For Python GLPK bindings
+pip install swiglpk
 ```
 
-## Tools and usage
+## Data Flow
 
-Below is a high‑level summary of each CLI. Use `--help` for the full list of options.
+```
+Gene Expression    Metabolite Data    SBML Model
+      ↓                   ↓               ↓
+  RAS Generator      RPS Generator   Model Tables
+      ↓                   ↓               
+    RAS Values       RPS Values           
+    | ↓                   ↓               
+    | └─────────┬─────────┘               
+    |           ↓                         
+    |        MAREA                        
+    |    (Enrichment +                    
+    |     Base Maps)                      
+    ↓                
+    RAS Values  →  RAS to Bounds  ←── Model Tables
+                        ↓
+                  Constrained Model
+                        ↓
+                  Flux Simulation
+                        ↓
+                   Flux Samples
+                        ↓
+                   Flux to Map  ←── Maps (ENGRO2)
+                        ↓
+               Final Enriched Maps
+```
 
-### 1) custom_data_generator
+## Built-in Models & Data
 
-Generate model‑derived assets.
+COBRAxy includes ready-to-use resources:
 
-Required inputs:
-- `-id/--input`: model file (XML or JSON; gz/zip/bz2 also supported via extension)
-- `-mn/--name`: the original file name including extension (Galaxy renames files; this preserves the true format)
-- `-orules`, `-orxns`, `-omedium`, `-obnds`: output paths
+- **Models**: ENGRO2, Recon (human metabolism)
+- **Gene mappings**: HGNC, Ensembl, Entrez ID conversions
+- **Pathway maps**: Pre-styled SVG templates
+- **Medium compositions**: Standard growth conditions
 
-Outputs:
-- TSV with rules, reactions, exchange medium, and bounds.
+Located in `local/` directory for immediate use.
 
-### 2) ras_generator (Reaction Activity Scores)
+## Command Line Usage
 
-Compute RAS from a gene expression table.
+All tools support `--help` for detailed options. Key commands:
 
-Key inputs:
-- `-td/--tool_dir`: repository root path (used to locate `local/` assets)
-- `-in/--input`: expression TSV (rows: genes; columns: samples)
-- `-rs/--rules_selector`: model/rules choice, e.g. `ENGRO2` or `Custom` with `-rl` and `-rn`
-- Optional: `-rl/--rule_list` custom rules TSV, `-rn/--rules_name` its original name/extension
-- Output: `-ra/--ras_output` TSV
+### Generate RAS/RPS scores
+```bash
+# From gene expression
+ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 
-### 3) rps_generator (Reaction Propensity Scores)
+# From metabolite data  
+rps_generator -td $(pwd) -id metabolites.tsv -rp rps_output.tsv
+```
 
-Compute RPS from a metabolite abundance table.
+### Flux sampling
+```bash
+flux_simulation -td $(pwd) -ms ENGRO2 -in bounds/*.tsv -a CBS -ns 1000 -idop results/
+```
 
-Key inputs:
-- `-td/--tool_dir`: repository root
-- `-id/--input`: metabolite TSV (rows: metabolites; columns: samples)
-- `-rc/--reaction_choice`: `default` or `custom` with `-cm/--custom` reactions TSV
-- Output: `-rp/--rps_output` TSV
+### Statistical analysis & visualization
+```bash
+marea -td $(pwd) -using_RAS true -input_data ras.tsv -choice_map ENGRO2 -gs true -idop maps/
+```
 
-### 4) ras_to_bounds
+## Galaxy Integration
 
-Integrate RAS into reaction bounds for a given model and medium.
+COBRAxy provides Galaxy tool wrappers (`.xml` files) for web-based analysis:
 
-Key inputs:
-- `-td/--tool_dir`: repository root
-- `-ms/--model_selector`: one of `ENGRO2` or `Custom` with `-mo/--model` and `-mn/--model_name`
-- Medium: `-mes/--medium_selector` (default `allOpen`) or `-meo/--medium` custom TSV
-- RAS: `-ir/--input_ras` and `-rs/--ras_selector` (true/false)
-- Output folder: `-idop/--output_path`
+- Upload data through Galaxy interface
+- Chain tools in visual workflows  
+- Share and reproduce analyses
+- Access via Galaxy ToolShed
 
-Outputs:
-- One bounds TSV per sample in the RAS table.
+## Tutorials
 
-### 5) flux_simulation
+### Local Galaxy Installation
 
-Flux sampling with CBS or OPTGP and downstream statistics.
+To set up a local Galaxy instance with COBRAxy tools:
 
-Key inputs:
-- `-td/--tool_dir`
-- Model: `-ms/--model_selector` (ENGRO2 or Custom with `-mo`/`-mn`)
-- Bounds files: `-in` (comma‑separated list) and `-ni/--names` (comma‑separated sample names)
-- Algorithm: `-a CBS|OPTGP`; CBS uses GLPK if available and falls back to a COBRApy interface
-- Sampling params: `-ns/--n_samples`, `-th/--thinning` (OPTGP), `-nb/--n_batches`, `-sd/--seed`
-- Outputs: `-ot/--output_type` (mean,median,quantiles) and `-ota/--output_type_analysis` (pFBA,FVA,sensitivity)
-- Output path: `-idop/--output_path`
+1. **Install Galaxy**:
+   ```bash
+   # Clone Galaxy repository
+   git clone -b release_23.1 https://github.com/galaxyproject/galaxy.git
+   cd galaxy
+   
+   # Install dependencies and start Galaxy
+   sh run.sh
+   ```
 
-Outputs:
-- Per‑sample or aggregated CSV/TSV with flux samples and statistics.
+2. **Install COBRAxy tools**:
+   ```bash
+   # Add COBRAxy tools to Galaxy
+   mkdir -p tools/cobraxy
+   cp path/to/COBRAxy/Galaxy_tools/*.xml tools/cobraxy/
+   
+   # Update tool_conf.xml to include COBRAxy tools
+   # Add section in config/tool_conf.xml:
+   # <section id="cobraxy" name="COBRAxy">
+   #   <tool file="cobraxy/ras_generator.xml" />
+   #   <tool file="cobraxy/rps_generator.xml" />
+   #   <tool file="cobraxy/marea.xml" />
+   #   <!-- Add other tools -->
+   # </section>
+   ```
 
-### 6) marea
+3. **Galaxy Tutorial Resources**:
+   - [Galaxy Installation Guide](https://docs.galaxyproject.org/en/master/admin/)
+   - [Tool Development Tutorial](https://training.galaxyproject.org/training-material/topics/dev/)
+   - [Galaxy Admin Training](https://training.galaxyproject.org/training-material/topics/admin/)
 
-Statistical enrichment and map styling for RAS and/or RPS groups with optional DESeq2‑style testing via `pydeseq2`.
+### Python Direct Usage
 
-Key inputs:
-- `-td/--tool_dir`
-- Comparison: `-co manyvsmany|onevsrest|onevsmany`
-- Test: `-te ks|ttest_p|ttest_ind|wilcoxon|mw|DESeq`
-- Thresholds: `-pv`, `-adj` (FDR), `-fc`
-- Data: RAS `-using_RAS` plus `-input_data` or multiple datasets with names; similarly for RPS with `-using_RPS`
-- Map: `-choice_map HMRcore|ENGRO2|Custom` or `-custom_map` SVG
-- Output: `-gs/--generate_svg`, `-gp/--generate_pdf`, output dir `-idop`
+For programmatic use of COBRAxy tools in Python scripts:
 
-Outputs:
-- Styled SVG (and optional PDF/PNG) highlighting enriched reactions by color/width per your thresholds.
+1. **Installation for Development**:
+   ```bash
+   # Clone and install in development mode
+   git clone https://github.com/CompBtBs/COBRAxy.git
+   cd COBRAxy
+   pip install -e .
+   ```
 
-### 7) flux_to_map
+2. **Python API Usage**:
+   ```python
+   import sys
+   import os
+   
+   # Add COBRAxy to Python path
+   sys.path.append('/path/to/COBRAxy')
+   
+   # Import tool modules
+   import ras_generator
+   import rps_generator
+   import flux_simulation
+   import marea
+   import ras_to_bounds
+   
+   # Set working directory
+   tool_dir = "/path/to/COBRAxy"
+   os.chdir(tool_dir)
+   
+   # Generate RAS scores
+   ras_args = [
+       '-td', tool_dir,
+       '-in', 'data/expression.tsv',
+       '-ra', 'output/ras_values.tsv',
+       '-rs', 'ENGRO2'
+   ]
+   ras_generator.main(ras_args)
+   
+   # Generate RPS scores (optional)
+   rps_args = [
+       '-td', tool_dir,
+       '-id', 'data/metabolites.tsv',
+       '-rp', 'output/rps_values.tsv'
+   ]
+   rps_generator.main(rps_args)
+   
+   # Create enriched pathway maps
+   marea_args = [
+       '-td', tool_dir,
+       '-using_RAS', 'true',
+       '-input_data', 'output/ras_values.tsv',
+       '-choice_map', 'ENGRO2',
+       '-gs', 'true',
+       '-idop', 'maps'
+   ]
+   marea.main(marea_args)
+   
+   # Apply RAS constraints to model
+   bounds_args = [
+       '-td', tool_dir,
+       '-ms', 'ENGRO2',
+       '-ir', 'output/ras_values.tsv',
+       '-rs', 'true',
+       '-idop', 'bounds'
+   ]
+   ras_to_bounds.main(bounds_args)
+   
+   # Sample metabolic fluxes
+   flux_args = [
+       '-td', tool_dir,
+       '-ms', 'ENGRO2',
+       '-in', 'bounds/bounds_output.tsv',
+       '-a', 'CBS',
+       '-ns', '1000',
+       '-idop', 'flux_results'
+   ]
+   flux_simulation.main(flux_args)
+   ```
 
-Like `marea`, but driven by fluxes instead of RAS/RPS. Accepts single or multiple flux datasets and produces styled maps.
+3. **Python Tutorial Resources**:
+   - [COBRApy Documentation](https://cobrapy.readthedocs.io/)
+   - [Metabolic Modeling with Python](https://opencobra.github.io/cobrapy/building_model.html)
+   - [Flux Sampling Tutorial](https://cobrapy.readthedocs.io/en/stable/sampling.html)
+   - [Jupyter Notebooks Examples](examples/) (included in repository)
 
-### 8) marea_cluster
+## Input/Output Formats
 
-Convenience clustering utilities (k‑means, DBSCAN, hierarchical) for grouping samples; produces labels and optional plots.
-
-## Typical workflow
-
-1. Prepare a model and generate its assets (optional if using bundled assets): `custom_data_generator`
-2. Compute RAS from expression: `ras_generator` (and/or compute RPS via `rps_generator`)
-3. Integrate RAS into bounds: `ras_to_bounds`
-4. Sample fluxes: `flux_simulation` with CBS or OPTGP
-5. Analyze and visualize: `marea` or `flux_to_map` to render SVG/PDF metabolic maps
-6. Optionally cluster or further analyze results: `marea_cluster`
-
-## Input/output formats
-
-Unless otherwise stated, inputs are tab‑separated (TSV) text files with headers.
-
-- Expression (RAS): rows = genes (HGNC/Ensembl/symbol/Entrez supported), columns = samples
-- Metabolite table (RPS): rows = metabolites, columns = samples
-- Rules/Reactions: TSV with two columns: ReactionID, Rule/Reaction
-- Bounds: TSV with index = reaction IDs, columns = lower_bound, upper_bound
-- Medium: single‑column TSV listing exchange reactions
-- Flux samples/statistics: CSV/TSV with reactions as rows and samples/statistics as columns
-
-## Galaxy usage
-
-Each CLI has a corresponding Galaxy tool XML in the repository (e.g., `marea.xml`, `flux_simulation.xml`). Use `shed.yml` to publish to a Galaxy toolshed. The `local/` directory provides models, mappings, and maps for out‑of‑the‑box runs inside Galaxy.
+| Data Type | Format | Description |
+|-----------|---------|-------------|
+| Gene expression | TSV | Genes (rows) × Samples (columns) |
+| Metabolites | TSV | Metabolites (rows) × Samples (columns) |  
+| Models | SBML | Standard metabolic model format |
+| Results | TSV/CSV | Tabular flux/score data |
+| Maps | SVG/PDF | Styled pathway visualizations |
 
 ## Troubleshooting
 
-- GLPK/CBS issues: if `swiglpk` or GLPK is missing, `flux_simulation` will attempt a COBRApy fallback. Install GLPK + `swiglpk` for best performance.
-- pyvips errors: install `libvips` on your system. Reinstall the `pyvips` wheel afterward if needed.
-- PDF/SVG conversions: ensure `cairosvg`, `svglib`, and system libraries (`libxml2`, `libxslt`) are installed.
-- Python version: stick to Python ≥3.8.20 and <3.12.
-- Memory/time: reduce `-ns` (samples) or `-nb` (batches); consider OPTGP if CBS is slow for your model.
+**Common issues:**
+
+- **Missing GLPK**: Install `glpk-utils` and `swiglpk` for optimal CBS performance
+- **SVG errors**: Install `libvips` system library
+- **Memory issues**: Reduce sampling count (`-ns`) or use fewer batches (`-nb`)
 
 ## Contributing
 
-Pull requests are welcome. Please:
-- keep changes focused and documented,
-- add concise docstrings/comments in English,
-- preserve public CLI parameters and file formats.
+Contributions welcome! Please:
+- Follow existing code style
+- Add documentation for new features
+- Test with provided example data
+- Submit focused pull requests
 
-## License and citations
+## Citation
 
-This project is distributed under the MIT License. If you use COBRAxy in academic work, please cite COBRApy and MaREA, and reference this repository.
+If you use COBRAxy in research, please cite:
+- [COBRApy](https://opencobra.github.io/cobrapy/) for core metabolic modeling
+- [MaREA](https://galaxyproject.org/use/marea4galaxy/) for enrichment methods
+- This repository for integrated workflow
 
-## Useful links
+## Links
 
-- COBRAxy Google Summer of Code 2024: https://summerofcode.withgoogle.com/programs/2024/projects/LSrCKfq7
-- COBRApy: https://opencobra.github.io/cobrapy/
-- MaREA4Galaxy: https://galaxyproject.org/use/marea4galaxy/
-- Galaxy project: https://usegalaxy.org/
+- [COBRApy Documentation](https://opencobra.github.io/cobrapy/)
+- [Galaxy Project](https://usegalaxy.org/)
+- [GSoC 2024 Project](https://summerofcode.withgoogle.com/programs/2024/projects/LSrCKfq7)
