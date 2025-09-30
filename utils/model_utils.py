@@ -358,21 +358,40 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
 
 
 # Estrae tutti gli ID metaboliti nella formula (gestisce prefissi numerici + underscore)
+#def extract_metabolites_from_reaction(reaction_formula: str) -> Set[str]:
+#    """
+#    Extract metabolite IDs from a reaction formula.
+#    Robust pattern: tokens ending with _<compartment> (e.g., _c, _m, _e),
+#    allowing leading digits/underscores.
+#    """
+#    metabolites = set()
+#    # optional coefficient followed by a token ending with _<letters>
+#    if reaction_formula[-1] == ']' and reaction_formula[-3] == '[':
+#        pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+[[A-Za-z0-9]]+)'
+#    else:
+#        pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+_[A-Za-z0-9]+)'
+#    matches = re.findall(pattern, reaction_formula)
+#    metabolites.update(matches)
+#    return metabolites
+
+import re
+from typing import Set
+
+# Estrae tutti gli ID metaboliti nella formula (gestisce prefissi numerici + underscore e [comp])
 def extract_metabolites_from_reaction(reaction_formula: str) -> Set[str]:
     """
-    Extract metabolite IDs from a reaction formula.
-    Robust pattern: tokens ending with _<compartment> (e.g., _c, _m, _e),
-    allowing leading digits/underscores.
+    Estrae gli ID dei metaboliti da una formula di reazione.
+    Gestisce:
+      - coefficienti stechiometrici opzionali (interi o decimali)
+      - compartimenti sia in forma [c] sia _c, sempre a fine metabolita
+    Restituisce gli ID includendo il suffisso di compartimento così come appare.
     """
-    metabolites = set()
-    # optional coefficient followed by a token ending with _<letters>
-    if reaction_formula[-1] == ']' and reaction_formula[-3] == '[':
-        pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+[[A-Za-z0-9]]+)'
-    else:
-        pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+_[A-Za-z0-9]+)'
-    matches = re.findall(pattern, reaction_formula)
-    metabolites.update(matches)
-    return metabolites
+    pattern = re.compile(
+        r'(?:^|(?<=\s)|(?<=\+)|(?<=,)|(?<==)|(?<=:))'              # confine a sinistra
+        r'(?:\d+(?:\.\d+)?\s*)?'                                   # coefficiente opzionale
+        r'([A-Za-z0-9_]+(?:\[[A-Za-z0-9]+\]|_[A-Za-z0-9]+))'       # metabolita + compartimento
+    )
+    return {m.group(1) for m in pattern.finditer(reaction_formula)}
 
 
 def extract_compartment_from_metabolite(metabolite_id: str) -> str:
