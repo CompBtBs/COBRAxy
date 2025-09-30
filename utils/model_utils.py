@@ -240,11 +240,15 @@ def generate_compartments(model: cobraModel) -> pd.DataFrame:
 
     for reaction in model.reactions:
         # Get unique pathways from all metabolites in the reaction
-        if type(reaction.annotation['pathways']) == list:
-            reaction_pathways[reaction.id] = reaction.annotation['pathways']
-            max_pathways = max(max_pathways, len(reaction.annotation['pathways']))
+        if 'pathways' in reaction.annotation:
+            if type(reaction.annotation['pathways']) == list:
+                reaction_pathways[reaction.id] = reaction.annotation['pathways']
+                max_pathways = max(max_pathways, len(reaction.annotation['pathways']))
+            else:
+                reaction_pathways[reaction.id] = [reaction.annotation['pathways']]
         else:
-            reaction_pathways[reaction.id] = [reaction.annotation['pathways']]
+            # No pathway annotation - use empty list
+            reaction_pathways[reaction.id] = []
 
     # Create column names for pathways
     pathway_columns = [f"Pathway_{i+1}" for i in range(max_pathways)]
@@ -617,7 +621,7 @@ def _validate_target_uniqueness(mapping_df: 'pd.DataFrame',
 
     # normalize temporary columns for grouping (without altering the original df)
     tmp = mapping_df[[source_col, target_col]].copy()
-    tmp['_src_norm'] = tmp[source_col].astype(str).map(_normalize_gene_id)
+    tmp['_src_norm'] = tmp[source_col].astype(str).apply(_normalize_gene_id)
     tmp['_tgt_norm'] = tmp[target_col].astype(str).str.strip()
 
     # optionally filter to the set of model source genes
@@ -885,7 +889,7 @@ def translate_model_genes(model: 'cobra.Model',
     logger.info(f"Filtering mapping to {len(model_source_genes)} source genes present in model (normalized).")
 
     tmp_map = mapping_df[[col_for_src, col_for_tgt]].dropna().copy()
-    tmp_map[col_for_src + "_norm"] = tmp_map[col_for_src].astype(str).map(_normalize_gene_id)
+    tmp_map[col_for_src + "_norm"] = tmp_map[col_for_src].astype(str).apply(_normalize_gene_id)
 
     filtered_map = tmp_map[tmp_map[col_for_src + "_norm"].isin(model_source_genes)].copy()
 
@@ -955,7 +959,7 @@ def _create_gene_mapping(mapping_df, source_col: str, target_col: str, logger: l
     """
     df = mapping_df[[source_col, target_col]].dropna().copy()
     # normalize to string
-    df[source_col] = df[source_col].astype(str).map(_normalize_gene_id)
+    df[source_col] = df[source_col].astype(str).apply(_normalize_gene_id)
     df[target_col] = df[target_col].astype(str).str.strip()
 
     df = df.drop_duplicates()
