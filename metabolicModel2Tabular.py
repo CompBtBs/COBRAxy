@@ -188,6 +188,8 @@ def main(args:List[str] = None) -> None:
             utils.FilePath.fromStrPath(ARGS.input), utils.FilePath.fromStrPath(ARGS.name).ext)
     else:
         # Load a built-in model
+        if not ARGS.model:
+            raise utils.ArgsErr("model", "either --model or --input must be provided", "None")
 
         try:
             model_enum = utils.Model[ARGS.model]  # e.g., Model['ENGRO2']
