@@ -29,28 +29,6 @@ Step-by-step guides for Galaxy and Python usage
 ### [Tools Documentation](tools/)
 Complete reference for all COBRAxy tools
 
-## Workflow Overview
-
-```mermaid
-graph TD
-    A[Gene Expression Data] --> B[RAS Generator]
-    C[Metabolite Data] --> D[RPS Generator]
-    E[SBML Model] --> F[Model Setting]
-    
-    B --> G[MAREA - Statistical Analysis]
-    D --> G
-    F --> G
-    G --> H[Enriched Pathway Maps]
-    
-    B --> I[RAS to Bounds]
-    F --> I
-    I --> J[Flux Simulation]
-    J --> K[Flux Samples]
-    K --> L[Flux to Map]
-    H --> L
-    L --> M[Final Visualizations]
-```
-
 ## Data Flow
 
 COBRAxy follows two parallel analysis paths:
