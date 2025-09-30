@@ -37,7 +37,7 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
                         help="Built-in model identifier (e.g., ENGRO2, Recon, HMRcore)")
     parser.add_argument("--input", type=str,
                         help="Custom model file (JSON or XML)")
-    parser.add_argument("--name", type=str, required=True,
+    parser.add_argument("--name", nargs='*', required=True,
                         help="Model name (default or custom)")
     
     parser.add_argument("--medium_selector", type=str, required=True,
@@ -181,6 +181,9 @@ def main(args:List[str] = None) -> None:
     global ARGS
     ARGS = process_args(args)
 
+    # Convert name from list to string (handles names with spaces)
+    if isinstance(ARGS.name, list):
+        ARGS.name = ' '.join(ARGS.name)
 
     if ARGS.input:
         # Load a custom model from file
