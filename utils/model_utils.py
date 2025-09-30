@@ -366,7 +366,10 @@ def extract_metabolites_from_reaction(reaction_formula: str) -> Set[str]:
     """
     metabolites = set()
     # optional coefficient followed by a token ending with _<letters>
-    pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+_[a-z]+)'
+    if reaction_formula[-1] == ']' and reaction_formula[-3] == '[':
+        pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+[[A-Za-z0-9]]+)'
+    else:
+        pattern = r'(?:\d+(?:\.\d+)?\s+)?([A-Za-z0-9_]+_[A-Za-z0-9]+)'
     matches = re.findall(pattern, reaction_formula)
     metabolites.update(matches)
     return metabolites
@@ -376,6 +379,8 @@ def extract_compartment_from_metabolite(metabolite_id: str) -> str:
     """Extract the compartment from a metabolite ID."""
     if '_' in metabolite_id:
         return metabolite_id.split('_')[-1]
+    if metabolite_id[-1] == ']' and metabolite_id[-3] == '[':
+        return metabolite_id[-2]
     return 'c'  # default cytoplasm
 
 
@@ -598,6 +603,66 @@ def _normalize_gene_id(g: str) -> str:
     g = re.sub(r'^(ENSG:)', '', g, flags=re.IGNORECASE)
     return g
 
+def _is_or_only_expression(expr: str) -> bool:
+    """
+    Check if a GPR expression contains only OR operators (no AND operators).
+    
+    Args:
+        expr: GPR expression string
+        
+    Returns:
+        bool: True if expression contains only OR (and parentheses) and has multiple genes, False otherwise
+    """
+    if not expr or not expr.strip():
+        return False
+        
+    # Normalize the expression
+    normalized = expr.replace(' AND ', ' and ').replace(' OR ', ' or ')
+    
+    # Check if it contains any AND operators
+    has_and = ' and ' in normalized.lower()
+    
+    # Check if it contains OR operators
+    has_or = ' or ' in normalized.lower()
+    
+    # Must have OR operators and no AND operators
+    return has_or and not has_and
+
+
+def _flatten_or_only_gpr(expr: str) -> str:
+    """
+    Flatten a GPR expression that contains only OR operators by:
+    1. Removing all parentheses
+    2. Extracting unique gene names
+    3. Joining them with ' or '
+    
+    Args:
+        expr: GPR expression string with only OR operators
+        
+    Returns:
+        str: Flattened GPR expression
+    """
+    if not expr or not expr.strip():
+        return expr
+        
+    # Extract all gene tokens (exclude logical operators and parentheses)
+    gene_pattern = r'\b[A-Za-z0-9:_.-]+\b'
+    logical = {'and', 'or', 'AND', 'OR', '(', ')'}
+    
+    tokens = re.findall(gene_pattern, expr)
+    genes = [t for t in tokens if t not in logical]
+    
+    # Create set to remove duplicates, then convert back to list to maintain some order
+    unique_genes = list(dict.fromkeys(genes))  # Preserves insertion order
+    
+    if len(unique_genes) == 0:
+        return expr
+    elif len(unique_genes) == 1:
+        return unique_genes[0]
+    else:
+        return ' or '.join(unique_genes)
+
+
 def _simplify_boolean_expression(expr: str) -> str:
     """
     Simplify a boolean expression by removing duplicates while strictly preserving semantics.
@@ -783,7 +848,7 @@ def translate_model_genes(model: 'cobra.Model',
     model_copy = model.copy()
 
     # statistics
-    stats = {'translated': 0, 'one_to_one': 0, 'one_to_many': 0, 'not_found': 0, 'simplified_gprs': 0}
+    stats = {'translated': 0, 'one_to_one': 0, 'one_to_many': 0, 'not_found': 0, 'simplified_gprs': 0, 'flattened_or_gprs': 0}
     unmapped = []
     multi = []
     
@@ -802,6 +867,15 @@ def translate_model_genes(model: 'cobra.Model',
                 reaction_translation_issues[rxn.id] = rxn_issues
             
             if new_gpr != gpr:
+                # Check if this GPR has translation issues and contains only OR operators
+                if rxn_issues and _is_or_only_expression(new_gpr):
+                    # Flatten the GPR: remove parentheses and create set of unique genes
+                    flattened_gpr = _flatten_or_only_gpr(new_gpr)
+                    if flattened_gpr != new_gpr:
+                        stats['flattened_or_gprs'] += 1
+                        logger.debug(f"Flattened OR-only GPR with issues for {rxn.id}: '{new_gpr}' -> '{flattened_gpr}'")
+                        new_gpr = flattened_gpr
+                
                 simplified_gpr = _simplify_boolean_expression(new_gpr)
                 if simplified_gpr != new_gpr:
                     stats['simplified_gprs'] += 1
@@ -985,6 +1059,7 @@ def _log_translation_statistics(stats: Dict[str, int],
     logger.info(f"Translated: {stats.get('translated', 0)} (1:1 = {stats.get('one_to_one', 0)}, 1:many = {stats.get('one_to_many', 0)})")
     logger.info(f"Not found tokens: {stats.get('not_found', 0)}")
     logger.info(f"Simplified GPRs: {stats.get('simplified_gprs', 0)}")
+    logger.info(f"Flattened OR-only GPRs with issues: {stats.get('flattened_or_gprs', 0)}")
 
     final_ids = {g.id for g in final_genes}
     logger.info(f"Genes in model: {len(original_genes)} -> {len(final_ids)}")
@@ -995,5 +1070,9 @@ def _log_translation_statistics(stats: Dict[str, int],
         logger.info(f"Multi-mapping examples ({len(multi_mapping_genes)}):")
         for orig, targets in multi_mapping_genes[:10]:
             logger.info(f"  {orig} -> {', '.join(targets)}")
+    
+    # Log summary of flattened GPRs if any
+    if stats.get('flattened_or_gprs', 0) > 0:
+        logger.info(f"Flattened {stats['flattened_or_gprs']} OR-only GPRs that had translation issues (removed parentheses, created unique gene sets)")
 
     
