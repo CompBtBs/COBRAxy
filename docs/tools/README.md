@@ -1,4 +1,14 @@
-# Tools Documentation
+# Tool| Tool | Purpose | Input | Output |
+|------|---------|--------|---------|
+| [RAS Generator](ras-generator.md) | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
+| [RPS Generator](rps-generator.md) | Compute reaction propensity scores | Metabolite abundance | RPS values |
+| [MAREA](marea.md) | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
+| [RAS to Bounds](ras-to-bounds.md) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
+| [Flux Simulation](flux-simulation.md) | Sample metabolic fluxes | Constrained model | Flux distributions |
+| [Flux to Map](flux-to-map.md) | Visualize flux data on maps | Flux samples + statistical comparison | Color-coded pathway maps |
+| [Model Setting](metabolic-model-setting.md) | Extract model components | SBML/JSON/MAT/YML model | Tabular model data |
+| [Tabular to Model](tabular-to-model.md) | Create COBRA models | Tabular reaction data | SBML/JSON/MAT/YAML models |
+| [MAREA Cluster](marea-cluster.md) | Cluster analysis | Expression/RAS/RPS/flux data | Sample clusters + validation plots |ation
 
 Complete reference for all COBRAxy tools with parameters, examples, and usage guidelines.
 
@@ -11,9 +21,9 @@ Complete reference for all COBRAxy tools with parameters, examples, and usage gu
 | [MAREA](marea.md) | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
 | [RAS to Bounds](ras-to-bounds.md) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
 | [Flux Simulation](flux-simulation.md) | Sample metabolic fluxes | Constrained model | Flux distributions |
-| [Flux to Map](flux-to-map.md) | Add flux data to maps | Flux samples + maps | Final visualizations |
-| [Model Setting](metabolic-model-setting.md) | Extract model components | SBML model | Rules, reactions, bounds |
-| [MAREA Cluster](marea-cluster.md) | Cluster analysis | Expression/flux data | Sample clusters |
+| [Flux to Map](flux-to-map.md) | Visualize flux data on maps | Flux samples + statistical comparison | Color-coded pathway maps |
+| [Model Setting](metabolic-model-setting.md) | Extract model components | SBML/JSON/MAT/YML model | Tabular model data |
+| [MAREA Cluster](marea-cluster.md) | Cluster analysis | Expression/RAS/RPS/flux data | Sample clusters + validation plots |
 
 ## Common Parameters
 

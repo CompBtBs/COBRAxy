@@ -16,4 +16,5 @@
   * [Flux Simulation](tools/flux-simulation.md)
   * [Flux to Map](tools/flux-to-map.md)
   * [Model Setting](tools/metabolic-model-setting.md)
+  * [Tabular to Model](tools/tabular-to-model.md)
   * [MAREA Cluster](tools/marea-cluster.md)
