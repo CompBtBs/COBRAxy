@@ -44,7 +44,7 @@ galaxy:
   id_secret: your-secret-key-here
   use_remote_user: false
   
-  # Performance settings
+  # Job configuration
   job_config_file: config/job_conf.yml
 ```
 
@@ -209,7 +209,7 @@ HGNC:25	12.1	13.5	18.2	17.8
 
 ### Install Dependencies
 
-For better performance, install additional packages:
+Install required packages in Galaxy's environment:
 
 ```bash
 # Install in Galaxy's Python environment
@@ -218,7 +218,7 @@ source .venv/bin/activate  # or your Galaxy venv
 # Install COBRAxy dependencies
 pip install cobra pandas numpy scipy
 
-# Install optional performance packages
+# Install optional solver
 pip install swiglpk  # GLPK solver
 ```
 
@@ -265,10 +265,10 @@ mkdir -p database/dependencies
 - Verify Python dependencies installed
 - Check file permissions on COBRAxy files
 
-**Performance issues**
+**Slow execution**
 - Increase worker count in `job_conf.yml`
 - Install optional dependencies (GLPK, etc.)
-- Use SSD storage for Galaxy database
+- Check system resources
 
 ### Debug Mode
 

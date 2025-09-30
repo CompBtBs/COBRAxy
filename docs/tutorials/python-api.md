@@ -474,22 +474,7 @@ def validate_file_exists(filepath):
 expression_file = validate_file_exists(expression_file)
 ```
 
-### 4. Resource Management
-```python
-# Monitor memory usage for large datasets
-import psutil
 
-def check_memory():
-    """Check available memory."""
-    memory = psutil.virtual_memory()
-    print(f"Memory usage: {memory.percent}%")
-    if memory.percent > 90:
-        print("Warning: Low memory available")
-
-check_memory()
-# Run memory-intensive operations
-check_memory()
-```
 
 ## Troubleshooting
 

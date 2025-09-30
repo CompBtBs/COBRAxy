@@ -6,7 +6,6 @@ This guide walks you through installing COBRAxy on your system.
 
 - **Python**: 3.8-3.11
 - **Operating System**: Linux (recommended), macOS, Windows
-- **Memory**: Minimum 4GB RAM (8GB+ recommended for large datasets)
 - **Storage**: 2GB free space for installation and temporary files
 
 ## Quick Install
@@ -44,12 +43,12 @@ COBRAxy automatically installs its Python dependencies:
 
 ## Optional System Libraries
 
-For enhanced performance and features, install these system libraries:
+Install additional libraries for enhanced features:
 
 ### Ubuntu/Debian
 
 ```bash
-# Install GLPK for optimal CBS performance
+# Install GLPK solver
 sudo apt-get update
 sudo apt-get install libglpk40 glpk-utils
 

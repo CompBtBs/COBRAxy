@@ -104,24 +104,7 @@ All tools include Galaxy XML wrappers for web-based usage through the Galaxy int
 1. Generate RAS/RPS scores
 2. [MAREA Cluster](marea-cluster.md) → Cluster samples
 
-## Performance Considerations
 
-### Memory Requirements
-- **Small datasets** (< 1000 genes): 2-4 GB RAM
-- **Medium datasets** (1000-5000 genes): 4-8 GB RAM  
-- **Large datasets** (> 5000 genes): 8+ GB RAM
-- **Flux sampling**: Additional 2-4 GB per 1000 samples
-
-### Speed Optimization
-- Use **ENGRO2** model for faster analysis
-- Install **GLPK** solver for CBS sampling performance
-- Reduce **sampling count** for initial testing
-- Use **SSD storage** for temporary files
-
-### Batch Processing
-- Process multiple datasets in parallel
-- Use appropriate **chunk sizes** for large sample sets
-- Monitor **memory usage** during batch runs
 
 ## Troubleshooting
 
@@ -132,10 +115,10 @@ All tools include Galaxy XML wrappers for web-based usage through the Galaxy int
 - Ensure all input files exist before starting
 - Check write permissions for output directories
 
-**Memory Errors**
-- Reduce dataset size or sampling parameters
-- Close other applications to free memory
-- Use more powerful hardware for large analyses
+**File Issues**
+- Check file paths and permissions
+- Verify input file formats
+- Ensure sufficient disk space
 
 **Model Issues**
 - Verify model file format and gene ID consistency

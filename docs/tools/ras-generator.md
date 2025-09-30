@@ -156,22 +156,19 @@ ras_generator.main(args)
 - **Scope**: Focused human metabolism
 - **Reactions**: ~2,000
 - **Genes**: ~500
-- **Performance**: Fast computation
 - **Use case**: General metabolic analysis
 
 ### Recon (Comprehensive analysis)
 - **Scope**: Complete human metabolism  
 - **Reactions**: ~10,000
 - **Genes**: ~2,000
-- **Performance**: Slower but comprehensive
 - **Use case**: Detailed metabolic studies
 
 ### HMRcore (Balanced option)
 - **Scope**: Core human metabolism
 - **Reactions**: ~5,000  
 - **Genes**: ~1,000
-- **Performance**: Moderate speed
-- **Use case**: Balanced coverage and speed
+- **Use case**: Balanced coverage
 
 ## Gene ID Mapping
 
@@ -186,22 +183,7 @@ COBRAxy supports multiple gene identifier formats:
 
 **Recommendation**: Use HGNC IDs for best compatibility and stability.
 
-## Performance Considerations
 
-### Speed Optimization
-- **Model choice**: ENGRO2 < HMRcore < Recon (fastest to slowest)
-- **Gene count**: Fewer genes = faster processing
-- **Sample count**: Linear scaling with number of samples
-
-### Memory Requirements
-- **Small datasets** (< 1000 genes): < 1 GB RAM
-- **Medium datasets** (1000-5000 genes): 1-2 GB RAM
-- **Large datasets** (> 5000 genes): 2+ GB RAM
-
-### Typical Runtime
-- **ENGRO2 model**: 10-30 seconds for 100 samples
-- **Recon model**: 1-5 minutes for 100 samples
-- **Custom models**: Varies with complexity
 
 ## Troubleshooting
 
@@ -231,13 +213,7 @@ Solution: Check input file format and permissions
 - Check write permissions for output directory
 ```
 
-**Memory errors**
-```
-Solution: Reduce dataset size or upgrade hardware
-- Filter to most variable genes
-- Process in smaller batches
-- Use more memory or swap space
-```
+
 
 ### Debug Mode
 

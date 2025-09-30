@@ -97,33 +97,7 @@ Solution:
 
 ## Tool Execution Errors
 
-### Memory Issues
 
-**Problem**: Out of memory errors
-```
-Solutions:
-1. Reduce dataset size:
-   - Filter to top variable genes
-   - Process samples in batches
-   
-2. Optimize parameters:
-   - Use ENGRO2 instead of Recon model
-   - Reduce flux sampling count (-ns parameter)
-   
-3. System resources:
-   - Close other applications  
-   - Add swap space
-   - Use machine with more RAM
-```
-
-**Problem**: Process killed during flux sampling
-```bash
-# Monitor memory usage
-htop  # or top
-
-# Reduce sampling parameters
-flux_simulation -ns 100 -nb 10  # instead of -ns 1000
-```
 
 ### File Path Problems
 
@@ -174,18 +148,7 @@ Common fixes:
 3. Verify file permissions on tool files
 ```
 
-## Performance Issues
 
-### Slow Execution
-
-**Problem**: RAS generation takes too long
-```
-Solutions:
-1. Use faster model: ENGRO2 < HMRcore < Recon
-2. Filter input data to fewer genes
-3. Check for file I/O bottlenecks (use SSD storage)
-4. Profile memory usage (avoid swapping)
-```
 
 **Problem**: Flux sampling hangs
 ```bash
