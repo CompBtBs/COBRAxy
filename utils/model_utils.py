@@ -374,29 +374,29 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
 #    metabolites.update(matches)
 #    return metabolites
 
-import re
-from typing import Set
 
-# Estrae tutti gli ID metaboliti nella formula (gestisce prefissi numerici + underscore e [comp])
 def extract_metabolites_from_reaction(reaction_formula: str) -> Set[str]:
     """
-    Estrae gli ID dei metaboliti da una formula di reazione.
-    Gestisce:
-      - coefficienti stechiometrici opzionali (interi o decimali)
-      - compartimenti sia in forma [c] sia _c, sempre a fine metabolita
-    Restituisce gli ID includendo il suffisso di compartimento così come appare.
+    Extract metabolite IDs from a reaction formula.
+
+    Handles:
+      - optional stoichiometric coefficients (integers or decimals)
+      - compartment tags at the end of the metabolite, either [c] or _c
+
+    Returns the IDs including the compartment suffix exactly as written.
     """
     pattern = re.compile(
-        r'(?:^|(?<=\s)|(?<=\+)|(?<=,)|(?<==)|(?<=:))'              # confine a sinistra
-        r'(?:\d+(?:\.\d+)?\s*)?'                                   # coefficiente opzionale
-        r'([A-Za-z0-9_]+(?:\[[A-Za-z0-9]+\]|_[A-Za-z0-9]+))'       # metabolita + compartimento
+        r'(?:^|(?<=\s)|(?<=\+)|(?<=,)|(?<==)|(?<=:))'              # left boundary (start, space, +, comma, =, :)
+        r'(?:\d+(?:\.\d+)?\s*)?'                                   # optional coefficient
+        r'([A-Za-z0-9_]+(?:\[[A-Za-z0-9]+\]|_[A-Za-z0-9]+))'       # metabolite + compartment
     )
     return {m.group(1) for m in pattern.finditer(reaction_formula)}
 
 
+
 def extract_compartment_from_metabolite(metabolite_id: str) -> str:
     """Extract the compartment from a metabolite ID."""
-    if '_' in metabolite_id:
+    if '_' == metabolite_id[-2]:
         return metabolite_id.split('_')[-1]
     if metabolite_id[-1] == ']' and metabolite_id[-3] == '[':
         return metabolite_id[-2]
