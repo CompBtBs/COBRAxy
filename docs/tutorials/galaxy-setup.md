@@ -14,7 +14,7 @@ This tutorial provides guidance and references to official Galaxy documentation 
 
 For installing Galaxy on your local machine, follow the official documentation:
 
-### 📖 Official Installation Guides
+### Official Installation Guides
 
 - **[Galaxy Installation Guide](https://docs.galaxyproject.org/en/master/admin/)**
 
@@ -22,7 +22,7 @@ For installing Galaxy on your local machine, follow the official documentation:
 
 - **[Galaxy Training: Admin Track](https://training.galaxyproject.org/training-material/topics/admin/)**
 
-### 🚀 Quick Summary
+### Quick Summary
 
 1. Clone Galaxy repository: `git clone https://github.com/galaxyproject/galaxy.git`
 2. Run setup script: `sh run.sh`  
@@ -34,7 +34,7 @@ For installing Galaxy on your local machine, follow the official documentation:
 
 For adding custom tools to Galaxy, refer to the official documentation:
 
-### 📖 Official Tool Installation Guides
+### Official Tool Installation Guides
 
 - **[Adding Tools to Galaxy](https://docs.galaxyproject.org/en/master/admin/tool_panel.html)**
 
@@ -42,7 +42,7 @@ For adding custom tools to Galaxy, refer to the official documentation:
 
 - **[Galaxy Tool Installation](https://planemo.readthedocs.io/en/latest/)**
 
-### 🛠️ COBRAxy-Specific Setup
+### COBRAxy-Specific Setup
 
 1. **Copy COBRAxy files** to Galaxy's tools directory:
    ```bash

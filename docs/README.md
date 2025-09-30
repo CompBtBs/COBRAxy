@@ -10,28 +10,24 @@ COBRAxy provides a complete pipeline for metabolic modeling and analysis, from r
 
 ## Key Features
 
-- **🧬 Reaction Activity Scores (RAS)** - Compute metabolic activity from gene expression data
-- **⚗️ Reaction Propensity Scores (RPS)** - Infer metabolic preferences from metabolite abundance
-- **📊 Flux Sampling** - Sample metabolic flux distributions with CBS or OptGP algorithms  
-- **📈 Statistical Analysis** - Perform pFBA, FVA, and sensitivity analysis
-- **🎨 Interactive Maps** - Generate publication-ready pathway visualizations with SVG/PDF export
-- **🌐 Galaxy Tools** - Web-based analysis with intuitive interface
-- **🔧 Built-in Models** - Ready-to-use models including ENGRO2 and Recon
+- **Reaction Activity Scores (RAS)** - Compute metabolic activity from gene expression data
+- **Reaction Propensity Scores (RPS)** - Infer metabolic preferences from metabolite abundance
+- **Flux Sampling** - Sample metabolic flux distributions with CBS or OptGP algorithms  
+- **Statistical Analysis** - Perform pFBA, FVA, and sensitivity analysis
+- **Interactive Maps** - Generate publication-ready pathway visualizations with SVG/PDF export
+- **Galaxy Tools** - Web-based analysis with intuitive interface
+- **Built-in Models** - Ready-to-use models including ENGRO2 and Recon
 
 ## Quick Navigation
 
-<div class="nav-grid">
-
-### 🚀 [Installation](installation.md)
+### [Installation](installation.md)
 Install COBRAxy and get it running on your system
 
-### 📚 [Tutorials](tutorials/)
+### [Tutorials](tutorials/)
 Step-by-step guides for Galaxy and Python usage
 
-### 🛠️ [Tools Documentation](tools/)
+### [Tools Documentation](tools/)
 Complete reference for all COBRAxy tools
-
-</div>
 
 ## Workflow Overview
 
@@ -64,10 +60,10 @@ COBRAxy follows two parallel analysis paths:
 
 ## Community & Support
 
-- **📖 Documentation**: Complete guides and API reference
-- **💬 Discussions**: Ask questions and share experiences
-- **🐛 Issues**: Report bugs and request features
-- **🤝 Contributing**: Help improve COBRAxy
+- **Documentation**: Complete guides and API reference
+- **Discussions**: Ask questions and share experiences
+- **Issues**: Report bugs and request features
+- **Contributing**: Help improve COBRAxy
 
 ## Quick Links
 

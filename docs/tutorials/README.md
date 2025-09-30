@@ -11,11 +11,11 @@ Learn COBRAxy through hands-on tutorials covering the two main usage scenarios.
 
 ## Choose Your Path
 
-### 🌐 Web Interface → [Galaxy Setup Tutorial](galaxy-setup.md)
+### Web Interface → [Galaxy Setup Tutorial](galaxy-setup.md)
 
 Set up a local Galaxy instance with COBRAxy tools for point-and-click analysis. Perfect for users who prefer graphical interfaces and don't want to write code.
 
-### 🐍 Python Programming → [Python API Tutorial](python-api.md)
+### Python Programming → [Python API Tutorial](python-api.md)
 
 Learn to call COBRAxy tools programmatically in your analysis pipelines. Ideal for integrating COBRAxy into custom workflows and automation.
 

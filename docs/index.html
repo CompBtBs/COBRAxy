@@ -6,11 +6,24 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <meta name="description" content="COBRAxy - A Python toolkit for metabolic flux analysis and visualization">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.css">
   <style>
     :root {
-      --theme-color: #2ea44f;
-      --text-color-base: #24292e;
+      --theme-color: #4CAF50;
+      --text-color-base: #e1e4e8;
+      --background-color: #0d1117;
+      --sidebar-background: #161b22;
+      --code-background: #21262d;
+    }
+    
+    body {
+      background-color: var(--background-color);
+      color: var(--text-color-base);
+    }
+    
+    .sidebar {
+      background-color: var(--sidebar-background);
+      border-right: 1px solid #30363d;
     }
     
     .sidebar-nav a {
@@ -33,20 +46,48 @@
       vertical-align: middle;
     }
     
-    /* Assicura che il logo venga visualizzato correttamente */
     .sidebar > h1 > img {
       max-height: 50px;
       width: auto;
     }
     
+    .markdown-section {
+      background-color: var(--background-color);
+      color: var(--text-color-base);
+    }
+    
     .markdown-section code {
-      background-color: #f6f8fa;
+      background-color: var(--code-background);
+      color: #f0f6fc;
       border-radius: 6px;
       padding: 0.2em 0.4em;
+      border: 1px solid #30363d;
+    }
+    
+    .markdown-section pre {
+      background-color: var(--code-background);
+      border: 1px solid #30363d;
     }
     
     .markdown-section pre > code {
-      background-color: #f6f8fa;
+      background-color: var(--code-background);
+      color: #f0f6fc;
+    }
+    
+    .markdown-section table {
+      border-collapse: collapse;
+      border: 1px solid #30363d;
+    }
+    
+    .markdown-section th,
+    .markdown-section td {
+      border: 1px solid #30363d;
+      background-color: var(--code-background);
+    }
+    
+    .markdown-section th {
+      background-color: #21262d;
+      font-weight: 600;
     }
   </style>
 </head>
@@ -55,7 +96,6 @@
   <script>
     window.$docsify = {
       name: 'COBRAxy',
-      repo: 'https://github.com/CompBtBs/COBRAxy',
       logo: './_media/logo.png',
       loadSidebar: true,
       loadNavbar: false,
