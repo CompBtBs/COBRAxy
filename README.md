@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="docs/_media/logo.png" alt="COBRAxy Logo" width="200"/>
+</div>
+
 # COBRAxy
 
 A Python toolkit for metabolic flux analysis and visualization, with Galaxy integration.
