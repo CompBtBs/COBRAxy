@@ -275,7 +275,7 @@ def main(args:List[str] = None) -> None:
             logger=logger
         )
 
-    if ARGS.name == "Custom_model" and ARGS.gene_format != "Default":
+    if ARGS.input and ARGS.gene_format != "Default":
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
 
