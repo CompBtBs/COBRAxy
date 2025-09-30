@@ -237,30 +237,6 @@ def main(args:List[str] = None) -> None:
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
 
-        tmp_check = []
-        for g in model.genes[1:5]:  # check first 3 genes only
-            tmp_check.append(modelUtils.gene_type(g.id, "Custom_model"))
-        
-        if len(set(tmp_check)) > 1:
-            raise utils.DataErr("Custom_model", "The custom model contains genes with mixed or unrecognized nomenclature. Please ensure all genes use the same recognized nomenclature before applying gene_format conversion.")
-        else:
-            source_nomenclature = tmp_check[0]
-
-        if source_nomenclature != ARGS.gene_format:
-            model, translation_issues = modelUtils.translate_model_genes(
-                model=model,
-                mapping_df= pd.read_csv(ARGS.tool_dir + "/local/mappings/genes_human.csv", dtype={'entrez_id': str}),
-                target_nomenclature=ARGS.gene_format,
-                source_nomenclature=source_nomenclature,
-                logger=logger
-            )
-
-
-
-
-    if ARGS.name == "Custom_model" and ARGS.gene_format != "Default":
-        logger = logging.getLogger(__name__)
-
         # Take a small, clean sample of gene IDs (skipping placeholders like 0)
         ids_sample = sample_valid_gene_ids(model.genes, limit=10)
         if not ids_sample:
