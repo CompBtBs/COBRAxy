@@ -1,62 +1,34 @@
-# Tools Reference
+# Tools Documentation
 
-Complete documentation for all COBRAxy tools with parameters, examples, and usage guidelines.
+Complete reference for all COBRAxy tools with parameters, examples, and usage guidelines.
 
-## Tool Overview
+## Available Tools
 
-| Tool | Category | Purpose | Input | Output |
-|------|----------|---------|--------|--------|
-| [RAS Generator](ras-generator.md) | Core | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
-| [RPS Generator](rps-generator.md) | Core | Compute reaction propensity scores | Metabolite abundance | RPS values |
-| [MAREA](marea.md) | Analysis | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
-| [RAS to Bounds](ras-to-bounds.md) | Modeling | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
-| [Flux Simulation](flux-simulation.md) | Modeling | Sample metabolic fluxes | Constrained model | Flux distributions |
-| [Flux to Map](flux-to-map.md) | Visualization | Add flux data to maps | Flux samples + maps | Final visualizations |
-| [Model Setting](metabolic-model-setting.md) | Utility | Extract model components | SBML model | Rules, reactions, bounds |
-| [MAREA Cluster](marea-cluster.md) | Analysis | Cluster analysis | Expression/flux data | Sample clusters |
-
-## Tool Categories
-
-### Core Tools
-Generate activity/propensity scores from omics data:
-- **[RAS Generator](ras-generator.md)** - Gene expression → Reaction activity
-- **[RPS Generator](rps-generator.md)** - Metabolites → Reaction propensity
-
-### Analysis Tools  
-Perform statistical analysis and enrichment:
-- **[MAREA](marea.md)** - Pathway enrichment and visualization
-- **[MAREA Cluster](marea-cluster.md)** - Sample clustering and classification
-
-### Modeling Tools
-Constraint-based flux analysis:
-- **[RAS to Bounds](ras-to-bounds.md)** - Apply activity constraints
-- **[Flux Simulation](flux-simulation.md)** - Sample flux distributions
-
-### Visualization Tools
-Create publication-ready figures:
-- **[Flux to Map](flux-to-map.md)** - Combine flux data with pathway maps
-
-### Utility Tools
-Model manipulation and setup:
-- **[Model Setting](metabolic-model-setting.md)** - Extract model information
+| Tool | Purpose | Input | Output |
+|------|---------|--------|--------|
+| [RAS Generator](ras-generator.md) | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
+| [RPS Generator](rps-generator.md) | Compute reaction propensity scores | Metabolite abundance | RPS values |
+| [MAREA](marea.md) | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
+| [RAS to Bounds](ras-to-bounds.md) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
+| [Flux Simulation](flux-simulation.md) | Sample metabolic fluxes | Constrained model | Flux distributions |
+| [Flux to Map](flux-to-map.md) | Add flux data to maps | Flux samples + maps | Final visualizations |
+| [Model Setting](metabolic-model-setting.md) | Extract model components | SBML model | Rules, reactions, bounds |
+| [MAREA Cluster](marea-cluster.md) | Cluster analysis | Expression/flux data | Sample clusters |
 
 ## Common Parameters
 
-Many tools share these parameters:
+All tools share these basic parameters:
 
-### Input/Output Parameters
-- `-td, --tool_dir`: COBRAxy installation directory (required for all tools)
-- `-in, --input`: Input dataset file
-- `-idop, --output_dir`: Output directory for results
+- **`-td, --tool_dir`**: COBRAxy installation directory (required)
+- **`-in, --input`**: Input dataset file
+- **`-idop, --output_dir`**: Output directory for results
+- **`-rs, --rules_selector`**: Built-in model (ENGRO2, Recon, HMRcore)
 
-### Model Selection  
-- `-rs, --rules_selector`: Choose built-in model (ENGRO2, Recon, HMRcore)
-- `-ms, --model_selector`: Model for flux analysis
+## Analysis Workflows
 
-### Analysis Options
-- `-gs, --gene_set_analysis`: Enable statistical enrichment testing
-- `-a, --algorithm`: Sampling algorithm (CBS, OptGP)
-- `-ns, --n_samples`: Number of flux samples to generate
+**Enrichment Analysis**: Gene Expression → RAS Generator → MAREA → Pathway Maps
+
+**Flux Simulation**: Gene Expression → RAS Generator → RAS to Bounds → Flux Simulation → Flux to Map
 
 ## Usage Patterns
 

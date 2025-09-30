@@ -1,37 +1,23 @@
 # Tutorials
 
-Learn COBRAxy through hands-on tutorials covering different usage scenarios.
+Learn COBRAxy through hands-on tutorials covering the two main usage scenarios.
 
-## Tutorial Overview
+## Available Tutorials
 
-| Tutorial | Level | Duration | Description |
-|----------|-------|----------|-------------|
-| [Galaxy Setup](galaxy-setup.md) | Beginner | 30 min | Set up Galaxy for web-based analysis |
-| [Python API Usage](python-api.md) | Intermediate | 45 min | Programmatic analysis with Python |
-| [Basic Workflow](workflow.md) | Beginner | 60 min | Complete analysis from data to results |
-| [Data Formats](data-formats.md) | Beginner | 20 min | Prepare your data for analysis |
+| Tutorial | Duration | Description |
+|----------|----------|-------------|
+| [Galaxy Setup](galaxy-setup.md) | 30 min | Set up Galaxy for web-based analysis |
+| [Python API Usage](python-api.md) | 45 min | Programmatic analysis with Python |
 
-## Quick Start Paths
+## Choose Your Path
 
-### I want to use the web interface
-→ **[Galaxy Setup Tutorial](galaxy-setup.md)**
+### 🌐 Web Interface → [Galaxy Setup Tutorial](galaxy-setup.md)
 
-Set up a local Galaxy instance with COBRAxy tools for point-and-click analysis.
+Set up a local Galaxy instance with COBRAxy tools for point-and-click analysis. Perfect for users who prefer graphical interfaces and don't want to write code.
 
-### I want to write Python scripts  
-→ **[Python API Tutorial](python-api.md)**
+### 🐍 Python Programming → [Python API Tutorial](python-api.md)
 
-Learn to call COBRAxy tools programmatically in your analysis pipelines.
-
-### I want to understand the complete workflow
-→ **[Basic Workflow Tutorial](workflow.md)**
-
-Follow a complete analysis from raw data to publication-ready figures.
-
-### I need help with data preparation
-→ **[Data Formats Tutorial](data-formats.md)**
-
-Learn about input requirements, formats, and data preprocessing.
+Learn to call COBRAxy tools programmatically in your analysis pipelines. Ideal for integrating COBRAxy into custom workflows and automation.
 
 ## Prerequisites
 

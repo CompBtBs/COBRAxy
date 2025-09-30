@@ -22,17 +22,14 @@ COBRAxy provides a complete pipeline for metabolic modeling and analysis, from r
 
 <div class="nav-grid">
 
-### 🚀 [Getting Started](getting-started.md)
-Install COBRAxy and run your first analysis
+### 🚀 [Installation](installation.md)
+Install COBRAxy and get it running on your system
 
 ### 📚 [Tutorials](tutorials/)
-Step-by-step guides for common workflows
+Step-by-step guides for Galaxy and Python usage
 
-### 🛠️ [Tools Reference](tools/)
-Detailed documentation for each COBRAxy tool
-
-### 💡 [Examples](examples/)
-Practical examples and use cases
+### 🛠️ [Tools Documentation](tools/)
+Complete reference for all COBRAxy tools
 
 </div>
 
@@ -77,10 +74,9 @@ COBRAxy follows two parallel analysis paths:
 | Resource | Description |
 |----------|-------------|
 | [Installation Guide](installation.md) | Get COBRAxy running on your system |
-| [Python API Tutorial](tutorials/python-api.md) | Use COBRAxy programmatically |
-| [Galaxy Setup](tutorials/galaxy-setup.md) | Web-based analysis setup |
-| [Troubleshooting](troubleshooting.md) | Common issues and solutions |
-| [Examples](examples/) | Real-world usage examples |
+| [Galaxy Tutorial](tutorials/galaxy-setup.md) | Web-based analysis setup |
+| [Python Tutorial](tutorials/python-api.md) | Use COBRAxy programmatically |
+| [Tools Documentation](tools/) | Complete tool reference |
 
 ---
 
