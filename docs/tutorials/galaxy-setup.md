@@ -17,17 +17,10 @@ For installing Galaxy on your local machine, follow the official documentation:
 ### 📖 Official Installation Guides
 
 - **[Galaxy Installation Guide](https://docs.galaxyproject.org/en/master/admin/)**
-  - Complete administrator documentation
-  - System requirements and dependencies
-  - Configuration options
 
 - **[Galaxy Quick Start](https://docs.galaxyproject.org/en/master/admin/production.html)**
-  - Fast setup for testing and development
-  - Single-user and multi-user configurations
 
 - **[Galaxy Training: Admin Track](https://training.galaxyproject.org/training-material/topics/admin/)**
-  - Step-by-step tutorials with hands-on exercises
-  - Best practices for Galaxy administration
 
 ### 🚀 Quick Summary
 
@@ -44,16 +37,10 @@ For adding custom tools to Galaxy, refer to the official documentation:
 ### 📖 Official Tool Installation Guides
 
 - **[Adding Tools to Galaxy](https://docs.galaxyproject.org/en/master/admin/tool_panel.html)**
-  - How to configure tool_conf.xml
-  - Tool directory structure and organization
 
 - **[Tool Development Tutorial](https://training.galaxyproject.org/training-material/topics/dev/)**
-  - Understanding Galaxy tool wrappers
-  - XML tool definition format
 
 - **[Galaxy Tool Installation](https://planemo.readthedocs.io/en/latest/)**
-  - Using Planemo for tool development and testing
-  - Best practices for tool integration
 
 ### 🛠️ COBRAxy-Specific Setup
 
