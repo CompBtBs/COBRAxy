@@ -10,10 +10,6 @@ This tutorial provides guidance and references to official Galaxy documentation 
 - Adding COBRAxy tools to your Galaxy instance
 - Running COBRAxy analyses through the web interface
 
-**Time required**: Variable (depends on experience)  
-**Difficulty**: Intermediate  
-**Prerequisites**: System administration experience recommended
-
 ## Step 1: Install Galaxy Locally
 
 For installing Galaxy on your local machine, follow the official documentation:
