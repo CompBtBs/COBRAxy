@@ -180,8 +180,8 @@ def save_model(model, filename, output_folder, file_format='csv'):
             
             compartments = modelUtils.generate_compartments(model)
 
-            df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "Rule"])
-            df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
+            df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "GPR"])
+            df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Formula"])
             df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
             df_medium = medium.rename(columns = {"reaction": "ReactionID"})
             df_medium["InMedium"] = True
