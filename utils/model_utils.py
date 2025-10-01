@@ -269,7 +269,36 @@ def generate_compartments(model: cobraModel) -> pd.DataFrame:
 
     return pd.DataFrame(pathway_data)
 
+def set_annotation_pathways_from_data(model: cobraModel, df: pd.DataFrame):
+    """Set reaction pathways based on 'Pathway_1', 'Pathway_2', ... columns in the dataframe."""
+    pathway_cols = [col for col in df.columns if col.startswith('Pathway_')]
+    if not pathway_cols:
+        print("No 'Pathway_' columns found, skipping pathway annotation")
+        return
+    
+    pathway_data = defaultdict(list)
+    
+    for idx, row in df.iterrows():
+        reaction_id = str(row['ReactionID']).strip()
+        if reaction_id not in model.reactions:
+            continue
+        
+        pathways = []
+        for col in pathway_cols:
+            if pd.notna(row[col]) and str(row[col]).strip():
+                pathways.append(str(row[col]).strip())
+        
+        if pathways:
+            
+            reaction = model.reactions.get_by_id(reaction_id)
+            if len(pathways) == 1:
+                reaction.annotation['pathways'] = pathways[0]
+            else:
+                reaction.annotation['pathways'] = pathways
 
+            pathway_data[reaction_id] = pathways
+    
+    print(f"Annotated {len(pathway_data)} reactions with pathways.")
 
 def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> cobraModel:
     """
@@ -366,6 +395,8 @@ def build_cobra_model_from_csv(csv_path: str, model_id: str = "new_model") -> co
     set_objective_from_csv(model, df, obj_col="ObjectiveCoefficient")
 
     set_medium_from_data(model, df)
+
+    set_annotation_pathways_from_data(model, df)
     
     print(f"Model completed: {len(model.reactions)} reactions, {len(model.metabolites)} metabolites")
     

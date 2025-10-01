@@ -81,11 +81,12 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
         sys.exit: If the CSV file has the wrong format, the execution is aborted.
     """
     try:
-        dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python',index_col=0)
+        dataset = pd.read_csv(data, sep = '\t', header = 0, engine='python', index_col=0)
+        dataset = dataset.astype(float)
     except pd.errors.EmptyDataError:
-        sys.exit('Execution aborted: wrong format of ' + name + '\n')
+        sys.exit('Execution aborted: wrong file format of ' + name + '\n')
     if len(dataset.columns) < 2:
-        sys.exit('Execution aborted: wrong format of ' + name + '\n')
+        sys.exit('Execution aborted: wrong file format of ' + name + '\n')
     return dataset
 
 
