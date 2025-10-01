@@ -178,10 +178,7 @@ def save_model(model, filename, output_folder, file_format='csv'):
             bounds = modelUtils.generate_bounds(model)
             medium = modelUtils.get_medium(model)
             
-            try:
-                compartments = modelUtils.generate_compartments(model)
-            except:
-                compartments = None
+            compartments = modelUtils.generate_compartments(model)
 
             df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "Rule"])
             df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Reaction"])
@@ -191,9 +188,8 @@ def save_model(model, filename, output_folder, file_format='csv'):
 
             merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
             merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
-            
-            # Add compartments only if they exist and model name is ENGRO2
-            if compartments is not None and hasattr(ARGS, 'name') and ARGS.name == "ENGRO2": 
+            # Add compartments only if they exist
+            if compartments is not None:
                 merged = merged.merge(compartments, on = "ReactionID", how = "outer")
             
             merged = merged.merge(df_medium, on = "ReactionID", how = "left")

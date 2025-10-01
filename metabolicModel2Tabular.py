@@ -332,8 +332,7 @@ def main(args:List[str] = None) -> None:
     medium = modelUtils.get_medium(model)
     objective_function = modelUtils.extract_objective_coefficients(model)
     
-    if ARGS.name == "ENGRO2":
-        compartments = modelUtils.generate_compartments(model)
+    compartments = modelUtils.generate_compartments(model)
 
     df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "GPR"])
     df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Formula"])
@@ -351,7 +350,7 @@ def main(args:List[str] = None) -> None:
     merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
     merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
     merged = merged.merge(objective_function, on = "ReactionID", how = "outer")
-    if ARGS.name == "ENGRO2": 
+    if compartments is not None: 
         merged = merged.merge(compartments, on = "ReactionID", how = "outer")
     merged = merged.merge(df_medium, on = "ReactionID", how = "left")
     

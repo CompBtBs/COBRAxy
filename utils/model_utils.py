@@ -223,37 +223,54 @@ def generate_bounds(model:cobraModel) -> pd.DataFrame:
 
 def generate_compartments(model: cobraModel) -> pd.DataFrame:
     """
-    Generates a DataFrame containing compartment information for each reaction.
-    Creates columns for each compartment position (Compartment_1, Compartment_2, etc.)
+    Generates a DataFrame containing pathway information for each reaction.
+    Creates columns for each pathway position (Pathway_1, Pathway_2, etc.) only if pathways exist.
     
     Args:
-        model: the COBRA model to extract compartment data from.
+        model: the COBRA model to extract pathway data from.
         
     Returns:
-        pd.DataFrame: DataFrame with ReactionID and compartment columns
+        pd.DataFrame: DataFrame with ReactionID and pathway columns (if any pathways exist)
     """
     pathway_data = []
 
     # First pass: determine the maximum number of pathways any reaction has
     max_pathways = 0
     reaction_pathways = {}
+    has_any_pathways = False
 
     for reaction in model.reactions:
         # Get unique pathways from all metabolites in the reaction
-        if 'pathways' in reaction.annotation:
+        if 'pathways' in reaction.annotation and reaction.annotation['pathways']:
             if type(reaction.annotation['pathways']) == list:
-                reaction_pathways[reaction.id] = reaction.annotation['pathways']
-                max_pathways = max(max_pathways, len(reaction.annotation['pathways']))
+                # Filter out empty/None values
+                valid_pathways = [p for p in reaction.annotation['pathways'] if p]
+                if valid_pathways:
+                    reaction_pathways[reaction.id] = valid_pathways
+                    max_pathways = max(max_pathways, len(valid_pathways))
+                    has_any_pathways = True
+                else:
+                    reaction_pathways[reaction.id] = []
             else:
-                reaction_pathways[reaction.id] = [reaction.annotation['pathways']]
+                # Single pathway value
+                if reaction.annotation['pathways']:
+                    reaction_pathways[reaction.id] = [reaction.annotation['pathways']]
+                    max_pathways = max(max_pathways, 1)
+                    has_any_pathways = True
+                else:
+                    reaction_pathways[reaction.id] = []
         else:
             # No pathway annotation - use empty list
             reaction_pathways[reaction.id] = []
 
-    # Create column names for pathways
+    # If no pathways exist in the model, return DataFrame with only ReactionID
+    if not has_any_pathways:
+        return None
+
+    # Create column names for pathways only if they exist
     pathway_columns = [f"Pathway_{i+1}" for i in range(max_pathways)]
 
-    # Second pass: create the data
+    # Second pass: create the data with pathway columns
     for reaction_id, pathways in reaction_pathways.items():
         row = {"ReactionID": reaction_id}
         
@@ -263,7 +280,7 @@ def generate_compartments(model: cobraModel) -> pd.DataFrame:
             if i < len(pathways):
                 row[col_name] = pathways[i]
             else:
-                row[col_name] = None  # or "" if you prefer empty strings
+                row[col_name] = None
 
         pathway_data.append(row)
 
@@ -289,7 +306,7 @@ def set_annotation_pathways_from_data(model: cobraModel, df: pd.DataFrame):
                 pathways.append(str(row[col]).strip())
         
         if pathways:
-            
+
             reaction = model.reactions.get_by_id(reaction_id)
             if len(pathways) == 1:
                 reaction.annotation['pathways'] = pathways[0]
