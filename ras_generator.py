@@ -191,6 +191,7 @@ def computeRAS(
     for rule, reaction_ids in dict_rule_reactions.items():
         if len(rule) != 0:
             # there is one gene at least in the formula
+            rule = rule.replace("-","_")
             rule_split = rule.split()
             rule_split_elements = list(set(rule_split))                                # genes in formula
             
@@ -220,8 +221,6 @@ def computeRAS(
                             else:
                                 # complex expression (e.g. A or (B and C))
                                 data = count_df_filtered.loc[genes_in_count_matrix]  # dataframe of genes in the GPRs
-
-                                rule = rule.replace("-", "_")
                                 tree = ast.parse(rule, mode="eval").body
                                 values_by_cell = [dict(zip(data.index, data[col].values)) for col in data.columns]
                                 for j, values in enumerate(values_by_cell):
