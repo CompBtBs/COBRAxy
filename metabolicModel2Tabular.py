@@ -325,51 +325,17 @@ def main(args:List[str] = None) -> None:
                 logger=logger
             )
 
-    # generate data
-    rules = modelUtils.generate_rules(model, asParsed = False)
-    reactions = modelUtils.generate_reactions(model, asParsed = False)
-    bounds = modelUtils.generate_bounds(model)
-    medium = modelUtils.get_medium(model)
-    objective_function = modelUtils.extract_objective_coefficients(model)
-    
-    compartments = modelUtils.generate_compartments(model)
-
-    df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "GPR"])
-    df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Formula"])
-
-    # Create DataFrame for translation issues
-    df_translation_issues = pd.DataFrame([
-        {"ReactionID": rxn_id, "TranslationIssues": issues}
-        for rxn_id, issues in translation_issues.items()
-    ])
-    
-    df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
-    df_medium = medium.rename(columns = {"reaction": "ReactionID"})
-    df_medium["InMedium"] = True
-
-    merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
-    merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
-    merged = merged.merge(objective_function, on = "ReactionID", how = "outer")
-    if compartments is not None: 
-        merged = merged.merge(compartments, on = "ReactionID", how = "outer")
-    merged = merged.merge(df_medium, on = "ReactionID", how = "left")
-    
-    # Add translation issues column
-    if not df_translation_issues.empty:
-        merged = merged.merge(df_translation_issues, on = "ReactionID", how = "left")
-        merged["TranslationIssues"] = merged["TranslationIssues"].fillna("")
-    else:
-        # Add empty TranslationIssues column if no issues found
-        #merged["TranslationIssues"] = ""
-        pass
-
-    merged["InMedium"] = merged["InMedium"].fillna(False)
-
-    merged = merged.sort_values(by = "InMedium", ascending = False)
-
+    # generate data using unified function
     if not ARGS.out_tabular:
         raise utils.ArgsErr("out_tabular", "output path (--out_tabular) is required when output_format == tabular", ARGS.out_tabular)
-    save_as_tabular_df(merged, ARGS.out_tabular)
+    
+    merged = modelUtils.export_model_to_tabular(
+        model=model,
+        output_path=ARGS.out_tabular,
+        translation_issues=translation_issues,
+        include_objective=True,
+        save_function=save_as_tabular_df
+    )
     expected = ARGS.out_tabular
 
     # verify output exists and non-empty

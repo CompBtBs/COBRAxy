@@ -173,30 +173,12 @@ def save_model(model, filename, output_folder, file_format='csv'):
             # Special handling for tabular format using utils functions
             filepath = os.path.join(output_folder, f"{filename}.csv")
             
-            rules = modelUtils.generate_rules(model, asParsed = False)
-            reactions = modelUtils.generate_reactions(model, asParsed = False)
-            bounds = modelUtils.generate_bounds(model)
-            medium = modelUtils.get_medium(model)
-            
-            compartments = modelUtils.generate_compartments(model)
-
-            df_rules = pd.DataFrame(list(rules.items()), columns = ["ReactionID", "GPR"])
-            df_reactions = pd.DataFrame(list(reactions.items()), columns = ["ReactionID", "Formula"])
-            df_bounds = bounds.reset_index().rename(columns = {"index": "ReactionID"})
-            df_medium = medium.rename(columns = {"reaction": "ReactionID"})
-            df_medium["InMedium"] = True
-
-            merged = df_reactions.merge(df_rules, on = "ReactionID", how = "outer")
-            merged = merged.merge(df_bounds, on = "ReactionID", how = "outer")
-            # Add compartments only if they exist
-            if compartments is not None:
-                merged = merged.merge(compartments, on = "ReactionID", how = "outer")
-            
-            merged = merged.merge(df_medium, on = "ReactionID", how = "left")
-            merged["InMedium"] = merged["InMedium"].fillna(False)
-            merged = merged.sort_values(by = "InMedium", ascending = False)
-            
-            merged.to_csv(filepath, sep="\t", index=False)
+            # Use unified function for tabular export
+            merged = modelUtils.export_model_to_tabular(
+                model=model,
+                output_path=filepath,
+                include_objective=True  
+            )
             
         else:
             # Standard COBRA formats

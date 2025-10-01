@@ -1155,6 +1155,78 @@ def _update_model_genes(model: 'cobra.Model', logger: logging.Logger):
     logger.info(f"Model genes updated: removed {removed}, added {added}")
 
 
+def export_model_to_tabular(model: cobraModel, 
+                           output_path: str,
+                           translation_issues: Dict = None,
+                           include_objective: bool = True,
+                           save_function = None) -> pd.DataFrame:
+    """
+    Export a COBRA model to tabular format with optional components.
+    
+    Args:
+        model: COBRA model to export
+        output_path: Path where to save the tabular file
+        translation_issues: Optional dict of {reaction_id: issues} from gene translation
+        include_objective: Whether to include objective coefficient column
+        save_function: Optional custom save function, if None uses pd.DataFrame.to_csv
+        
+    Returns:
+        pd.DataFrame: The merged tabular data
+    """
+    # Generate model data
+    rules = generate_rules(model, asParsed=False)
+    
+    reactions = generate_reactions(model, asParsed=False)
+    bounds = generate_bounds(model)
+    medium = get_medium(model)
+    compartments = generate_compartments(model)
+    
+    # Create base DataFrames
+    df_rules = pd.DataFrame(list(rules.items()), columns=["ReactionID", "GPR"])
+    df_reactions = pd.DataFrame(list(reactions.items()), columns=["ReactionID", "Formula"])
+    df_bounds = bounds.reset_index().rename(columns={"index": "ReactionID"})
+    df_medium = medium.rename(columns={"reaction": "ReactionID"})
+    df_medium["InMedium"] = True
+    
+    # Start merging
+    merged = df_reactions.merge(df_rules, on="ReactionID", how="outer")
+    merged = merged.merge(df_bounds, on="ReactionID", how="outer")
+    
+    # Add objective coefficients if requested
+    if include_objective:
+        objective_function = extract_objective_coefficients(model)
+        merged = merged.merge(objective_function, on="ReactionID", how="outer")
+    
+    # Add compartments/pathways if they exist
+    if compartments is not None:
+        merged = merged.merge(compartments, on="ReactionID", how="outer")
+    
+    # Add medium information
+    merged = merged.merge(df_medium, on="ReactionID", how="left")
+    
+    # Add translation issues if provided
+    if translation_issues:
+        df_translation_issues = pd.DataFrame([
+            {"ReactionID": rxn_id, "TranslationIssues": issues}
+            for rxn_id, issues in translation_issues.items()
+        ])
+        if not df_translation_issues.empty:
+            merged = merged.merge(df_translation_issues, on="ReactionID", how="left")
+            merged["TranslationIssues"] = merged["TranslationIssues"].fillna("")
+    
+    # Final processing
+    merged["InMedium"] = merged["InMedium"].fillna(False)
+    merged = merged.sort_values(by="InMedium", ascending=False)
+    
+    # Save the file
+    if save_function:
+        save_function(merged, output_path)
+    else:
+        merged.to_csv(output_path, sep="\t", index=False)
+    
+    return merged
+
+
 def _log_translation_statistics(stats: Dict[str, int],
                                unmapped_genes: List[str],
                                multi_mapping_genes: List[Tuple[str, List[str]]],
