@@ -182,7 +182,7 @@ def computeRAS(
     
     cell_ids = list(dataset.columns)
     count_df_filtered = dataset.loc[genes]
-    count_df_filtered = count_df_filtered.rename(index=lambda x: x.replace("-", "_"))
+    count_df_filtered = count_df_filtered.rename(index=lambda x: x.replace(["-",":"], "_"))
 
     ras_df=np.full((len(dict_rule_reactions), len(cell_ids)), np.nan)
 
@@ -191,7 +191,7 @@ def computeRAS(
     for rule, reaction_ids in dict_rule_reactions.items():
         if len(rule) != 0:
             # there is one gene at least in the formula
-            rule = rule.replace("-","_")
+            rule = rule.replace(["-",":"],"_")
             rule_split = rule.split()
             rule_split_elements = list(set(rule_split))                                # genes in formula
             
@@ -238,14 +238,15 @@ def computeRAS(
     return ras_df
 
 # function to evalute a complex boolean expression e.g. A or (B and C)
+# function to evalute a complex boolean expression e.g. A or (B and C)
 def _evaluate_ast( node, values,or_function,and_function):
     if isinstance(node, ast.BoolOp):
-        # Ricorsione sugli argomenti
+        
         vals = [_evaluate_ast(v, values,or_function,and_function) for v in node.values]
        
         vals = [v for v in vals if v is not None]
         if not vals:
-            return None
+            return np.nan
       
         vals = [np.array(v) if isinstance(v, (list, np.ndarray)) else v for v in vals]
 
@@ -257,7 +258,8 @@ def _evaluate_ast( node, values,or_function,and_function):
     elif isinstance(node, ast.Name):
         return values.get(node.id, None)
     elif isinstance(node, ast.Constant):
-        return node.value
+        key = str(node.value)     #convert in str       
+        return values.get(key, None)   
     else:
         raise ValueError(f"Error in boolean expression: {ast.dump(node)}")
 
@@ -286,7 +288,6 @@ def main(args:List[str] = None) -> None:
     rules_total_string=list(set(rules_total_string.split(" ")))
 
     #check if nan value must be ignored in the GPR 
-    print(ARGS.none,"\n\n\n*************",ARGS.none==True)
     if ARGS.none:
     #    #e.g. (A or nan --> A)
         ignore_nan = True
@@ -302,7 +303,7 @@ def main(args:List[str] = None) -> None:
                     ignore_nan=ignore_nan)
     
     #save to csv and replace nan with None
-    ras_df.replace(np.nan,"None").to_csv(ARGS.ras_output, sep = '\t')
+    ras_df.replace([np.nan,None],"None").to_csv(ARGS.ras_output, sep = '\t')
 
     #print 
     print("Execution succeeded")
