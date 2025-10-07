@@ -176,30 +176,45 @@ def computeRAS(
     
     #check if there is one gene at least 
     if len(genes)==0:
-        print("ERROR: no gene of the count matrix is in the metabolic model!")
-        print(" are you sure that the gene annotation is the same for the model and the count matrix?")
-        return -1
+        raise ValueError("ERROR: No genes from the count matrix match the metabolic model. Check that gene annotations are consistent between model and dataset.") 
     
     cell_ids = list(dataset.columns)
     count_df_filtered = dataset.loc[genes]
-    count_df_filtered = count_df_filtered.rename(index=lambda x: x.replace(["-",":"], "_"))
+    count_df_filtered = count_df_filtered.rename(index=lambda x: x.replace("-", "_").replace(":", "_"))
 
     ras_df=np.full((len(dict_rule_reactions), len(cell_ids)), np.nan)
 
     # for loop on rules
+    genes_not_mapped=[]
     ind = 0       
     for rule, reaction_ids in dict_rule_reactions.items():
         if len(rule) != 0:
             # there is one gene at least in the formula
-            rule = rule.replace(["-",":"],"_")
+            warning_rule="_"
+            if "-" in rule:
+                warning_rule="-"
+            if ":" in rule:
+                warning_rule=":"
+            rule_orig=rule.split().copy()  #original rule in list
+            rule = rule.replace(warning_rule,"_")
+             #modified rule
             rule_split = rule.split()
-            rule_split_elements = list(set(rule_split))                                # genes in formula
+            rule_split_elements = list(filter(lambda x: x not in logic_operators, rule_split))  # remove of all logical operators
+            rule_split_elements = list(set(rule_split_elements))                                # genes in formula
             
             # which genes are in the count matrix?                
             genes_in_count_matrix = [el for el in rule_split_elements if el in genes]
-            genes_notin_count_matrix = [el for el in rule_split_elements if el not in genes]
-
-            if len(genes_in_count_matrix) > 0: #there is at least one gene in the count matrix
+            genes_notin_count_matrix = []
+            for el in rule_split_elements:
+                if el not in genes: #not present in original dataset
+                    if el.replace("_",warning_rule) in rule_orig: 
+                        genes_notin_count_matrix.append(el.replace("_",warning_rule))
+                    else:
+                        genes_notin_count_matrix.append(el)
+            genes_not_mapped.extend(genes_notin_count_matrix)
+            
+            # add genes not present in the data
+            if len(genes_in_count_matrix) > 0: #there is at least one gene in the count matrix                 
                     if len(rule_split) == 1:
                         #one gene --> one reaction
                         ras_df[ind] = count_df_filtered.loc[genes_in_count_matrix]
@@ -235,7 +250,10 @@ def computeRAS(
     #create the reaction dataframe for ras (reactions x samples)
     ras_df = ras_df.explode("Reactions").set_index("Reactions")
 
-    return ras_df
+    #total genes not mapped from the gpr
+    genes_not_mapped = sorted(set(genes_not_mapped))
+
+    return ras_df,genes_not_mapped
 
 # function to evalute a complex boolean expression e.g. A or (B and C)
 # function to evalute a complex boolean expression e.g. A or (B and C)
@@ -276,7 +294,12 @@ def main(args:List[str] = None) -> None:
 
     # read dataset and remove versioning from gene names
     dataset = read_dataset(ARGS.input, "dataset")
-    dataset.index =  [str(el.split(".")[0]) for el in dataset.index]
+    orig_gene_list=dataset.index.copy()
+    dataset.index =  [str(el.split(".")[0]) for el in dataset.index]  
+
+    if any(dataset.index.duplicated(keep=False)):
+        list_str=", ".join(orig_gene_list[dataset.index.duplicated(keep=False)])
+        raise ValueError(f"ERROR: Duplicate entries in the gene dataset. The following genes are duplicated: "+list_str)       
 
     #load GPR rules
     rules = load_custom_rules()
@@ -296,7 +319,7 @@ def main(args:List[str] = None) -> None:
         ignore_nan = False
     
     #compure ras
-    ras_df=computeRAS(dataset,rules,
+    ras_df,genes_not_mapped=computeRAS(dataset,rules,
                     rules_total_string,
                     or_function=np.sum,    # type of operation to do in case of an or expression (max, sum, mean)
                     and_function=np.min,
@@ -305,7 +328,13 @@ def main(args:List[str] = None) -> None:
     #save to csv and replace nan with None
     ras_df.replace([np.nan,None],"None").to_csv(ARGS.ras_output, sep = '\t')
 
-    #print 
+    #report genes not present in the data
+    if len(genes_not_mapped)>0: 
+        genes_not_mapped_str=", ".join(genes_not_mapped)
+        utils.logWarning(
+        f"The following genes are mentioned in the GPR rules but don't appear in the dataset: "+genes_not_mapped_str,
+        ARGS.out_log)  
+ 
     print("Execution succeeded")
 
 ###############################################################################
