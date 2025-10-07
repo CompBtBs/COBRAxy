@@ -22,18 +22,18 @@
         #if $model_and_bounds.model_and_bounds == 'True':
             --model_upload $model_and_bounds.model_upload
             --input "${",".join(map(str, $model_and_bounds.inputs))}"
-            #set $names = ""
+            #set $names_list = []
             #for $input_temp in $model_and_bounds.inputs:
-                #set $names = $names + $input_temp.element_identifier + ","
+                #silent $names_list.append(str($input_temp.element_identifier))
             #end for
-            --name $names
+            --name "${",".join($names_list)}"
         #else:
             --input "${",".join(map(str, $model_and_bounds.model_files))}"
-            #set $names = ""
+            #set $names_list = []
             #for $input_temp in $model_and_bounds.model_files:
-                #set $names = $names + $input_temp.element_identifier + ","
+                #silent $names_list.append(str($input_temp.element_identifier))
             #end for
-            --name $names
+            --name "${",".join($names_list)}"
         #end if
         
         --sampling_enabled $sampling_params.sampling_enabled
