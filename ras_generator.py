@@ -297,10 +297,6 @@ def main(args:List[str] = None) -> None:
     orig_gene_list=dataset.index.copy()
     dataset.index =  [str(el.split(".")[0]) for el in dataset.index]  
 
-    if any(dataset.index.duplicated(keep=False)):
-        list_str=", ".join(orig_gene_list[dataset.index.duplicated(keep=False)])
-        raise ValueError(f"ERROR: Duplicate entries in the gene dataset. The following genes are duplicated: "+list_str)       
-
     #load GPR rules
     rules = load_custom_rules()
     
@@ -309,6 +305,13 @@ def main(args:List[str] = None) -> None:
     for id,rule in rules.items():
         rules_total_string+=rule.replace("(","").replace(")","") + " "
     rules_total_string=list(set(rules_total_string.split(" ")))
+
+    if any(dataset.index.duplicated(keep=False)):
+        genes_duplicates=orig_gene_list[dataset.index.duplicated(keep=False)]
+        genes_duplicates_in_model=[elem for elem in genes_duplicates if elem in rules_total_string]
+        if len(genes_duplicates_in_model)>0:#metabolic genes have duplicated entries in the dataset
+            list_str=", ".join(genes_duplicates_in_model)
+            raise ValueError(f"ERROR: Duplicate entries in the gene dataset present in one or more GPR. The following metabolic genes are duplicated: "+list_str)       
 
     #check if nan value must be ignored in the GPR 
     if ARGS.none:
