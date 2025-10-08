@@ -309,9 +309,15 @@ def main(args:List[str] = None) -> None:
     if any(dataset.index.duplicated(keep=False)):
         genes_duplicates=orig_gene_list[dataset.index.duplicated(keep=False)]
         genes_duplicates_in_model=[elem for elem in genes_duplicates if elem in rules_total_string]
+
         if len(genes_duplicates_in_model)>0:#metabolic genes have duplicated entries in the dataset
             list_str=", ".join(genes_duplicates_in_model)
-            raise ValueError(f"ERROR: Duplicate entries in the gene dataset present in one or more GPR. The following metabolic genes are duplicated: "+list_str)       
+            list_genes=f"ERROR: Duplicate entries in the gene dataset present in one or more GPR. The following metabolic genes are duplicated: "+list_str
+            raise ValueError(list_genes)       
+        else:
+            list_str=", ".join(genes_duplicates)
+            list_genes=f"INFO: Duplicate entries in the gene dataset. The following genes are duplicated in the dataset but not mentioned in the GPRs: "+list_str           
+            utils.logWarning(list_genes,ARGS.out_log)  
 
     #check if nan value must be ignored in the GPR 
     if ARGS.none:
@@ -335,7 +341,7 @@ def main(args:List[str] = None) -> None:
     if len(genes_not_mapped)>0: 
         genes_not_mapped_str=", ".join(genes_not_mapped)
         utils.logWarning(
-        f"The following genes are mentioned in the GPR rules but don't appear in the dataset: "+genes_not_mapped_str,
+        f"INFO: The following genes are mentioned in the GPR rules but don't appear in the dataset: "+genes_not_mapped_str,
         ARGS.out_log)  
  
     print("Execution succeeded")
