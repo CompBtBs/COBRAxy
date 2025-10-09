@@ -17,6 +17,7 @@
         <![CDATA[
         python $__tool_directory__/flux_simulation.py
         --tool_dir $__tool_directory__
+
         --model_and_bounds $model_and_bounds.model_and_bounds
         
         #if $model_and_bounds.model_and_bounds == 'True':
@@ -64,6 +65,28 @@
         #end if
         
         --out_log $log
+
+        #if $sampling_params.sampling_enabled == 'true':
+            #if 'mean' in str($sampling_params.output_types):
+                --out_mean $mean_results
+            #end if
+            #if 'median' in str($sampling_params.output_types):
+                --out_median $median_results
+            #end if
+            #if 'quantiles' in str($sampling_params.output_types):
+                --out_quantiles $quantile_results
+            #end if
+        #end if
+        
+        #if 'FVA' in str($output_types_analysis):
+            --out_fva $fva_results
+        #end if
+        #if 'pFBA' in str($output_types_analysis):
+            --out_pfba $pFBA_results
+        #end if
+        #if 'sensitivity' in str($output_types_analysis):
+            --out_sensitivity $sensitivity_results
+        #end if
         ]]>
     </command>
 
@@ -148,8 +171,34 @@
 
     <outputs>
         <data format="txt" name="log" label="Flux Simulation - Log" />
-        <data name="output" format="tabular" label="Flux Simulation - Output">
-            <discover_datasets pattern="__name_and_ext__" directory="flux_simulation" visible="true" />
+        
+        <collection name="fluxes_results" type="list" label="Fluxes">
+            <filter>sampling_params['sampling_enabled'] and 'fluxes' in sampling_params['output_types']</filter>
+            <discover_datasets name="collection" pattern="__name_and_ext__" directory="flux_simulation"/>
+        </collection>
+        
+        <data format="tabular" name="mean_results" label="Mean">
+            <filter>sampling_params['sampling_enabled'] and 'mean' in sampling_params['output_types']</filter>
+        </data>
+        
+        <data format="tabular" name="median_results" label="Median">
+            <filter>sampling_params['sampling_enabled'] and 'median' in sampling_params['output_types']</filter>
+        </data>
+        
+        <data format="tabular" name="quantile_results" label="Quantiles">
+            <filter>sampling_params['sampling_enabled'] and 'quantiles' in sampling_params['output_types']</filter>
+        </data>
+        
+        <data format="tabular" name="fva_results" label="FVA">
+            <filter>'FVA' in output_types_analysis</filter>
+        </data>
+        
+        <data format="tabular" name="pFBA_results" label="pFBA">
+            <filter>'pFBA' in output_types_analysis</filter>
+        </data>
+        
+        <data format="tabular" name="sensitivity_results" label="Sensitivity">
+            <filter>'sensitivity' in output_types_analysis</filter>
         </data>
     </outputs>
 

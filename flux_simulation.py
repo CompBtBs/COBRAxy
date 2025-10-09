@@ -111,12 +111,39 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
                         type=str,
                         required=False,
                         help='output type analysis (optimization methods)')
-    
+
     parser.add_argument('-idop', '--output_path',
                         type=str,
-                        default='flux_simulation',
-                        help='output path for maps')
+                        default='flux_simulation/',
+                        help = 'output path for fluxes')
     
+    parser.add_argument('-otm', '--out_mean',
+                    type = str,
+                    required=False,
+                    help = 'output of mean of fluxes')
+    
+    parser.add_argument('-otmd', '--out_median',
+                    type = str,
+                    required=False,
+                    help = 'output of median of fluxes')
+
+    parser.add_argument('-otq', '--out_quantiles',
+                    type = str,
+                    required=False,
+                    help = 'output of quantiles of fluxes')
+    
+    parser.add_argument('-otfva', '--out_fva',
+                    type = str, 
+                    required=False,
+                    help = 'output of FVA results')
+    parser.add_argument('-otp', '--out_pfba',
+                    type = str,
+                    required=False,
+                    help = 'output of pFBA results')
+    parser.add_argument('-ots', '--out_sensitivity',
+                    type = str,
+                    required=False,
+                    help = 'output of sensitivity results')
     ARGS = parser.parse_args(args)
     return ARGS
 ########################### warning ###########################################
@@ -135,20 +162,24 @@ def warning(s :str) -> None:
     print(s)
 
 
-def write_to_file(dataset: pd.DataFrame, name: str, keep_index:bool=False)->None:
+def write_to_file(dataset: pd.DataFrame, path: str, keep_index:bool=False, name:str=None)->None:
     """
-    Write a DataFrame to a TSV file under ARGS.output_path with a given base name.
+    Write a DataFrame to a TSV file under path with a given base name.
 
     Args:
         dataset: The DataFrame to write.
-        name: Base file name (without extension).
+        name: Base file name (without extension). If None, 'path' is treated as the full file path.
+        path: Directory path where the file will be saved.
         keep_index: Whether to keep the DataFrame index in the file.
 
     Returns:
         None
     """
     dataset.index.name = 'Reactions'
-    dataset.to_csv(ARGS.output_path + "/" + name + ".csv", sep = '\t', index = keep_index)
+    if name:
+        dataset.to_csv(os.path.join(path, name + ".csv"), sep = '\t', index = keep_index)
+    else:
+        dataset.to_csv(path, sep = '\t', index = keep_index)
 
 ############################ dataset input ####################################
 def read_dataset(data :str, name :str) -> pd.DataFrame:
@@ -222,7 +253,7 @@ def OPTGP_sampler(model: cobra.Model, model_name: str, n_samples: int = 1000, th
     samplesTotal = pd.DataFrame(samplesTotal_array, columns=reaction_ids)
     
     # Save the final merged result as CSV
-    write_to_file(samplesTotal.T, model_name, True)
+    write_to_file(samplesTotal.T, ARGS.output_path, True, name=model_name)
     
     # Clean up temporary numpy files
     for i in range(n_batches):
@@ -299,7 +330,7 @@ def CBS_sampler(model: cobra.Model, model_name: str, n_samples: int = 1000, n_ba
     samplesTotal = pd.DataFrame(samplesTotal_array, columns=reaction_ids)
     
     # Save the final merged result as CSV
-    write_to_file(samplesTotal.T, model_name, True)
+    write_to_file(samplesTotal.T, ARGS.output_path, True, name=model_name)
     
     # Clean up temporary numpy files
     for i in range(n_batches):
@@ -488,8 +519,8 @@ def main(args: List[str] = None) -> None:
     global ARGS
     ARGS = process_args(args)
 
-    if not os.path.exists(ARGS.output_path):
-        os.makedirs(ARGS.output_path)
+    if not os.path.exists('flux_simulation'):
+        os.makedirs('flux_simulation')
 
     # --- Normalize inputs (the tool may pass comma-separated --input and either --name or --names) ---
     ARGS.input_files = ARGS.input.split(",") if ARGS.input else []
@@ -559,17 +590,17 @@ def main(args: List[str] = None) -> None:
         if "mean" in ARGS.output_types:
             all_mean = all_mean.fillna(0.0)
             all_mean = all_mean.sort_index()
-            write_to_file(all_mean.T, "mean", True)
+            write_to_file(all_mean.T, ARGS.out_mean, True)
 
         if "median" in ARGS.output_types:
             all_median = all_median.fillna(0.0)
             all_median = all_median.sort_index()
-            write_to_file(all_median.T, "median", True)
+            write_to_file(all_median.T, ARGS.out_median, True)
         
         if "quantiles" in ARGS.output_types:
             all_quantiles = all_quantiles.fillna(0.0)
             all_quantiles = all_quantiles.sort_index()
-            write_to_file(all_quantiles.T, "quantiles", True)
+            write_to_file(all_quantiles.T, ARGS.out_quantiles, True)
     else:
         print("=== SAMPLING SKIPPED (n_samples = 0 or sampling disabled) ===")
 
@@ -584,19 +615,19 @@ def main(args: List[str] = None) -> None:
     if "pFBA" in ARGS.output_type_analysis:
         all_pFBA = pd.concat([result[index_result] for result in results], ignore_index=False)
         all_pFBA = all_pFBA.sort_index()
-        write_to_file(all_pFBA.T, "pFBA", True)
+        write_to_file(all_pFBA.T, ARGS.out_pfba, True)
         index_result += 1
         
     if "FVA" in ARGS.output_type_analysis:
         all_FVA = pd.concat([result[index_result] for result in results], ignore_index=False)
         all_FVA = all_FVA.sort_index()
-        write_to_file(all_FVA.T, "FVA", True)
+        write_to_file(all_FVA.T, ARGS.out_fva, True)
         index_result += 1
         
     if "sensitivity" in ARGS.output_type_analysis:
         all_sensitivity = pd.concat([result[index_result] for result in results], ignore_index=False)
         all_sensitivity = all_sensitivity.sort_index()
-        write_to_file(all_sensitivity.T, "sensitivity", True)
+        write_to_file(all_sensitivity.T, ARGS.out_sensitivity, True)
 
     return
         
