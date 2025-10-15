@@ -58,7 +58,9 @@
             --output_type 'mean'
         #end if
         
-        --output_type_analysis "${",".join(map(str, $output_types_analysis))}"
+        #if $output_types_analysis:
+            --output_type_analysis "${",".join(map(str, $output_types_analysis))}"
+        #end if
         
         #if 'FVA' in str($output_types_analysis):
             --perc_opt $fva_params.optimality_fraction
@@ -190,15 +192,15 @@
         </data>
         
         <data format="tabular" name="fva_results" label="FVA">
-            <filter>'FVA' in output_types_analysis</filter>
+            <filter>output_types_analysis and 'FVA' in output_types_analysis</filter>
         </data>
         
         <data format="tabular" name="pFBA_results" label="pFBA">
-            <filter>'pFBA' in output_types_analysis</filter>
+            <filter>output_types_analysis and 'pFBA' in output_types_analysis</filter>
         </data>
         
         <data format="tabular" name="sensitivity_results" label="Sensitivity">
-            <filter>'sensitivity' in output_types_analysis</filter>
+            <filter>output_types_analysis and 'sensitivity' in output_types_analysis</filter>
         </data>
     </outputs>
 
