@@ -2,21 +2,27 @@
 
 > A Python toolkit for metabolic flux analysis and visualization, with Galaxy integration.
 
-COBRAxy transforms gene expression and metabolite data into meaningful metabolic insights through flux sampling and interactive pathway maps.
+COBRAxy enables the integration of transcriptomics data with COBRA-based metabolic models, offering a comprehensive framework for studying metabolism in both health and disease. With COBRAxy, users can load and enrich metabolic models by incorporating transcriptomic data and adjusting the model’s medium conditions.
 
 ## Overview
 
-COBRAxy provides a complete pipeline for metabolic modeling and analysis, from raw omics data to publication-ready pathway visualizations. Whether you're a researcher analyzing metabolic changes in disease, a systems biologist studying metabolic networks, or a bioinformatician building analysis pipelines, COBRAxy offers the tools you need.
+COBRAxy enables constraint-based modeling and sampling techniques, allowing users to compute metabolic
+flux distributions for multiple biological samples. The tool also enables the integration of medium
+composition information to refine flux predictions. Additionally, COBRAxy provides a user-friendly interface
+for visualizing significant flux differences between populations on an enriched metabolic map. This
+extension provides a comprehensive and accessible framework for advanced metabolic analysis, enabling
+researchers without extensive programming expertise to explore complex metabolic processes
+
+By offering an intuitive and accessible platform for multi-omics integration and metabolic analysis, COBRAxy meets the growing need for tools that help researchers explore complex metabolic processes with ease.
 
 ## Key Features
 
+- **Galaxy Tools** - Web-based analysis with intuitive interface
 - **Reaction Activity Scores (RAS)** - Compute metabolic activity from gene expression data
 - **Reaction Propensity Scores (RPS)** - Infer metabolic preferences from metabolite abundance
-- **Flux Sampling** - Sample metabolic flux distributions with CBS or OptGP algorithms  
-- **Statistical Analysis** - Perform pFBA, FVA, and sensitivity analysis
-- **Interactive Maps** - Generate publication-ready pathway visualizations with SVG/PDF export
-- **Galaxy Tools** - Web-based analysis with intuitive interface
-- **Built-in Models** - Ready-to-use models including ENGRO2 and Recon
+- **Flux computation** - Compute metabolic flux distributions using different optimization or sampling algorithms
+- **Statistical Analysis** - Perform statistically significant flux differences between groups of samples and report on an enriched metabolic map
+- **Built-in Models** - Ready-to-use models including ENGRO2 and Recon3D
 
 ## Quick Navigation
 
