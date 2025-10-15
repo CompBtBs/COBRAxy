@@ -40,7 +40,7 @@
     <help>
 <![CDATA[
 
-What it does
+Overview
 -------------
 
 This tool computes Reaction Activity Scores (RAS) from gene expression (RNA-seq) dataset(s), as described in Graudenzi et al. 2018.
