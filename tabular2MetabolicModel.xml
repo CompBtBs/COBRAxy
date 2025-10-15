@@ -54,7 +54,19 @@
 This tool converts a tabular dataset into a COBRA model using COBRApy.
 
 **Input**
-- A tabular/CSV/TSV file describing reactions, metabolites, or stoichiometry.
+- A tabular/CSV/TSV file describing the metabolic properties of the model (reactions, metabolites, and genes).
+
+The possible columns are:
+    - ReactionID: unique identifier of the reactions
+    - Formula: chemical equation showing the metabolites involved in the reaction and their stoichiometric coefficients.
+    - GPR: gene-protein-reaction association, expressed as a logical rule describing how genes contribute to catalyzing the reaction.
+    - lower bound: minimum allowable flux value for the reaction.
+    - upper bound: maximum allowable flux value for the reaction.
+    - Objective coefficient: coefficient used in the objective function (e.g., for pFBA or FVA analyses).
+    - Pathway_1,Pathway_2,etc.: possible pathways in which the reaction is involved.
+    - InMedium: TRUE if the reaction represents nutrient uptake from the medium, FALSE otherwise.
+
+Columns ReactionID and Formula are mandatory.
 
 **Output**
 - A COBRA model in the chosen format:  
