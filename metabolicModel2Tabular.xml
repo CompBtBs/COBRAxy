@@ -98,20 +98,38 @@
 
     <help>
     <![CDATA[
-What it does
+Overview
 -------------
-This tool generates one file containing the main information of the metabolic model, starting from a custom model. 
+This tool generates a Tabular file (.tabular)  containing the main information of the metabolic model, starting from a pre-built or a custom model. 
 This file can be used as input for the RAS  generator tool, RPS generator tools, and flux simulator tool.
 
-Accepted files:
-    - A model: JSON, XML, MAT or YAML (.yml) file reporting reactions and rules contained in the model. Supported compressed formats: .zip, .gz and .bz2. Filename must follow the pattern: {model_name}.{extension}.[zip|gz|bz2]
 
-Output:
+Input parameters:
+-------------
+
+The tool has three input parameters:
+    - Model: a file containing metabolic information (reactions, metabolites, genes). Ready-to-use models are ENGRO2 and Recon3D.
+    The user can also upload a custom model (see TIP 1).
+    - Medium: choose a growth medium typically used for cell culture (see TIP 2 & 3). 
+    - Gene nomenclature format: use the original GPR gene names or translate them into another nomenclature.
+
+Output files:
 -------------
 
 The tool generates a tabular file containing:
 	- a tabular file (.tabular) containing reaction IDs, reaction formula, GPR rules, reaction bounds, the objective function coefficients, the pathways in which the reaction is involved and which reactions are part of the medium.
     - a log file (.txt).
+
+**TIP 1**: Different input files can be used as the input model. The possible formats are XML (SBML), JSON, MAT or YAML (.yml). 
+    Supported compressed formats: .zip, .gz and .bz2. Filename must follow the pattern: {model_name}.{extension}.[zip|gz|bz2]
+    More detail can be found at https://cobrapy.readthedocs.io/en/latest/io.html
+
+**TIP 2**:  for pre-existing models ENGRO2 and RECON3D, the user can select the default built-in medium or one of the possible growth medium typically used for cell line cultures.
+In case no specific information is available, it is possible to set an "OPEN" medium in which all the nutrients are available in unlimited quantity.
+
+**TIP 3:** Medium composition can be derived from the tabular file. Exchange reactions with `InMedium = TRUE` are included. Nutrient values correspond to the lower bound (e.g., EX_Glc_D_e lower bound -10 → nutrient value 10).  
+More info: [COBRApy Media](https://cobrapy-cdiener.readthedocs.io/en/latest/media.html)
+
     ]]>
     </help>
     <expand macro="citations" />

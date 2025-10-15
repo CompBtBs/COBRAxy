@@ -37,10 +37,11 @@ Complete reference for all COBRAxy tools
 
 ## Data Flow
 
-COBRAxy follows two parallel analysis paths:
+COBRAxy follows several analysis paths:
 
-1. **Enrichment Analysis**: RAS + RPS → MAREA → Enriched Maps
-2. **Flux Simulation**: RAS → Model Constraints → Flux Sampling → Flux Maps
+1. **RAS Enrichment Analysis**: RAS computation → MAREA → Enriched Maps
+2. **Flux Enrichment Analysis Simulation**: RAS computation → Model Constraints → Flux Sampling → Flux Maps
+3. **RAS/RPS Enrichment Analysis**: RAS + RPS computation → MAREA → Enriched Maps
 
 ## Community & Support
 
