@@ -209,7 +209,7 @@
 Overview
 -------------
 
-This tool generates flux samples from a set of metabolic models.It supports two input modes:
+This tool generates flux samples from a set of metabolic models. It supports two input modes:
     - Model + bounds: upload a single base model and multiple bound files (one per context/cell type)
     - Multiple complete models: upload multiple model files, each already containing its own bounds.
 
@@ -217,22 +217,24 @@ In the first mode:
     - the base model must be in tabular format as produced by the metabolicModel2Tabular tool.
     - the bound files should come from the RAStoBounds tool.
 
-In the second case, provide a separate tabular file for each complete model.
+In the second mode, provide a separate tabular file for each complete model.
 
-Available analysis
+Available analyses
 ------------- 
 
 Two types of analysis are available:
-    - flux optimization.
-    - flux sampling.
+    - flux optimization
+    - flux sampling
 
-Flux optimization can be performed using one of the following methods:
+For flux optimization, one of the following methods can be performed:
     - parsimonious-FBA
     - Flux Variability Analysis
     - Biomass sensitivity analysis (single reaction knock-out)
 The objective function — a linear combination of fluxes weighted by specific coefficients — depends on the provided metabolic network.
 
-Flux sampling can be performed using CBS (Corner-based sampling) or OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
+For flux sampling, one of the following methods can be performed: 
+    - CBS (Corner-based sampling)
+    - OPTGP (Improved Artificial Centering Hit-and-Run sampler) algorithms.
 
 
 Output:
