@@ -247,7 +247,7 @@ def main(args:List[str] = None) -> None:
     
     if ARGS.name == "ENGRO2" and ARGS.medium_selector != "Default":
         df_mediums = pd.read_csv(ARGS.tool_dir + "/local/medium/medium.csv", index_col = 0)
-        ARGS.medium_selector = ARGS.medium_selector.replace("_", " ")
+        #ARGS.medium_selector = ARGS.medium_selector.replace("_", " ") medium.csv uses underscores now
         medium = df_mediums[[ARGS.medium_selector]]
         medium = medium[ARGS.medium_selector].to_dict()
 
