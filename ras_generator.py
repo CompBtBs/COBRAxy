@@ -282,7 +282,7 @@ class RAS_computation:
     def compute(self,
                 or_expression=np.sum,       # type of operation to do in case of an or expression (sum, max, mean)
                 and_expression=np.min,      # type of operation to do in case of an and expression(min, sum)
-                drop_na_rows=True,          # if True remove the nan rows of the ras  matrix
+                drop_na_rows=False,          # if True remove the nan rows of the ras  matrix
                 drop_duplicates=False,      # if true, remove duplicates rows
                 ignore_nan=True,            # if True, ignore NaN values in GPR evaluation (e.g., A or NaN -> A)
                 print_progressbar=True,     # if True, print the progress bar
@@ -327,18 +327,25 @@ class RAS_computation:
                 else:
                     # Evaluate the GPR expression using AST
                     # For single gene, AST handles it fine: ast.parse("GENE_A") works
-                    try:
+                    # more genes in the formula
+                    check_only_and=("and" in rule and "or" not in rule) #only and
+                    check_only_or=("or" in rule and "and" not in rule)  #only or
+                    if check_only_and or check_only_or:
+                        #or/and sequence
+                        matrix = self.count_df_filtered.loc[genes_present].values
+                        #compute for all cells
+                        if check_only_and: 
+                            ras_df[ind] = self.and_function(matrix, axis=0)
+                        else:
+                            ras_df[ind] = self.or_function(matrix, axis=0)
+                    else:
+                        # complex expression (e.g. A or (B and C))
+                        data = self.count_df_filtered.loc[genes_present]  # dataframe of genes in the GPRs
                         tree = ast.parse(rule, mode="eval").body
-                        data = self.count_df_filtered.loc[genes_present]
-                        
-                        # Evaluate for each cell/sample
-                        for j, col in enumerate(data.columns):
-                            gene_values = dict(zip(data.index, data[col].values))
-                            ras_df[ind, j] = self._evaluate_ast(tree, gene_values, self.or_function, self.and_function, ignore_nan)
-                    except:
-                        # If parsing fails, keep as NaN
-                        pass
-            
+                        values_by_cell = [dict(zip(data.index, data[col].values)) for col in data.columns]
+                        for j, values in enumerate(values_by_cell):
+                            ras_df[ind, j] =self._evaluate_ast(tree, values, self.or_function, self.and_function, ignore_nan)
+
             if print_progressbar:
                 pbar.update(ind + 1)
         
