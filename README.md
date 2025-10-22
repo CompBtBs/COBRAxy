@@ -65,7 +65,7 @@ flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_ma
 
 ## Requirements
 
-- **Python**: 3.8-3.11
+- **Python**: 3.8-3.12
 - **OS**: Linux, macOS, Windows (Linux recommended)
 - **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
 

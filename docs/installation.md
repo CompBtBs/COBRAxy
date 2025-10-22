@@ -4,7 +4,7 @@ This guide walks you through installing COBRAxy on your system.
 
 ## System Requirements
 
-- **Python**: 3.8-3.11
+- **Python**: 3.8-3.12
 - **Operating System**: Linux (recommended), macOS, Windows
 - **Storage**: 2GB free space for installation and temporary files
 
@@ -34,50 +34,7 @@ pip install -e .
 
 ## Dependencies
 
-COBRAxy automatically installs its Python dependencies:
-
-- **COBRApy** - Core metabolic modeling
-- **pandas** - Data manipulation
-- **numpy** - Numerical computations
-- **scipy** - Scientific computing
-
-## Optional System Libraries
-
-Install additional libraries for enhanced features:
-
-### Ubuntu/Debian
-
-```bash
-# Install GLPK solver
-sudo apt-get update
-sudo apt-get install libglpk40 glpk-utils
-
-# Install libvips for SVG processing
-sudo apt-get install libvips
-
-# Install Python GLPK bindings
-pip install swiglpk
-```
-
-### macOS
-
-```bash
-# Using Homebrew
-brew install glpk vips
-
-# Install Python bindings
-pip install swiglpk
-```
-
-### Windows
-
-```bash
-# Using conda (recommended for Windows)
-conda install -c conda-forge glpk
-
-# Or using pip
-pip install swiglpk
-```
+COBRAxy automatically installs its Python dependencies (COBRApy, pandas, numpy, etc.)
 
 ## Verify Installation
 
@@ -87,39 +44,6 @@ Test your installation:
 # Check if COBRAxy tools are available
 ras_generator --help
 flux_simulation --help
-
-# Test with example data (if available)
-cd COBRAxy
-python testing.py
-```
-
-## Troubleshooting Installation
-
-### Common Issues
-
-**Import Error: No module named 'cobra'**
-```bash
-# Install COBRApy manually
-pip install cobra
-```
-
-**GLPK solver not found**
-```bash
-# Install GLPK solver
-# Ubuntu/Debian: sudo apt-get install glpk-utils
-# macOS: brew install glpk
-# Then: pip install swiglpk
-```
-
-**Permission denied errors**
-```bash
-# Use user installation
-pip install --user .
-# Or use virtual environment (recommended)
-python -m venv cobraxy-env
-source cobraxy-env/bin/activate  # Linux/macOS
-# cobraxy-env\Scripts\activate  # Windows
-pip install .
 ```
 
 ## Virtual Environment (Recommended)

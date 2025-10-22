@@ -65,21 +65,14 @@ R_ALDOA	HGNC:414 and HGNC:417
 **Gene Mapping**: Each gene in the expression data is mapped to reactions via GPR rules.
 
 **Logical Operations**:
-- **OR**: `Gene1 or Gene2` → `max(expr1, expr2)` or `expr1 + expr2`
+- **OR**: `Gene1 or Gene2` → `expr1 + expr2`
 - **AND**: `Gene1 and Gene2` → `min(expr1, expr2)`
 
 **Missing Gene Handling**:
-- `-n true`: Missing genes treated as 0, OR operations continue
-- `-n false`: Missing genes cause reaction score to be null
+- `-n true`: Ignore missing genes in the GPR rules.
+- `-n false`: Missing genes cause reaction score to be NaN
 
 ### RAS Computation
-
-For each reaction and sample:
-
-1. **Parse GPR rule** into nested logical structure
-2. **Replace gene names** with expression values  
-3. **Evaluate logical operations** recursively
-4. **Assign RAS score** based on final result
 
 **Example**:
 ```
@@ -154,21 +147,15 @@ ras_generator.main(args)
 
 ### ENGRO2 (Recommended for most analyses)
 - **Scope**: Focused human metabolism
-- **Reactions**: ~2,000
+- **Reactions**: ~500
 - **Genes**: ~500
-- **Use case**: General metabolic analysis
+- **Use case**: Core metabolic analysis
 
 ### Recon (Comprehensive analysis)
 - **Scope**: Complete human metabolism  
 - **Reactions**: ~10,000
 - **Genes**: ~2,000
-- **Use case**: Detailed metabolic studies
-
-### HMRcore (Balanced option)
-- **Scope**: Core human metabolism
-- **Reactions**: ~5,000  
-- **Genes**: ~1,000
-- **Use case**: Balanced coverage
+- **Use case**: Genome-wide metabolic studies
 
 ## Gene ID Mapping
 
@@ -194,7 +181,7 @@ COBRAxy supports multiple gene identifier formats:
 Solution: Check gene ID format matches model expectations
 - Verify gene identifiers (HGNC vs symbols vs Ensembl)
 - Use gene mapping tools if needed
-- Set -n true to handle missing genes gracefully
+- Set -n true to handle missing genes
 ```
 
 **"No computable scores" error**
@@ -249,11 +236,6 @@ null_reactions = ras_df.isnull().all(axis=1).sum()
 print(f"Reactions with no data: {null_reactions}")
 ```
 
-### Expected Results
-
-- **Coverage**: 60-90% of reactions should have computable scores
-- **Range**: RAS values typically 0-20 for log-transformed expression
-- **Distribution**: Should reflect biological variation in your samples
 
 ## Integration with Other Tools
 

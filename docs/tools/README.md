@@ -1,15 +1,3 @@
-# Tool| Tool | Purpose | Input | Output |
-|------|---------|--------|---------|
-| [RAS Generator](ras-generator.md) | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
-| [RPS Generator](rps-generator.md) | Compute reaction propensity scores | Metabolite abundance | RPS values |
-| [MAREA](marea.md) | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
-| [RAS to Bounds](ras-to-bounds.md) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
-| [Flux Simulation](flux-simulation.md) | Sample metabolic fluxes | Constrained model | Flux distributions |
-| [Flux to Map](flux-to-map.md) | Visualize flux data on maps | Flux samples + statistical comparison | Color-coded pathway maps |
-| [Model Setting](metabolic-model-setting.md) | Extract model components | SBML/JSON/MAT/YML model | Tabular model data |
-| [Tabular to Model](tabular-to-model.md) | Create COBRA models | Tabular reaction data | SBML/JSON/MAT/YAML models |
-| [MAREA Cluster](marea-cluster.md) | Cluster analysis | Expression/RAS/RPS/flux data | Sample clusters + validation plots |ation
-
 Complete reference for all COBRAxy tools with parameters, examples, and usage guidelines.
 
 ## Available Tools
@@ -42,6 +30,9 @@ All tools share these basic parameters:
 
 ## Usage Patterns
 
+### Galaxy Integration
+All tools include Galaxy XML wrappers for web-based usage through the Galaxy interface.
+
 ### Command Line Usage
 ```bash
 # Basic pattern for all tools
@@ -50,18 +41,6 @@ tool_name -td $(pwd) [tool-specific options]
 # Example: Generate RAS scores
 ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 ```
-
-### Python API Usage
-```python
-import tool_module
-
-# All tools accept argument lists
-args = ['-td', '/path/to/cobraxy', '-in', 'input.tsv', '-out', 'output.tsv']
-tool_module.main(args)
-```
-
-### Galaxy Integration
-All tools include Galaxy XML wrappers for web-based usage through the Galaxy interface.
 
 ## Parameter Reference
 
@@ -87,9 +66,8 @@ All tools include Galaxy XML wrappers for web-based usage through the Galaxy int
 
 | Model | Organism | Reactions | Genes | Best For |
 |-------|----------|-----------|-------|----------|
-| **ENGRO2** | Human | ~2,000 | ~500 | Focused analysis, faster computation |
-| **Recon** | Human | ~10,000 | ~2,000 | Comprehensive metabolism |
-| **HMRcore** | Human | ~5,000 | ~1,000 | Balanced coverage |
+| **ENGRO2** | Human | ~500 | ~500 | Focused analysis, faster computation |
+| **RECON3D** | Human | ~10,000 | ~2,000 | Comprehensive metabolism |
 
 ## Tool Selection Guide
 

@@ -4,7 +4,7 @@ setup(
     name='cobraxy',
     version='0.1.0',
     description='A collection of tools for metabolic flux analysis in Galaxy.',
-    long_description=open('README.md').read(),
+    long_description=open('README.md',encoding="utf-8").read(),
     long_description_content_type='text/markdown',
     author='',  
     author_email='',

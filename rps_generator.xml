@@ -35,10 +35,10 @@
     <help>
 <![CDATA[
 
-What it does
+Overview
 -------------
 
-This tool computes Reaction Propensity Scores based on the availability of reaction substrates, for (ideally) each input model reaction and for each sample. 
+This tool computes Reaction Propensity Scores (RPS) based on the availability of reaction substrates, for (ideally) each input model reaction and for each sample. 
 The score is computed as the product of the concentrations of the reacting substances, with each concentration raised to a power equal to its stoichiometric coefficient. According to themass action law, the rate of any chemical reaction is indeed proportional to this product.
 This assumption holds as long as the substrate is in significant excess over the enzyme constant KM.
 If a metabolite is either missing in the model provided with respect to its reactions or it is present in our "black list", the RPS score is set to NaN.
