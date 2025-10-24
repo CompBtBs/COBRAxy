@@ -22,7 +22,7 @@ from pathlib import Path
 ARGS : argparse.Namespace
 def process_args(args: List[str] = None) -> argparse.Namespace:
     """
-    Parse command-line arguments for metabolic_model_setting.
+    Parse command-line arguments.
     """
 
     parser = argparse.ArgumentParser(
@@ -342,7 +342,7 @@ def main(args:List[str] = None) -> None:
     if not expected or not os.path.exists(expected) or os.path.getsize(expected) == 0:
         raise utils.DataErr(expected, "Output not created or empty")
 
-    print("Metabolic_model_setting: completed successfully")
+    print("Completed successfully")
 
 if __name__ == '__main__':
 
