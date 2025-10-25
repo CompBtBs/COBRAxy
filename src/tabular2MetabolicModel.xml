@@ -1,4 +1,4 @@
-<tool id="tabular2MetabolicModel" name="tabular2MetabolicModel" version="1.0.0">
+<tool id="tabular2MetabolicModel" name="Export Metabolic Model" version="1.0.0">
     <description>Convert a tabular dataset to a COBRA model</description>
 
     <!-- Python dependencies required for COBRApy -->

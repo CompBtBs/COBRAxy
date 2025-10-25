@@ -1,4 +1,4 @@
-<tool id="metabolicModel2Tabular" name="metabolicModel2Tabular" version="2.0.0">
+<tool id="metabolicModel2Tabular" name="Import Metabolic Model" version="2.0.0">
 
 	<requirements>
         <requirement type="package" version="1.24.4">numpy</requirement>

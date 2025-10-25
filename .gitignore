@@ -4,3 +4,4 @@ cobraxy.egg-info/
 .vscode/
 outputs/
 build/
+dist/
