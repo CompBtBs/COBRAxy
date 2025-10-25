@@ -11,9 +11,9 @@
 
     <xml name="options_model">
         <param name="model_selector" argument="--model_selector" type="select" label="Model:">
-            <option value="ENGRO2"  selected="true">ENGRO 2 tabular</option>
-            <option value="Recon">Recon3D tabular</option>
-            <option value="Custom_model">Custom tabular</option>
+            <option value="ENGRO2"  selected="true">ENGRO 2</option>
+            <option value="Recon">Recon3D</option>
+            <option value="Custom_model">Custom model</option>
         </param>
     </xml>
 
@@ -130,7 +130,7 @@ This tool is developed by the `BIMIB`_ at the `Department of Informatics, System
     </token>
 
     <xml name="citations">
-        <citations> <!--esempio di citazione-->
+        <citations>
             <citation type="bibtex">
               @article{graudenzi2018integration,
               title={Integration of transcriptomic data and metabolic networks in cancer samples reveals highly significant prognostic power},
@@ -202,6 +202,47 @@ This tool is developed by the `BIMIB`_ at the `Department of Informatics, System
                     year={2013},
                     publisher={Springer}
                     }
+            </citation>
+        </citations>
+    </xml>
+
+
+    <xml name="citations_rps">
+        <citations> 
+            <citation type="bibtex">
+              @article{graudenzi2018integration,
+              title={Integration of transcriptomic data and metabolic networks in cancer samples reveals highly significant prognostic power},
+              author={Graudenzi, Alex and Maspero, Davide and Di Filippo, Marzia and Gnugnoli, Marco and Isella, Claudio and Mauri, Giancarlo and Medico, Enzo and Antoniotti, Marco and Damiani, Chiara},
+              journal={Journal of biomedical informatics},
+              volume={87},
+              pages={37--49},
+              year={2018},
+              publisher={Elsevier},
+              url = {https://doi.org/10.1016/j.jbi.2018.09.010},
+              }
+            </citation>
+            <citation type="bibtex">
+              @article{damiani2020marea4galaxy,
+              title={MaREA4Galaxy: Metabolic reaction enrichment analysis and visualization of RNA-seq data within Galaxy},
+              author={Damiani, Chiara and Rovida, Lorenzo and Maspero, Davide and Sala, Irene and Rosato, Luca and Di Filippo, Marzia and Pescini, Dario and Graudenzi, Alex and Antoniotti, Marco and Mauri, Giancarlo},
+              journal={Computational and Structural Biotechnology Journal},
+              volume={18},
+              pages={993},
+              year={2020},
+              publisher={Research Network of Computational and Structural Biotechnology},
+              url = {https://doi.org/10.1016/j.csbj.2020.04.008},
+              }
+            </citation>
+            <citation type="bibtex">
+                @article{damiani2025Integrated,
+                title={Integrated enrichment and visualisation of metabolomics and transcriptomics with Galaxy},
+                author={Lapi, Francesco and Turati, Matteo and Ferrari, Michele and Fassi, Valerio and Vanoni, Marco and Galuzzi, Bruno G and Damiani, Chiara},
+                journal={},
+                volume={},
+                pages={},
+                year={2025},
+                publisher={UNDER PRESS},
+                }
             </citation>
         </citations>
     </xml>

@@ -76,7 +76,7 @@
                 <param name="input" argument="--input" type="data" format="json,xml,sbml" label="Custom model file:" />
                 <conditional name="cond_medium">
                     <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
-                        <option value="Default" selected="true">Don't use a separate medium file (use model defaults)</option>
+                        <option value="Default" selected="true">Default (custom model medium)</option>
                     </param>
                     <when value="Default">
                         <!-- Nessun parametro aggiuntivo necessario -->
@@ -114,9 +114,10 @@
     <![CDATA[
 Overview
 -------------
-This tool generates a Tabular file (.tabular)  containing the main information of the metabolic model, starting from a pre-built or a custom model. 
-This file can be used as input for the RAS  generator tool, RPS generator tools, and flux simulator tool.
+This tool generates a Tabular file (.tabular) containing the main information of the metabolic model, starting -either from a built-in model or a user-provided model file. 
+For built-in models, users can select among different nutrient-informed variants (i.e., different media composition) and gene nomenclature formats.
 
+The generated tabular file can be used as input for tools Expression2RAS, Expression2RPS, RAS2Bounds, Flux Simulation and Export Metabolic Model - within the COBRAxy suite.
 
 Input parameters:
 -------------
@@ -130,8 +131,8 @@ The tool has three input parameters:
 Output files:
 -------------
 
-The tool generates a tabular file containing:
-	- a tabular file (.tabular) containing reaction IDs, reaction formula, GPR rules, reaction bounds, the objective function coefficients, the pathways in which the reaction is involved and which reactions are part of the medium.
+The tool generates:
+	- one tabular file (.tabular) containing reaction IDs, reaction formula, GPR rules, reaction bounds, objective function coefficients, pathways in which the reaction is involved and a flag indicating whether the reaction is an exchange reaction (i.e., related to the growth medium).
     - a log file (.txt).
 
 **TIP 1**: Different input files can be used as the input model. The possible formats are XML (SBML), JSON, MAT or YAML (.yml). 
