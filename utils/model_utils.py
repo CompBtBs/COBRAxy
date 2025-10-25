@@ -31,17 +31,17 @@ def gene_type(l :str, name :str) -> str:
         name (str): The name of the dataset, used in error messages.
 
     Returns:
-        str: The type of gene ID ('hugo_id', 'ensembl_gene_id', 'symbol', or 'entrez_id').
+        str: The type of gene ID ('HGNC_ID', 'ENSG', 'HGNC_symbol', or 'entrez_id').
 
     Raises:
         sys.exit: If the gene ID type is not supported, the execution is aborted.
     """
     if check_hgnc(l):
-        return 'hugo_id'
+        return 'HGNC_ID'
     elif check_ensembl(l):
-        return 'ensembl_gene_id'
+        return 'ENSG'
     elif check_symbol(l):
-        return 'symbol'
+        return 'HGNC_symbol'
     elif check_entrez(l):
         return 'entrez_id'
     else:
