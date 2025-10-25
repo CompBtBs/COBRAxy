@@ -147,16 +147,16 @@ class TestModelConversion:
     
     def test_tabular_to_model(self):
         """Test tabular to model conversion"""
-        import tabular2MetabolicModel
+        import COBRAxy.src.exportMetabolicModel as exportMetabolicModel
         
-        args = tabular2MetabolicModel.process_args([])
+        args = exportMetabolicModel.process_args([])
         assert hasattr(args, 'tool_dir')
     
     def test_model_to_tabular(self):
         """Test model to tabular conversion"""
-        import metabolicModel2Tabular
+        import COBRAxy.src.importMetabolicModel as importMetabolicModel
         
-        args = metabolicModel2Tabular.process_args([])
+        args = importMetabolicModel.process_args([])
         assert hasattr(args, 'tool_dir')
 
 

@@ -1,4 +1,4 @@
-<tool id="metabolicModel2Tabular" name="Import Metabolic Model" version="2.0.0">
+<tool id="importMetabolicModel" name="Import Metabolic Model" version="2.0.0">
 
 	<requirements>
         <requirement type="package" version="1.24.4">numpy</requirement>
@@ -13,7 +13,7 @@
 
     <command detect_errors="exit_code">
         <![CDATA[
-      	python $__tool_directory__/metabolicModel2Tabular.py
+      	python $__tool_directory__/importMetabolicModel.py
         --tool_dir $__tool_directory__
         --medium_selector $cond_model.cond_medium.medium_selector
         #if $cond_model.model_selector == 'Custom_model'
