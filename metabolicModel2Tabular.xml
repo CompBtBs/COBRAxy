@@ -105,7 +105,7 @@
             <filter>cond_model['model_selector'] == 'Recon'</filter>
         </data>
 
-        <data name="out_tabular_custom" format="tabular" label="Custom_model_tabular">
+        <data name="out_tabular_custom" format="tabular" label="${cond_model.input.element_identifier}_model_tabular">
             <filter>cond_model['model_selector'] == 'Custom_model'</filter>
         </data>
     </outputs>
