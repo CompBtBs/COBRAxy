@@ -1,4 +1,5 @@
 <tool id="importMetabolicModel" name="Import Metabolic Model" version="2.0.0">
+    <description>Import a tabular model from file format (SBML, JSON, MAT or YAML)</description>
 
 	<requirements>
         <requirement type="package" version="1.24.4">numpy</requirement>
@@ -114,7 +115,8 @@
     <![CDATA[
 Overview
 -------------
-This tool generates a Tabular file (.tabular) containing the main information of the metabolic model, starting -either from a built-in model or a user-provided model file. 
+This tool generates a tabular file (.tabular) containing the main information of the metabolic model, starting either from a built-in model or a user-provided model file. 
+
 For built-in models, users can select among different nutrient-informed variants (i.e., different media composition) and gene nomenclature formats.
 
 The generated tabular file can be used as input for tools Expression2RAS, Expression2RPS, RAS2Bounds, Flux Simulation and Export Metabolic Model - within the COBRAxy suite.
@@ -123,8 +125,7 @@ Input parameters:
 -------------
 
 The tool has three input parameters:
-    - Model: a file containing metabolic information (reactions, metabolites, genes). Ready-to-use models are ENGRO2 and Recon3D.
-    The user can also upload a custom model (see TIP 1).
+    - Model: a file containing metabolic information (reactions, metabolites, genes). Ready-to-use models are ENGRO2 and Recon3D. The user can also upload a custom model (see TIP 1).
     - Medium: choose a growth medium typically used for cell culture (see TIP 2 & 3). 
     - Gene nomenclature format: use the original GPR gene names or translate them into another nomenclature.
 
