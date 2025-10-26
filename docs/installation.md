@@ -35,16 +35,13 @@ Create an isolated environment with all dependencies:
 conda create -n cobraxy python=3.13 -y
 conda activate cobraxy
 
-# Install build tools via conda (optional, if not using system packages)
-conda install -c conda-forge cmake pkg-config -y
+# Install build tools via conda
+conda install -c conda-forge cmake pkg-config swiglpk -y
 
 # Clone and install COBRAxy
 git clone https://github.com/CompBtBs/COBRAxy.git
 cd COBRAxy/src
 pip install .
-
-# Optional: Install GLPK bindings for enhanced performance
-pip install swiglpk
 ```
 
 ### Alternative: Direct Installation
@@ -54,10 +51,10 @@ If you have system dependencies already installed:
 ```bash
 # Clone the repository
 git clone https://github.com/CompBtBs/COBRAxy.git
-cd COBRAxy
+cd COBRAxy/src
 
 # Install COBRAxy
-pip install src/
+pip install .
 ```
 
 ### Development Install
