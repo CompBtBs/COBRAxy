@@ -1,13 +1,13 @@
 <!-- docs/_sidebar.md -->
 
-* **[Home](/)**
+* [Home](/)
 
-* **[Installation](/installation.md)**
+* [Installation](/installation.md)
 
-* **[Tutorials](/tutorials/)**
+* [Tutorials](/tutorials/)
   * [Galaxy Setup](/tutorials/galaxy-setup.md)
 
-* **[Tools Documentation](/tools/)**
+* [Tools Documentation](/tools/)
   * [Import Metabolic Model](/tools/import-metabolic-model.md)
   * [Export Metabolic Model](/tools/export-metabolic-model.md)
   * [RAS Generator](/tools/ras-generator.md)
