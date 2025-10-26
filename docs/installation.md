@@ -70,8 +70,7 @@ deactivate
 After successful installation:
 
 1. **[Quick Start Guide](quickstart.md)** - Run your first analysis
-2. **[Tutorial: Python API](tutorials/python-api.md)** - Learn programmatic usage
-3. **[Tutorial: Galaxy Setup](tutorials/galaxy-setup.md)** - Set up web interface
+2. **[Tutorial: Galaxy Setup](tutorials/galaxy-setup.md)** - Set up web interface
 
 ## Getting Help
 

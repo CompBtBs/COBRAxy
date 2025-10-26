@@ -6,7 +6,6 @@
 
 * [Tutorials](tutorials/)
   * [Galaxy Setup](tutorials/galaxy-setup.md)
-  * [Python API](tutorials/python-api.md)
 
 * [Tools Documentation](tools/)
   * [Import Metabolic Model](tools/import-metabolic-model.md)

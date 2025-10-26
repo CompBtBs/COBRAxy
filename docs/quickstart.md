@@ -102,7 +102,6 @@ open pathway_maps/*.svg     # macOS
 ### Try Advanced Features
 
 - **[Flux Sampling](tutorials/workflow.md#flux-simulation-workflow)** - Predict metabolic flux distributions
-- **[Python API](tutorials/python-api.md)** - Integrate into scripts and pipelines
 - **[Galaxy Interface](tutorials/galaxy-setup.md)** - Web-based analysis
 
 ### Use Your Own Data

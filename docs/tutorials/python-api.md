@@ -1,10 +1,11 @@
-# Python API Tutorial
+````markdown
+# Programmatic Usage Tutorial
 
 Learn how to use COBRAxy tools programmatically in Python scripts and analysis pipelines.
 
 ## Overview
 
-This tutorial teaches you to integrate COBRAxy into Python workflows by calling tool main functions directly with parsed arguments.
+This tutorial teaches you to integrate COBRAxy into Python workflows by calling tool main functions directly with command-line style arguments.
 
 **Time required**: ~45 minutes  
 **Difficulty**: Intermediate  

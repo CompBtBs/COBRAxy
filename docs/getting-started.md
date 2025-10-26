@@ -132,29 +132,12 @@ pyruvate	45.2	38.1	52.8
 lactate	23.9	41.2	19.4
 ```
 
-## Command Line vs Python API
-
-COBRAxy offers two usage modes:
-
-### Command Line (Quick Analysis)
-```bash
-# Simple command-line execution
-ras_generator -td $(pwd) -in data.tsv -ra output.tsv -rs ENGRO2
-```
-
-### Python API (Programming)
-```python
-import ras_generator
-# Call main function with arguments
-ras_generator.main(['-td', '/path', '-in', 'data.tsv', '-ra', 'output.tsv', '-rs', 'ENGRO2'])
-```
-
 ## Next Steps
 
 Now that you understand the basics:
 
 1. **[Quick Start Guide](quickstart.md)** - Complete walkthrough with example data
-2. **[Python API Tutorial](tutorials/python-api.md)** - Learn programmatic usage
+2. **[Galaxy Tutorial](tutorials/galaxy-setup.md)** - Web-based analysis setup
 3. **[Tools Reference](tools/)** - Detailed documentation for each tool
 4. **[Examples](examples/)** - Real-world analysis examples
 

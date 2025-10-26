@@ -4,12 +4,12 @@
 
 # COBRAxy
 
-A Python toolkit for metabolic flux analysis and visualization, with Galaxy integration.
+A Python-based command-line suite for metabolic flux analysis and visualization, with [Galaxy](http://marea4galaxy.cloud.ba.infn.it/galaxy) integration.
 
 COBRAxy transforms gene expression and metabolite data into meaningful metabolic insights through flux sampling and interactive pathway maps.
 DOC: https://compbtbs.github.io/COBRAxy
 ## Features
-
+- **Import/Export** of metabolic models in multiple formats (SBML, JSON, MAT, YAML)
 - **Reaction Activity Scores (RAS)** from gene expression data
 - **Reaction Propensity Scores (RPS)** from metabolite abundance
 - **Flux sampling** with CBS or OptGP algorithms  
@@ -67,7 +67,7 @@ flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_ma
 ## Requirements
 
 - **Python**: 3.8-3.12
-- **OS**: Linux, macOS, Windows (Linux recommended)
+- **OS**: Linux, macOS, Windows (Linux/maxOS recommended)
 - **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
 
 **Optional system libraries** (for enhanced features):
@@ -113,7 +113,7 @@ COBRAxy includes ready-to-use resources:
 
 - **Models**: ENGRO2, Recon (human metabolism)
 - **Gene mappings**: HGNC, Ensembl, Entrez ID conversions
-- **Pathway maps**: Pre-styled SVG templates
+- **Pathway map**: Pre-styled SVG templates for ENGRO2 
 - **Medium compositions**: Standard growth conditions
 
 Located in `src/local/` directory for immediate use.
@@ -150,56 +150,6 @@ COBRAxy provides Galaxy tool wrappers (`.xml` files) for web-based analysis:
 - Share and reproduce analyses
 
 For Galaxy installation and setup, refer to the [official Galaxy documentation](https://docs.galaxyproject.org/).
-
-## Python API Usage
-
-For programmatic use of COBRAxy tools in Python scripts:
-
-```python
-import sys
-import os
-
-# Add COBRAxy to Python path
-sys.path.append('/path/to/COBRAxy/src')
-
-# Import tool modules
-import ras_generator
-import rps_generator
-import flux_simulation
-import marea
-import ras_to_bounds
-import importMetabolicModel
-import exportMetabolicModel
-
-# Set working directory
-tool_dir = "/path/to/COBRAxy/src"
-os.chdir(tool_dir)
-
-# Generate RAS scores
-ras_args = [
-    '-td', tool_dir,
-    '-in', 'data/expression.tsv',
-    '-ra', 'output/ras_values.tsv',
-    '-rs', 'ENGRO2'
-]
-ras_generator.main(ras_args)
-
-# Apply RAS constraints and sample fluxes
-ras_to_bounds.main(['-td', tool_dir, '-ms', 'ENGRO2', '-ir', 'output/ras_values.tsv', '-idop', 'bounds'])
-flux_simulation.main(['-td', tool_dir, '-ms', 'ENGRO2', '-in', 'bounds/*.tsv', '-a', 'CBS', '-idop', 'flux_results'])
-```
-
-For more examples and detailed tutorials, see the [documentation](https://compbtbs.github.io/COBRAxy).
-
-## Input/Output Formats
-
-| Data Type | Format | Description |
-|-----------|---------|-------------|
-| Gene expression | TSV | Genes (rows) × Samples (columns) |
-| Metabolites | TSV | Metabolites (rows) × Samples (columns) |  
-| Models | SBML | Standard metabolic model format |
-| Results | TSV/CSV | Tabular flux/score data |
-| Maps | SVG/PDF | Styled pathway visualizations |
 
 ## Troubleshooting
 

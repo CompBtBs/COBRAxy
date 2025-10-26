@@ -1,8 +1,8 @@
 # COBRAxy Documentation
 
-> A Python toolkit for metabolic flux analysis and visualization, with Galaxy integration.
+> A Python-based command-line suite for metabolic flux analysis and visualization, with Galaxy integration.
 
-COBRAxy enables the integration of transcriptomics data with COBRA-based metabolic models, offering a comprehensive framework for studying metabolism in both health and disease. With COBRAxy, users can load and enrich metabolic models by incorporating transcriptomic data and adjusting the model’s medium conditions.
+COBRAxy enables the integration of transcriptomics data with COBRA-based metabolic models, offering a comprehensive framework for studying metabolism in both health and disease. With COBRAxy, users can load and enrich metabolic models by incorporating transcriptomic data and adjusting the model's medium conditions.
 
 ## Overview
 
@@ -30,7 +30,7 @@ By offering an intuitive and accessible platform for multi-omics integration and
 Install COBRAxy and get it running on your system
 
 ### [Tutorials](tutorials/)
-Step-by-step guides for Galaxy and Python usage
+Step-by-step guides for Galaxy usage
 
 ### [Tools Documentation](tools/)
 Complete reference for all COBRAxy tools
@@ -56,7 +56,6 @@ COBRAxy follows several analysis paths:
 |----------|-------------|
 | [Installation Guide](installation.md) | Get COBRAxy running on your system |
 | [Galaxy Tutorial](tutorials/galaxy-setup.md) | Web-based analysis setup |
-| [Python Tutorial](tutorials/python-api.md) | Use COBRAxy programmatically |
 | [Tools Documentation](tools/) | Complete tool reference |
 
 ---

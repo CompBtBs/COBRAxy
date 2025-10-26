@@ -117,22 +117,6 @@ ras_generator -td /path/to/COBRAxy \
   -n false
 ```
 
-### Python API
-
-```python
-import ras_generator
-
-# Basic RAS generation
-args = [
-    '-td', '/path/to/COBRAxy',
-    '-in', 'expression_data.tsv', 
-    '-ra', 'ras_output.tsv',
-    '-rs', 'ENGRO2'
-]
-
-ras_generator.main(args)
-```
-
 ### Galaxy Usage
 
 1. Upload gene expression file to Galaxy
