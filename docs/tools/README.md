@@ -4,15 +4,15 @@ Complete reference for all COBRAxy tools with parameters, examples, and usage gu
 
 | Tool | Purpose | Input | Output |
 |------|---------|--------|--------|
-| [Import Metabolic Model](/tools/import-metabolic-model) | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data |
-| [Export Metabolic Model](/tools/export-metabolic-model) | Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model |
-| [RAS Generator](/tools/ras-generator) | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
-| [RPS Generator](/tools/rps-generator) | Compute reaction propensity scores | Metabolite abundance | RPS values |
-| [MAREA](/tools/marea) | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
-| [RAS to Bounds](/tools/ras-to-bounds) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
-| [Flux Simulation](/tools/flux-simulation) | Sample metabolic fluxes | Constrained model | Flux distributions |
-| [Flux to Map](/tools/flux-to-map) | Visualize flux data on maps | Flux samples + statistical comparison | Color-coded pathway maps |
-| [MAREA Cluster](/tools/marea-cluster) | Cluster analysis | Expression/RAS/RPS/flux data | Sample clusters + validation plots |
+| [Import Metabolic Model](tools/import-metabolic-model) | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data |
+| [Export Metabolic Model](tools/export-metabolic-model) | Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model |
+| [RAS Generator](tools/ras-generator) | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
+| [RPS Generator](tools/rps-generator) | Compute reaction propensity scores | Metabolite abundance | RPS values |
+| [MAREA](tools/marea) | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
+| [RAS to Bounds](tools/ras-to-bounds) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
+| [Flux Simulation](tools/flux-simulation) | Sample metabolic fluxes | Constrained model | Flux distributions |
+| [Flux to Map](tools/flux-to-map) | Visualize flux data on maps | Flux samples + statistical comparison | Color-coded pathway maps |
+| [MAREA Cluster](tools/marea-cluster) | Cluster analysis | Expression/RAS/RPS/flux data | Sample clusters + validation plots |
 
 
 ## Analysis Workflows
@@ -67,27 +67,27 @@ ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 ### Choose Your Analysis Path
 
 **For Pathway Enrichment**
-1. [RAS Generator](ras-generator) → Generate activity scores
-2. [RPS Generator](rps-generator) → Generate propensity scores (optional)
-3. [MAREA](marea) → Statistical analysis and visualization
+1. [RAS Generator](tools/ras-generator) → Generate activity scores
+2. [RPS Generator](tools/rps-generator) → Generate propensity scores (optional)
+3. [MAREA](tools/marea) → Statistical analysis and visualization
 
 **For Flux Analysis**  
-1. [RAS Generator](ras-generator) → Generate activity scores
-2. [RAS to Bounds](ras-to-bounds) → Apply constraints
-3. [Flux Simulation](flux-simulation) → Sample fluxes
-4. [Flux to Map](flux-to-map) → Create visualizations
+1. [RAS Generator](tools/ras-generator) → Generate activity scores
+2. [RAS to Bounds](tools/ras-to-bounds) → Apply constraints
+3. [Flux Simulation](tools/flux-simulation) → Sample fluxes
+4. [Flux to Map](tools/flux-to-map) → Create visualizations
 
 **For Model Exploration**
-1. [Import Metabolic Model](import-metabolic-model) → Extract model info
+1. [Import Metabolic Model](tools/import-metabolic-model) → Extract model info
 2. Analyze model structure and gene coverage
 
 **For Model Creation**
 1. Create/edit tabular model data
-2. [Export Metabolic Model](export-metabolic-model) → Create SBML/JSON/MAT/YAML model
+2. [Export Metabolic Model](tools/export-metabolic-model) → Create SBML/JSON/MAT/YAML model
 
 **For Sample Classification**
 1. Generate RAS/RPS scores
-2. [MAREA Cluster](marea-cluster) → Cluster samples
+2. [MAREA Cluster](tools/marea-cluster) → Cluster samples
 
 
 

@@ -227,10 +227,27 @@
             // Get the main link
             const mainLink = item.querySelector('a');
             if (mainLink) {
-              // Add click handler to toggle
+              // Create a toggle button for the arrow
+              const arrow = mainLink.querySelector('::before') || mainLink;
+              
+              // Add click handler that allows navigation but also toggles on second click
+              let clickCount = 0;
+              let clickTimer = null;
+              
               mainLink.addEventListener('click', function(e) {
-                // Only toggle if clicking on a folder item
-                if (item.classList.contains('folder')) {
+                clickCount++;
+                
+                if (clickCount === 1) {
+                  // First click: navigate to the page
+                  clickTimer = setTimeout(function() {
+                    clickCount = 0;
+                  }, 300);
+                  // Don't prevent default, allow navigation
+                  item.classList.add('open');
+                } else if (clickCount === 2) {
+                  // Second click: toggle the folder
+                  clearTimeout(clickTimer);
+                  clickCount = 0;
                   e.preventDefault();
                   item.classList.toggle('open');
                 }
