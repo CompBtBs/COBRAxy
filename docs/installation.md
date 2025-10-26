@@ -6,10 +6,50 @@ This guide walks you through installing COBRAxy on your system.
 
 - **Python**: 3.8-3.13
 - **Operating System**: Linux (recommended), macOS, Windows
+- **Build tools**: C/C++ compiler (gcc, clang, or MSVC), CMake, pkg-config
 
-## Quick Install
+## System Dependencies
 
-The fastest way to install COBRAxy:
+Install required build tools before installing COBRAxy:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install build-essential cmake pkg-config libvips libglpk40 glpk-utils
+
+# macOS
+xcode-select --install
+brew install cmake pkg-config vips glpk
+
+# Windows (with Chocolatey)
+choco install cmake visualstudio2022buildtools pkgconfiglite
+```
+
+## Installation Methods
+
+### Recommended: Using Conda
+
+Create an isolated environment with all dependencies:
+
+```bash
+# Create a new conda environment
+conda create -n cobraxy python=3.13 -y
+conda activate cobraxy
+
+# Install build tools via conda (optional, if not using system packages)
+conda install -c conda-forge cmake pkg-config -y
+
+# Clone and install COBRAxy
+git clone https://github.com/CompBtBs/COBRAxy.git
+cd COBRAxy/src
+pip install .
+
+# Optional: Install GLPK bindings for enhanced performance
+pip install swiglpk
+```
+
+### Alternative: Direct Installation
+
+If you have system dependencies already installed:
 
 ```bash
 # Clone the repository
@@ -20,20 +60,26 @@ cd COBRAxy
 pip install src/
 ```
 
-## Development Install
+### Development Install
 
 For development or if you want to modify COBRAxy:
 
 ```bash
-# Clone and install in development mode
+# Clone and install in editable mode
 git clone https://github.com/CompBtBs/COBRAxy.git
 cd COBRAxy
 pip install -e src/
 ```
 
-## Dependencies
+## What Gets Installed
 
-COBRAxy automatically installs its Python dependencies (COBRApy, pandas, numpy, etc.)
+COBRAxy automatically installs Python dependencies including:
+- **COBRApy**: Core metabolic modeling
+- **pandas, numpy**: Data handling
+- **matplotlib, seaborn**: Visualization
+- **scikit-learn, scipy**: Statistical analysis
+- **pyvips**: Image processing
+- **anndata, pydeseq2**: Advanced analysis
 
 ## Verify Installation
 
@@ -43,9 +89,53 @@ Test your installation:
 # Check if COBRAxy tools are available
 ras_generator --help
 flux_simulation --help
+marea --help
+
+# Check Python can import COBRAxy modules
+python -c "import ras_generator; print('COBRAxy installed successfully!')"
 ```
 
-## Virtual Environment (Recommended)
+## Troubleshooting Installation
+
+### Missing Compiler Errors
+
+If you see errors about missing compilers during installation:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install build-essential
+
+# macOS
+xcode-select --install
+```
+
+### CMake Not Found
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install cmake
+
+# macOS
+brew install cmake
+
+# Or via conda
+conda install -c conda-forge cmake
+```
+
+### pkg-config Issues
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install pkg-config
+
+# macOS
+brew install pkg-config
+
+# Or via conda
+conda install -c conda-forge pkg-config
+```
+
+## Alternative: Virtual Environment (without Conda)
 
 Using a virtual environment prevents conflicts with other Python packages:
 
@@ -58,6 +148,7 @@ source cobraxy-env/bin/activate  # Linux/macOS
 # cobraxy-env\Scripts\activate  # Windows
 
 # Install COBRAxy
+cd COBRAxy
 pip install src/
 
 # When done, deactivate

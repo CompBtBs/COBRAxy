@@ -11,69 +11,82 @@ source:
 
 build:
   entry_points:
-    - custom_data_generator=custom_data_generator:main
-    - flux_simulation=flux_simulation:main
-    - flux_to_map=flux_to_map:main
+    - importMetabolicModel=importMetabolicModel:main
+    - exportMetabolicModel=exportMetabolicModel:main
+    - ras_generator=ras_generator:main
+    - rps_generator=rps_generator:main
     - marea_cluster=marea_cluster:main
     - marea=marea:main
-    - ras_generator=ras_generator:main
     - ras_to_bounds=ras_to_bounds:main
-    - rps_generator=rps_generator:main
+    - flux_simulation=flux_simulation:main
+    - flux_to_map=flux_to_map:main
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-build-isolation
   number: 0
 
 requirements:
   host:
-    - python >=3.8.20,<3.12
+    - python >=3.8,<3.14
     - pip
     - setuptools
+    - cmake
+    - pkg-config
   run:
-    - python >=3.8.20,<3.12
-    - cairosvg ==2.7.1
-    - cobra ==0.29.0
-    - joblib ==1.4.2
-    - lxml ==5.2.2
-    - matplotlib-base ==3.7.3
-    - numpy ==1.24.4
-    - pandas ==2.0.3
-    - pyvips ==2.2.3 # [linux or osx]
-    - scikit-learn ==1.3.2
-    - scipy ==1.10.1
-    - seaborn ==0.13.0
-    - svglib ==1.5.1
-  pip:
-    - pyvips==2.2.3  # [win]
+    - python >=3.8,<3.14
+    - cairosvg >=2.7.0
+    - cobra >=0.29.0
+    - joblib >=1.3.0
+    - lxml >=5.0.0
+    - matplotlib-base >=3.7.0
+    - numpy >=1.24.0
+    - pandas >=2.0.0
+    - pyvips >=2.2.0
+    - scikit-learn >=1.3.0
+    - scipy >=1.11.0
+    - seaborn >=0.13.0
+    - svglib >=1.5.0
+    - anndata >=0.8.0
+    - pydeseq2 >=0.4.0
+    - cmake
+    - pkg-config
 
 test:
   imports:
     - utils
-    - custom_data_generator
-    - flux_simulation
-    - marea_cluster
+    - importMetabolicModel
+    - exportMetabolicModel
     - ras_generator
-    - ras_to_bounds
     - rps_generator
+    - marea_cluster
+    - marea
+    - ras_to_bounds
+    - flux_simulation
+    - flux_to_map
   commands:
-    - pip install pyvips==2.2.3
-    - python -c "import pyvips; print('pyvips version:', pyvips.__version__)"
     - pip check
-    - custom_data_generator --help
-    - flux_simulation --help
-    - flux_to_map --help
+    - importMetabolicModel --help
+    - exportMetabolicModel --help
+    - ras_generator --help
+    - rps_generator --help
     - marea_cluster --help
     - marea --help
-    - ras_generator --help
     - ras_to_bounds --help
-    - rps_generator --help
+    - flux_simulation --help
+    - flux_to_map --help
   requires:
     - pip
 
 about:
-  home: https://github.com/CompBtBs/COBRAxy.git
-  summary: A collection of tools for metabolic flux analysis in Galaxy.
-  #license: ''
-  #license_file: PLEASE_ADD_LICENSE_FILE
+  home: https://github.com/CompBtBs/COBRAxy
+  summary: A Python-based command-line suite for metabolic flux analysis and visualization
+  description: |
+    COBRAxy transforms gene expression and metabolite data into meaningful metabolic insights 
+    through flux sampling and interactive pathway maps. It provides tools for computing reaction 
+    activity scores (RAS), reaction propensity scores (RPS), flux sampling, and statistical analysis.
+  doc_url: https://compbtbs.github.io/COBRAxy
+  dev_url: https://github.com/CompBtBs/COBRAxy
+  license: MIT
+  license_file: LICENSE
 
 extra:
   recipe-maintainers:

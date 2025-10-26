@@ -18,8 +18,6 @@ DOC: https://compbtbs.github.io/COBRAxy
 - **Galaxy tools** for web-based analysis
 - **Built-in models** including ENGRO2 and Recon
 
-## Quick Start
-
 ## Requirements
 
 - **Python**: 3.8-3.13

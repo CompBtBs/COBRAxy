@@ -4,23 +4,50 @@ Common issues and solutions when using COBRAxy.
 
 ## Installation Issues
 
+### Missing Build Tools
+
+**Problem**: `gcc: command not found` or compilation errors (Linux/macOS)
+```bash
+# Ubuntu/Debian
+sudo apt-get install build-essential cmake pkg-config
+
+# macOS
+xcode-select --install
+brew install cmake pkg-config
+```
+
+**Problem**: `CMake not found`
+```bash
+# Ubuntu/Debian
+sudo apt-get install cmake
+
+# macOS
+brew install cmake
+
+# Or via conda
+conda install -c conda-forge cmake
+```
+
 ### Python Import Errors
 
 **Problem**: `ModuleNotFoundError: No module named 'cobra'`
 ```bash
-# Solution: Install missing dependencies
-pip install cobra pandas numpy scipy
+# Solution: Reinstall COBRAxy with dependencies
+cd COBRAxy/src
+pip install .
 
-# Or reinstall COBRAxy
-cd COBRAxy
-pip install -e src/
+# Or install missing dependency directly
+pip install cobra
 ```
 
 **Problem**: `ImportError: No module named 'cobraxy'`  
 ```python
-# Solution: Add COBRAxy to Python path
+# Solution: Ensure COBRAxy is installed
+pip install /path/to/COBRAxy/src/
+
+# Or add to Python path temporarily
 import sys
-sys.path.insert(0, '/path/to/COBRAxy')
+sys.path.insert(0, '/path/to/COBRAxy/src')
 ```
 
 ### System Dependencies
