@@ -355,8 +355,7 @@ When reporting issues, include:
 
 ### Community Resources
 
-- **GitHub Issues**: [Report bugs](https://github.com/CompBtBs/COBRAxy/issues)
-- **Discussions**: [Ask questions](https://github.com/CompBtBs/COBRAxy/discussions)  
+- **GitHub Issues**: [Report bugs and ask questions](https://github.com/CompBtBs/COBRAxy/issues)
 - **COBRApy Community**: [General metabolic modeling help](https://github.com/opencobra/cobrapy)
 
 ### Self-Help Checklist

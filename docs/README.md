@@ -50,9 +50,8 @@ COBRAxy supports three main analysis workflows:
 
 ## Community & Support
 
-- **Documentation**: Complete guides
-- **Discussions**: Ask questions and share experiences
-- **Issues**: Report bugs and request features
+- **Documentation**: Complete guides and references
+- **Issues**: Report bugs and request features on [GitHub](https://github.com/CompBtBs/COBRAxy/issues)
 - **Contributing**: Help improve COBRAxy
 
 **Ready to start?** Follow the [Installation Guide](installation.md) to get COBRAxy up and running!

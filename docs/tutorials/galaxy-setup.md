@@ -150,7 +150,7 @@ For troubleshooting Galaxy installations and tool integration issues:
 
 - **[Galaxy GitHub Issues](https://github.com/galaxyproject/galaxy/issues)**
   - Report bugs and technical issues
-  - Feature requests and discussions
+  - Feature requests
 
 ### COBRAxy-Specific Issues
 
