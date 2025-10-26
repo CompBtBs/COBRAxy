@@ -6,11 +6,11 @@ Learn COBRAxy through hands-on tutorials for web-based analysis.
 
 | Tutorial | Duration | Description |
 |----------|----------|-------------|
-| [Galaxy Setup](galaxy-setup) | 30 min | Set up Galaxy for web-based analysis |
+| [Galaxy Setup](tutorials/galaxy-setup) | 30 min | Set up Galaxy for web-based analysis |
 
 ## Web Interface Tutorial
 
-### [Galaxy Setup Tutorial](galaxy-setup)
+### [Galaxy Setup Tutorial](tutorials/galaxy-setup)
 
 Set up a local Galaxy instance with COBRAxy tools for point-and-click analysis. Perfect for users who prefer graphical interfaces and reproducible workflows.
 

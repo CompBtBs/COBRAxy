@@ -38,7 +38,8 @@ Compute Reaction Activity Scores (RAS) from your gene expression:
 
 ```bash
 # Generate RAS scores using built-in ENGRO2 model
-ras_generator -td $(pwd) \
+# Note: -td is optional and auto-detected after pip install
+ras_generator \
   -in sample_expression.tsv \
   -ra ras_scores.tsv \
   -rs ENGRO2
@@ -61,7 +62,8 @@ Generate enriched pathway maps with statistical analysis:
 
 ```bash
 # Create pathway maps with statistical analysis
-marea -td $(pwd) \
+# Note: -td is optional and auto-detected after pip install
+marea \
   -using_RAS true \
   -input_data ras_scores.tsv \
   -choice_map ENGRO2 \
@@ -123,8 +125,9 @@ cat > expression.tsv << 'EOF'
 EOF
 
 # Run analysis pipeline
-ras_generator -td /path/to/COBRAxy -in expression.tsv -ra ras.tsv -rs ENGRO2
-marea -td /path/to/COBRAxy -using_RAS true -input_data ras.tsv -choice_map ENGRO2 -gs true -idop maps
+# Note: -td is optional and auto-detected after pip install
+ras_generator -in expression.tsv -ra ras.tsv -rs ENGRO2
+marea -using_RAS true -input_data ras.tsv -choice_map ENGRO2 -gs true -idop maps
 
 # View results
 ls maps/*.svg

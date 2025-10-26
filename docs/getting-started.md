@@ -74,7 +74,8 @@ You'll need:
 
 ```bash
 # Generate RAS from expression data
-ras_generator -td $(pwd) \
+# Note: -td is optional and auto-detected after pip install
+ras_generator \
   -in expression_data.tsv \
   -ra ras_output.tsv \
   -rs ENGRO2
@@ -84,7 +85,8 @@ ras_generator -td $(pwd) \
 
 ```bash
 # Generate enriched pathway maps
-marea -td $(pwd) \
+# Note: -td is optional and auto-detected after pip install
+marea \
   -using_RAS true \
   -input_data ras_output.tsv \
   -choice_map ENGRO2 \

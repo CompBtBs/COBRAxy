@@ -14,8 +14,12 @@ import pandas as pd
 
 from typing import Optional, List, Dict
 
-import utils.general_utils as utils
-import utils.reaction_parsing as reactionUtils
+try:
+    from .utils import general_utils as utils
+    from .utils import reaction_parsing as reactionUtils
+except:
+    import utils.general_utils as utils
+    import utils.reaction_parsing as reactionUtils
 
 ########################## argparse ##########################################
 ARGS :argparse.Namespace
@@ -38,9 +42,10 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         help = "path to input file containing the reactions")
 
     parser.add_argument('-td', '--tool_dir',
-                        type = str,
-                        required = True,
-                        help = 'your tool directory')
+        type = str,
+        default = os.path.dirname(os.path.abspath(__file__)),
+        help = 'your tool directory (default: auto-detected package location)')
+    
     parser.add_argument('-ol', '--out_log', 
                         help = "Output log")    
     parser.add_argument('-id', '--input',

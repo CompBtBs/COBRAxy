@@ -77,8 +77,8 @@ def process_args(args_in :List[str] = None) -> argparse.Namespace:
     
     parser.add_argument('-td', '--tool_dir',
                         type = str,
-                        required = True,
-                        help = 'your tool directory')
+                        default = os.path.dirname(os.path.abspath(__file__)),
+                        help = 'your tool directory (default: auto-detected package location)')
                         
     parser.add_argument('-ms', '--min_samples',
                         type = int,

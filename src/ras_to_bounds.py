@@ -9,7 +9,6 @@ Workflow:
 - Save bounds per sample and optionally export updated models in chosen formats
 """
 import argparse
-import utils.general_utils as utils
 from typing import Optional, Dict, Set, List, Tuple, Union
 import os
 import numpy as np
@@ -18,7 +17,13 @@ import cobra
 from cobra import Model
 import sys
 from joblib import Parallel, delayed, cpu_count
-import utils.model_utils as modelUtils
+
+try:
+    from .utils import general_utils as utils
+    from .utils import model_utils as modelUtils
+except:
+    import utils.general_utils as utils
+    import utils.model_utils as modelUtils
 
 ################################# process args ###############################
 def process_args(args :List[str] = None) -> argparse.Namespace:
@@ -43,8 +48,8 @@ def process_args(args :List[str] = None) -> argparse.Namespace:
     
     parser.add_argument('-td', '--tool_dir',
                         type = str,
-                        required = True,
-                        help = 'your tool directory')
+                        default = os.path.dirname(os.path.abspath(__file__)),
+                        help = 'your tool directory (default: auto-detected package location)')
     
     parser.add_argument('-ir', '--input_ras',
                         type=str,

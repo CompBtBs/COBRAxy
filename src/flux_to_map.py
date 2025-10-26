@@ -9,7 +9,10 @@ import itertools as it
 import scipy.stats as st
 import lxml.etree as ET
 import math
-import utils.general_utils as utils
+try:
+    from .utils import general_utils as utils
+except:
+    import utils.general_utils as utils
 from PIL import Image
 import os
 import copy
@@ -40,8 +43,8 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
     parser.add_argument(
         '-td', '--tool_dir',
         type = str,
-        required = True,
-        help = 'your tool directory')
+        default = os.path.dirname(os.path.abspath(__file__)),
+        help = 'your tool directory (default: auto-detected package location)')
     
     parser.add_argument('-on', '--control', type = str)
     parser.add_argument('-ol', '--out_log', help = "Output log")

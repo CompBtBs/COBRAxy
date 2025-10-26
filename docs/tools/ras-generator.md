@@ -18,7 +18,6 @@ The RAS Generator computes metabolic reaction activity by:
 
 | Parameter | Short | Type | Description |
 |-----------|--------|------|-------------|
-| `--tool_dir` | `-td` | string | COBRAxy installation directory |
 | `--input` | `-in` | file | Gene expression dataset (TSV format) |
 | `--ras_output` | `-ra` | file | Output file for RAS values |
 | `--rules_selector` | `-rs` | choice | Built-in model (ENGRO2, Recon, HMRcore) |
@@ -27,10 +26,13 @@ The RAS Generator computes metabolic reaction activity by:
 
 | Parameter | Short | Type | Default | Description |
 |-----------|--------|------|---------|-------------|
+| `--tool_dir` | `-td` | string | auto-detected | COBRAxy installation directory (automatically detected after pip install) |
 | `--none` | `-n` | boolean | true | Handle missing gene values |
 | `--model_upload` | `-rl` | file | - | Custom GPR rules file |
 | `--model_upload_name` | `-rn` | string | - | Custom model name |
 | `--out_log` | - | file | log.txt | Output log file |
+
+> **Note**: After installing COBRAxy via pip, the `--tool_dir` parameter is automatically detected and doesn't need to be specified.
 
 ## Input Format
 
@@ -102,19 +104,25 @@ R_ALDOA	3.2	4.1	4.4	5.1
 ### Command Line
 
 ```bash
-# Basic usage with built-in model
-ras_generator -td /path/to/COBRAxy \
+# Basic usage with built-in model (after pip install)
+ras_generator \
   -in expression_data.tsv \
   -ra ras_output.tsv \
   -rs ENGRO2
 
 # With custom model and strict missing gene handling
-ras_generator -td /path/to/COBRAxy \
+ras_generator \
   -in expression_data.tsv \
   -ra ras_output.tsv \
   -rl custom_rules.tsv \
   -rn "CustomModel" \
   -n false
+
+# Explicitly specify tool directory (only needed if not using pip install)
+ras_generator -td /path/to/COBRAxy \
+  -in expression_data.tsv \
+  -ra ras_output.tsv \
+  -rs ENGRO2
 ```
 
 ### Galaxy Usage

@@ -10,7 +10,13 @@ import cobra
 import argparse
 from typing import List
 import logging
-import utils.model_utils as modelUtils
+
+try:
+    from .utils import model_utils as modelUtils
+    from .utils import general_utils as utils
+except:
+    import utils.model_utils as modelUtils
+    import utils.general_utils as utils
 
 ARGS : argparse.Namespace
 def process_args(args: List[str] = None) -> argparse.Namespace:
@@ -41,8 +47,8 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     parser.add_argument("--output", type=str, required=True,
     help="Output model file path")
 
-    parser.add_argument("--tool_dir", type=str, default=os.path.dirname(__file__),
-    help="Tool directory (passed from Galaxy as $__tool_directory__)")
+    parser.add_argument("--tool_dir", type=str, default=os.path.dirname(os.path.abspath(__file__)),
+    help="Tool directory (default: auto-detected package location)")
 
 
     return parser.parse_args(args)

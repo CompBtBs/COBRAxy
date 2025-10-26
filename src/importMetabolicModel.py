@@ -12,9 +12,13 @@ import csv
 import cobra
 import argparse
 import pandas as pd
-import utils.general_utils as utils
+try:
+    from .utils import general_utils as utils
+    from .utils import model_utils as modelUtils
+except:
+    import utils.general_utils as utils
+    import utils.model_utils as modelUtils
 from typing import Optional, Tuple, List
-import utils.model_utils as modelUtils
 import logging
 from pathlib import Path
 
@@ -40,7 +44,7 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     parser.add_argument("--name", nargs='*', required=True,
                         help="Model name (default or custom)")
     
-    parser.add_argument("--medium_selector", type=str, required=True,
+    parser.add_argument("--medium_selector", type=str, default="Default",
                         help="Medium selection option")
 
     parser.add_argument("--gene_format", type=str, default="Default",
@@ -49,8 +53,8 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     parser.add_argument("--out_tabular", type=str,
                         help="Output file for the merged dataset (CSV or XLSX)")
     
-    parser.add_argument("--tool_dir", type=str, default=os.path.dirname(__file__),
-                        help="Tool directory (passed from Galaxy as $__tool_directory__)")
+    parser.add_argument("--tool_dir", type=str, default=os.path.dirname(os.path.abspath(__file__)),
+                        help="Tool directory (default: auto-detected package location)")
 
 
     return parser.parse_args(args)

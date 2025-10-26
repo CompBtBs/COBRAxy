@@ -11,17 +11,23 @@ and optional analyses (pFBA, FVA, sensitivity), saved as tabular files.
 """
 
 import argparse
-import utils.general_utils as utils
 from typing import List
 import os
 import pandas as pd
 import numpy as np
 import cobra
-import utils.CBS_backend as CBS_backend
 from joblib import Parallel, delayed, cpu_count
 from cobra.sampling import OptGPSampler
 import sys
-import utils.model_utils as model_utils
+
+try:
+    from .utils import general_utils as utils
+    from .utils import CBS_backend
+    from .utils import model_utils
+except:
+    import utils.general_utils as utils
+    import utils.CBS_backend as CBS_backend
+    import utils.model_utils as model_utils
 
 
 ################################# process args ###############################
@@ -56,8 +62,8 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
     
     parser.add_argument('-td', '--tool_dir',
                         type=str,
-                        required=True,
-                        help='your tool directory')
+                        default=os.path.dirname(os.path.abspath(__file__)),
+                        help='your tool directory (default: auto-detected package location)')
     
     parser.add_argument('-in', '--input',
                         required=True,

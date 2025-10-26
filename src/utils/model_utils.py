@@ -15,10 +15,15 @@ import re
 import logging
 from typing import Optional, Tuple, Union, List, Dict, Set
 from collections import defaultdict
-import utils.rule_parsing  as rulesUtils
-import utils.reaction_parsing as reactionUtils
 from cobra import Model as cobraModel, Reaction, Metabolite
 import sys
+
+try:
+    from . import rule_parsing as rulesUtils
+    from . import reaction_parsing as reactionUtils
+except:
+    import rule_parsing as rulesUtils
+    import reaction_parsing as reactionUtils
 
 
 ############################ check_methods ####################################

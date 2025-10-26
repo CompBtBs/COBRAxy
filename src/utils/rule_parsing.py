@@ -9,8 +9,12 @@ This module provides:
 - parseRuleToNestedList: main entry to parse a rule string into an OpList
 """
 from enum import Enum
-import utils.general_utils as utils
 from typing import List, Union, Optional
+
+try:
+    from . import general_utils as utils
+except:
+    import general_utils as utils
 
 class RuleErr(utils.CustomErr):
     """

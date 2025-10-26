@@ -10,22 +10,17 @@ setup(
     description='A collection of tools for metabolic flux analysis in Galaxy.',
     long_description=open(readme_path, encoding="utf-8").read(),
     long_description_content_type='text/markdown',
-    author='',  
-    author_email='',
+    author='Francesco Lapi',  
+    author_email='f.lapi@campus.unimib.it',
     url='https://github.com/CompBtBs/COBRAxy.git',
     license='',
-    packages=find_packages(include=["utils", "utils.*"]),  
-    py_modules=[
-        'importMetabolicModel',
-        'exportMetabolicModel',
-        'ras_generator',
-        'rps_generator',
-        'marea_cluster',
-        'marea',
-        'ras_to_bounds',
-        'flux_simulation',
-        'flux_to_map'
-    ],
+    package_dir={'cobraxy': '.'},  # Mappa il package 'cobraxy' alla directory corrente
+    packages=['cobraxy', 'cobraxy.utils', 'cobraxy.local'],  # Solo packages sotto cobraxy
+    package_data={
+        'cobraxy': ['*.py'],  # Include i moduli Python principali
+        'cobraxy.local': ['**/*'],  # Include all files in local directory
+        'cobraxy.utils': ['**/*'],  # Include all files in utils directory
+    },
     include_package_data=True, 
     install_requires=[
         'cairosvg>=2.7.0',
@@ -45,15 +40,15 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'importMetabolicModel=importMetabolicModel:main',
-            'exportMetabolicModel=exportMetabolicModel:main',
-            'ras_generator=ras_generator:main',
-            'rps_generator=rps_generator:main',
-            'marea_cluster=marea_cluster:main',
-            'marea=marea:main',
-            'ras_to_bounds=ras_to_bounds:main',
-            'flux_simulation=flux_simulation:main',
-            'flux_to_map=flux_to_map:main'
+            'importMetabolicModel=cobraxy.importMetabolicModel:main',
+            'exportMetabolicModel=cobraxy.exportMetabolicModel:main',
+            'ras_generator=cobraxy.ras_generator:main',
+            'rps_generator=cobraxy.rps_generator:main',
+            'marea_cluster=cobraxy.marea_cluster:main',
+            'marea=cobraxy.marea:main',
+            'ras_to_bounds=cobraxy.ras_to_bounds:main',
+            'flux_simulation=cobraxy.flux_simulation:main',
+            'flux_to_map=cobraxy.flux_to_map:main'
         ],
     },
     classifiers=[

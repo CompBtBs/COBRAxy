@@ -8,9 +8,13 @@ Features:
 - Loading custom reactions from a tabular file (TSV)
 """
 from enum import Enum
-import utils.general_utils as utils
 from typing import Dict
 import re
+
+try:
+    from . import general_utils as utils
+except:
+    import general_utils as utils
 
 # Reaction direction encoding:
 class ReactionDir(Enum):
