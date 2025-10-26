@@ -17,7 +17,7 @@ git clone https://github.com/CompBtBs/COBRAxy.git
 cd COBRAxy
 
 # Install COBRAxy
-pip install .
+pip install src/
 ```
 
 ## Development Install
@@ -28,7 +28,7 @@ For development or if you want to modify COBRAxy:
 # Clone and install in development mode
 git clone https://github.com/CompBtBs/COBRAxy.git
 cd COBRAxy
-pip install -e .
+pip install -e src/
 ```
 
 ## Dependencies
@@ -58,7 +58,7 @@ source cobraxy-env/bin/activate  # Linux/macOS
 # cobraxy-env\Scripts\activate  # Windows
 
 # Install COBRAxy
-pip install .
+pip install src/
 
 # When done, deactivate
 deactivate

@@ -13,7 +13,7 @@ pip install cobra pandas numpy scipy
 
 # Or reinstall COBRAxy
 cd COBRAxy
-pip install -e .
+pip install -e src/
 ```
 
 **Problem**: `ImportError: No module named 'cobraxy'`  
@@ -245,7 +245,7 @@ conda activate cobraxy
 
 # Install COBRAxy fresh
 cd COBRAxy
-pip install -e .
+pip install -e src/
 ```
 
 ### Cross-Platform Issues

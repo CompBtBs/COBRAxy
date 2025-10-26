@@ -25,7 +25,7 @@ DOC: https://compbtbs.github.io/COBRAxy
 ```bash
 git clone https://github.com/CompBtBs/COBRAxy.git
 cd COBRAxy
-pip install .
+pip install src/
 ```
 
 ### Basic Workflow
