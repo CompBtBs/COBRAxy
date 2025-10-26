@@ -4,7 +4,7 @@ This guide walks you through installing COBRAxy on your system.
 
 ## System Requirements
 
-- **Python**: 3.8-3.12
+- **Python**: 3.8-3.13
 - **Operating System**: Linux (recommended), macOS, Windows
 
 ## Quick Install

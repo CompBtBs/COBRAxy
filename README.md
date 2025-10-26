@@ -22,7 +22,7 @@ DOC: https://compbtbs.github.io/COBRAxy
 
 ## Requirements
 
-- **Python**: 3.8-3.12
+- **Python**: 3.8-3.13
 - **OS**: Linux, macOS, Windows (Linux/maxOS recommended)
 - **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
 
