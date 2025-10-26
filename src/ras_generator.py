@@ -4,8 +4,8 @@ Generate Reaction Activity Scores (RAS) from a gene expression dataset and GPR r
 The script reads a tabular dataset (genes x samples) and a rules file (GPRs),
 computes RAS per reaction for each sample/cell line, and writes a tabular output.
 """
-import os
 from __future__ import division
+import os
 import sys
 import argparse
 import pandas as pd
