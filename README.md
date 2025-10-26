@@ -82,15 +82,15 @@ flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_ma
 
 | Tool | Purpose | Input | Output | Documentation |
 |------|---------|--------|---------|---------------|
-| `importMetabolicModel` | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/import-metabolic-model) |
-| `exportMetabolicModel` | Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/export-metabolic-model) |
-| `ras_generator` | Compute reaction activity scores | Gene expression data | RAS values | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/ras-generator) |
-| `rps_generator` | Compute reaction propensity scores | Metabolite abundance | RPS values | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/rps-generator) |
-| `marea` | Statistical pathway analysis | RAS + RPS data | Enrichment + base maps | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/marea) |
-| `ras_to_bounds` | Apply RAS constraints to model | RAS + SBML model | Constrained bounds | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/ras-to-bounds) |
-| `flux_simulation` | Sample metabolic fluxes | Constrained model | Flux distributions | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/flux-simulation) |
-| `flux_to_map` | Add fluxes to enriched maps | Flux samples + base maps | Final styled maps | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/flux-to-map) |
-| `marea_cluster` | Cluster analysis | Expression/flux data | Sample clusters | [Docs](https://compbtbs.github.io/COBRAxy/#/tools/marea-cluster) |
+| [`importMetabolicModel`](https://compbtbs.github.io/COBRAxy/#/tools/import-metabolic-model) | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data |
+| [`exportMetabolicModel`](https://compbtbs.github.io/COBRAxy/#/tools/export-metabolic-model) | Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model |
+| [`ras_generator`](https://compbtbs.github.io/COBRAxy/#/tools/ras-generator) | Compute reaction activity scores | Gene expression data | RAS values |
+| [`rps_generator`](https://compbtbs.github.io/COBRAxy/#/tools/rps-generator) | Compute reaction propensity scores | Metabolite abundance | RPS values |
+| [`marea`](https://compbtbs.github.io/COBRAxy/#/tools/marea) | Statistical pathway analysis | RAS + RPS data | Enrichment + base maps |
+| [`ras_to_bounds`](https://compbtbs.github.io/COBRAxy/#/tools/ras-to-bounds) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
+| [`flux_simulation`](https://compbtbs.github.io/COBRAxy/#/tools/flux-simulation) | Sample metabolic fluxes | Constrained model | Flux distributions |
+| [`flux_to_map`](https://compbtbs.github.io/COBRAxy/#/tools/flux-to-map) | Add fluxes to enriched maps | Flux samples + base maps | Final styled maps |
+| [`marea_cluster`](https://compbtbs.github.io/COBRAxy/#/tools/marea-cluster) | Cluster analysis | Expression/flux data | Sample clusters |
 
 
 ## Data Flow
