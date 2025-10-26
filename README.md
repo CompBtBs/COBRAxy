@@ -80,8 +80,8 @@ flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_ma
 
 ## Tools
 
-| Tool | Purpose | Input | Output | Documentation |
-|------|---------|--------|---------|---------------|
+| Tool | Purpose | Input | Output |
+|------|---------|--------|---------|
 | [`importMetabolicModel`](https://compbtbs.github.io/COBRAxy/#/tools/import-metabolic-model) | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data |
 | [`exportMetabolicModel`](https://compbtbs.github.io/COBRAxy/#/tools/export-metabolic-model) | Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model |
 | [`ras_generator`](https://compbtbs.github.io/COBRAxy/#/tools/ras-generator) | Compute reaction activity scores | Gene expression data | RAS values |
