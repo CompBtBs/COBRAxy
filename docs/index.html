@@ -34,6 +34,48 @@
       color: var(--theme-color);
     }
     
+    /* Main category styling - bold and larger */
+    .sidebar-nav > ul > li > a,
+    .sidebar-nav > ul > li > strong > a {
+      font-weight: 700 !important;
+      font-size: 1.1em !important;
+      color: var(--theme-color) !important;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 1em;
+      display: block;
+    }
+    
+    /* Sub-items styling - normal weight and smaller */
+    .sidebar-nav > ul > li > ul > li > a {
+      font-weight: 400 !important;
+      font-size: 0.95em !important;
+      color: var(--text-color-base) !important;
+      padding-left: 1.5em;
+    }
+    
+    /* Collapsible arrows */
+    .sidebar-nav > ul > li.folder > a::before {
+      content: '▶';
+      display: inline-block;
+      margin-right: 0.5em;
+      transition: transform 0.2s;
+      font-size: 0.7em;
+    }
+    
+    .sidebar-nav > ul > li.folder.open > a::before {
+      transform: rotate(90deg);
+    }
+    
+    /* Hide sub-items by default */
+    .sidebar-nav > ul > li.folder > ul {
+      display: none;
+    }
+    
+    .sidebar-nav > ul > li.folder.open > ul {
+      display: block;
+    }
+    
     .app-name-link {
       color: var(--theme-color) !important;
       font-weight: 600;
@@ -102,6 +144,12 @@
       subMaxLevel: 3,
       auto2top: true,
       
+      // Sidebar configuration
+      alias: {
+        '/.*/_sidebar.md': '/_sidebar.md'
+      },
+      sidebarDisplayLevel: 1, // Expand sidebar to level 1 by default
+      
       // Search plugin
       search: {
         maxAge: 86400000, // Expiration time, the default one day
@@ -160,5 +208,51 @@
   <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-xml.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+  
+  <!-- Sidebar collapse script -->
+  <script>
+    window.addEventListener('load', function() {
+      // Wait for sidebar to be rendered
+      setTimeout(function() {
+        const sidebar = document.querySelector('.sidebar-nav');
+        if (!sidebar) return;
+        
+        // Mark items with sub-lists as folders
+        const items = sidebar.querySelectorAll('ul > li');
+        items.forEach(item => {
+          const hasSublist = item.querySelector('ul');
+          if (hasSublist) {
+            item.classList.add('folder');
+            
+            // Get the main link
+            const mainLink = item.querySelector('a');
+            if (mainLink) {
+              // Add click handler to toggle
+              mainLink.addEventListener('click', function(e) {
+                // Only toggle if clicking on a folder item
+                if (item.classList.contains('folder')) {
+                  e.preventDefault();
+                  item.classList.toggle('open');
+                }
+              });
+            }
+          }
+        });
+        
+        // Open the active section by default
+        const activeLink = sidebar.querySelector('li.active');
+        if (activeLink) {
+          let parent = activeLink.parentElement;
+          while (parent && parent.tagName === 'UL') {
+            const parentLi = parent.parentElement;
+            if (parentLi && parentLi.classList.contains('folder')) {
+              parentLi.classList.add('open');
+            }
+            parent = parentLi ? parentLi.parentElement : null;
+          }
+        }
+      }, 300);
+    });
+  </script>
 </body>
 </html>

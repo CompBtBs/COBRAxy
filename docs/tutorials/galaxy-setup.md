@@ -98,10 +98,6 @@ For creating workflows with COBRAxy tools in Galaxy:
   - Creating, editing, and sharing workflows
   - Workflow best practices
 
-- **[Workflow Management](https://docs.galaxyproject.org/en/master/user/galaxy_workflow.html)**
-  - Official workflow documentation
-  - Advanced workflow features
-
 ### Example COBRAxy Workflow
 
 A typical COBRAxy workflow might include:
@@ -116,10 +112,6 @@ A typical COBRAxy workflow might include:
 
 ### Galaxy Administration Resources
 
-- **[Galaxy Admin Documentation](https://docs.galaxyproject.org/en/master/admin/)**
-  - Complete administrator guide
-  - Configuration, security, and maintenance
-
 - **[Galaxy Training Materials](https://training.galaxyproject.org/)**
   - Hands-on tutorials for administrators and users
   - Best practices and troubleshooting
@@ -128,29 +120,11 @@ A typical COBRAxy workflow might include:
   - Community support and resources
   - Tool repositories and shared workflows
 
-### COBRAxy-Specific Resources
-
-- **Dependencies**: Ensure `cobra`, `pandas`, `numpy`, `scipy` are installed in Galaxy's Python environment
-- **Tool Files**: All COBRAxy XML and Python files should be accessible to Galaxy
-- **Configuration**: Follow Galaxy's tool installation procedures for proper integration
 
 ## Troubleshooting
 
 For troubleshooting Galaxy installations and tool integration issues:
 
-### Official Troubleshooting Resources
-
-- **[Galaxy FAQ](https://docs.galaxyproject.org/en/master/admin/faq.html)**
-  - Common installation and configuration issues
-  - Performance optimization tips
-
-- **[Galaxy Help Forum](https://help.galaxyproject.org/)**
-  - Community-driven support
-  - Search existing solutions or ask new questions
-
-- **[Galaxy GitHub Issues](https://github.com/galaxyproject/galaxy/issues)**
-  - Report bugs and technical issues
-  - Feature requests
 
 ### COBRAxy-Specific Issues
 
