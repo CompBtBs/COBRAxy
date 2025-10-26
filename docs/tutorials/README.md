@@ -6,11 +6,11 @@ Learn COBRAxy through hands-on tutorials for web-based analysis.
 
 | Tutorial | Duration | Description |
 |----------|----------|-------------|
-| [Galaxy Setup](/galaxy-setup.md) | 30 min | Set up Galaxy for web-based analysis |
+| [Galaxy Setup](galaxy-setup) | 30 min | Set up Galaxy for web-based analysis |
 
 ## Web Interface Tutorial
 
-### [Galaxy Setup Tutorial](/galaxy-setup.md)
+### [Galaxy Setup Tutorial](galaxy-setup)
 
 Set up a local Galaxy instance with COBRAxy tools for point-and-click analysis. Perfect for users who prefer graphical interfaces and reproducible workflows.
 
@@ -18,7 +18,7 @@ Set up a local Galaxy instance with COBRAxy tools for point-and-click analysis. 
 
 Before starting the tutorials, make sure you have:
 
-- ✅ [COBRAxy installed](/installation.md)
+- ✅ [COBRAxy installed](installation)
 - ✅ Basic understanding of metabolic modeling (helpful but not required)
 - ✅ Familiarity with command line basics
 
@@ -37,14 +37,6 @@ The tutorial data includes:
 - Metabolite abundance data  
 - Pre-configured Galaxy workflows
 - Expected output files for verification
-
-## Learning Path
-
-We recommend following tutorials in this order:
-
-1. **[Data Formats](data-formats.md)** - Understand input requirements
-2. **[Basic Workflow](workflow.md)** - Learn the analysis pipeline
-3. **[Galaxy Setup](galaxy-setup.md)** - Set up web-based analysis interface
 
 ## Getting Help
 
