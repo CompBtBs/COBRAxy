@@ -23,15 +23,39 @@ DOC: https://compbtbs.github.io/COBRAxy
 ## Requirements
 
 - **Python**: 3.8-3.13
-- **OS**: Linux, macOS, Windows (Linux/maxOS recommended)
+- **OS**: Linux, macOS, Windows (Linux/macOS recommended)
 - **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
+- **Build tools**: C/C++ compiler (gcc, clang, or MSVC), CMake for compiling Python extensions, pkg-config
+
+**System dependencies** (install before pip):
+```bash
+# Ubuntu/Debian
+sudo apt-get install build-essential cmake pkg-config libvips libglpk40 glpk-utils
+
+# macOS
+xcode-select --install
+brew install cmake pkg-config vips glpk
+
+# Windows (with Chocolatey)
+choco install cmake visualstudio2022buildtools pkgconfiglite
+```
 
 ### Installation
 
+**Recommended: Using Conda**
+
 ```bash
+# Create a new conda environment
+conda create -n cobraxy python=3.13 -y
+conda activate cobraxy
+
+# Install system dependencies via conda (optional, if not using system packages)
+conda install -c conda-forge gcc cmake pkg-config swiglpk -y
+
+# Clone and install COBRAxy
 git clone https://github.com/CompBtBs/COBRAxy.git
-cd COBRAxy
-pip install src/
+cd COBRAxy/src
+pip install .
 ```
 
 ### Basic Workflow
@@ -70,14 +94,6 @@ flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_ma
 | `flux_to_map` | Add fluxes to enriched maps | Flux samples + base maps | Final styled maps |
 | `marea_cluster` | Cluster analysis | Expression/flux data | Sample clusters |
 
-**Optional system libraries** (for enhanced features):
-```bash
-# Ubuntu/Debian
-sudo apt-get install libvips libglpk40 glpk-utils
-
-# For Python GLPK bindings
-pip install swiglpk
-```
 
 ## Data Flow
 
