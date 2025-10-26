@@ -64,8 +64,8 @@ For development or if you want to modify COBRAxy:
 ```bash
 # Clone and install in editable mode
 git clone https://github.com/CompBtBs/COBRAxy.git
-cd COBRAxy
-pip install -e src/
+cd COBRAxy/src
+pip install -e .
 ```
 
 ## What Gets Installed
@@ -145,8 +145,8 @@ source cobraxy-env/bin/activate  # Linux/macOS
 # cobraxy-env\Scripts\activate  # Windows
 
 # Install COBRAxy
-cd COBRAxy
-pip install src/
+cd COBRAxy/src
+pip install .
 
 # When done, deactivate
 deactivate
