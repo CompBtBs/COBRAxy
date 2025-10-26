@@ -6,7 +6,6 @@ This guide walks you through installing COBRAxy on your system.
 
 - **Python**: 3.8-3.12
 - **Operating System**: Linux (recommended), macOS, Windows
-- **Storage**: 2GB free space for installation and temporary files
 
 ## Quick Install
 

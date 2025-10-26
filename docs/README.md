@@ -37,27 +37,22 @@ Complete reference for all COBRAxy tools
 
 ## Data Flow
 
-COBRAxy follows several analysis paths:
+COBRAxy supports three main analysis workflows:
 
-1. **RAS Enrichment Analysis**: RAS computation → MAREA → Enriched Maps
-2. **Flux Enrichment Analysis Simulation**: RAS computation → Model Constraints → Flux Sampling → Flux Maps
-3. **RAS/RPS Enrichment Analysis**: RAS + RPS computation → MAREA → Enriched Maps
+1. **RAS-based Enrichment Analysis**: 
+   Gene Expression → RAS Generation → MAREA → Enriched Pathway Maps
+
+2. **Flux Sampling Analysis**: 
+   Gene Expression → RAS Generation → RAS to Bounds → Flux Simulation → Flux to Map → Flux-enriched Maps
+
+3. **RAS+RPS Combined Enrichment**: 
+   Gene Expression + Metabolite Data → RAS + RPS Generation → MAREA → Multi-omics Enriched Maps
 
 ## Community & Support
 
-- **Documentation**: Complete guides and API reference
+- **Documentation**: Complete guides
 - **Discussions**: Ask questions and share experiences
 - **Issues**: Report bugs and request features
 - **Contributing**: Help improve COBRAxy
-
-## Quick Links
-
-| Resource | Description |
-|----------|-------------|
-| [Installation Guide](installation.md) | Get COBRAxy running on your system |
-| [Galaxy Tutorial](tutorials/galaxy-setup.md) | Web-based analysis setup |
-| [Tools Documentation](tools/) | Complete tool reference |
-
----
 
 **Ready to start?** Follow the [Installation Guide](installation.md) to get COBRAxy up and running!
