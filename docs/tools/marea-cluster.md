@@ -508,5 +508,5 @@ fig.show()
 - [MAREA](marea.md) - Statistical analysis of cluster differences
 - [RAS Generator](ras-generator.md) - Generate clustering input data
 - [Flux Simulation](flux-simulation.md) - Alternative clustering data source
-- [Clustering Tutorial](../tutorials/clustering-analysis.md)
-- [Validation Methods Reference](../tutorials/cluster-validation.md)
+- [Clustering Tutorial](/tutorials/clustering-analysis.md)
+- [Validation Methods Reference](/tutorials/cluster-validation.md)

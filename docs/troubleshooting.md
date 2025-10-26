@@ -271,8 +271,8 @@ conda create -n cobraxy python=3.9
 conda activate cobraxy
 
 # Install COBRAxy fresh
-cd COBRAxy
-pip install -e src/
+cd COBRAxy/src
+pip install -e .
 ```
 
 ### Cross-Platform Issues

@@ -274,6 +274,6 @@ SVG files with reaction elements having IDs matching your data:
 
 ## See Also
 
-- [Statistical Tests Documentation](../tutorials/statistical-tests.md)
-- [Map Customization Guide](../tutorials/custom-maps.md)
-- [Multi-modal Analysis Tutorial](../tutorials/multimodal-analysis.md)
+- [Statistical Tests Documentation](/tutorials/statistical-tests.md)
+- [Map Customization Guide](/tutorials/custom-maps.md)
+- [Multi-modal Analysis Tutorial](/tutorials/multimodal-analysis.md)

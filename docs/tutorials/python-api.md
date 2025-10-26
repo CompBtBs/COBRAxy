@@ -520,8 +520,8 @@ ras_args = [
 
 Now that you can use COBRAxy programmatically:
 
-1. **[Tools Reference](../tools/)** - Detailed parameter documentation  
-2. **[Examples](../examples/)** - Real-world analysis scripts
+1. **[Tools Reference](/tools/)** - Detailed parameter documentation  
+2. **[Examples](/examples/)** - Real-world analysis scripts
 3. **Build custom analysis pipelines** for your research needs
 4. **Integrate with workflow managers** like Snakemake or Nextflow
 

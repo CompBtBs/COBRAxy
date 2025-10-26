@@ -160,7 +160,7 @@ For issues specific to COBRAxy tools in Galaxy:
 - **Execution failures**: Verify Python dependencies and file permissions  
 - **Parameter errors**: Ensure input data formats match tool requirements
 
-Refer to the [COBRAxy Tools Documentation](../tools/) for detailed parameter information and data format requirements.
+Refer to the [COBRAxy Tools Documentation](/tools/) for detailed parameter information and data format requirements.
 
 ## Summary
 

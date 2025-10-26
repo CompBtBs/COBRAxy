@@ -19,7 +19,7 @@ Set up a local Galaxy instance with COBRAxy tools for point-and-click analysis. 
 
 Before starting the tutorials, make sure you have:
 
-- ✅ [COBRAxy installed](../installation.md)
+- ✅ [COBRAxy installed](/installation.md)
 - ✅ Basic understanding of metabolic modeling (helpful but not required)
 - ✅ Familiarity with command line basics
 
@@ -52,7 +52,7 @@ We recommend following tutorials in this order:
 If you encounter issues during tutorials:
 
 1. Check the specific tutorial's troubleshooting section
-2. Refer to the main [Troubleshooting Guide](../troubleshooting.md)
+2. Refer to the main [Troubleshooting Guide](/troubleshooting.md)
 3. Ask questions in [GitHub Discussions](https://github.com/CompBtBs/COBRAxy/discussions)
 
 ## Contributing

@@ -402,5 +402,5 @@ python merge_flux_results.py -i batch_*/mean.csv -o combined_mean.csv
 
 - [RAS to Bounds](ras-to-bounds.md) - Generate input constraints
 - [Flux to Map](flux-to-map.md) - Visualize flux results
-- [CBS Algorithm Documentation](../tutorials/cbs-algorithm.md)
-- [OPTGP Algorithm Documentation](../tutorials/optgp-algorithm.md)
+- [CBS Algorithm Documentation](/tutorials/cbs-algorithm.md)
+- [OPTGP Algorithm Documentation](/tutorials/optgp-algorithm.md)

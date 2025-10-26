@@ -384,4 +384,4 @@ COPY model_reactions FROM 'model_data.csv' WITH CSV HEADER;
 - [Export Metabolic Model](export-metabolic-model.md) - Export tabular data to model formats
 - [RAS Generator](ras-generator.md) - Use extracted GPR rules for RAS computation
 - [RPS Generator](rps-generator.md) - Use reaction formulas for RPS analysis
-- [Custom Model Tutorial](../tutorials/custom-model-integration.md)
+- [Custom Model Tutorial](/tutorials/custom-model-integration.md)

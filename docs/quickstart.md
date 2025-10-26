@@ -95,19 +95,19 @@ open pathway_maps/*.svg     # macOS
 
 ### Learn More About the Analysis
 
-- **[Understanding RAS](tools/ras-generator.md)** - How activity scores are computed
-- **[MAREA Analysis](tools/marea.md)** - Statistical enrichment methods  
+- **[Understanding RAS](/tools/ras-generator.md)** - How activity scores are computed
+- **[MAREA Analysis](/tools/marea.md)** - Statistical enrichment methods  
 - **[Data Flow](getting-started.md#analysis-workflows)** - Complete workflow overview
 
 ### Try Advanced Features
 
 - **[Flux Sampling](tutorials/workflow.md#flux-simulation-workflow)** - Predict metabolic flux distributions
-- **[Galaxy Interface](tutorials/galaxy-setup.md)** - Web-based analysis
+- **[Galaxy Interface](/tutorials/galaxy-setup.md)** - Web-based analysis
 
 ### Use Your Own Data
 
-- **[Data Formats](tutorials/data-formats.md)** - Prepare your expression data
-- **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
+- **[Data Formats](/tutorials/data-formats.md)** - Prepare your expression data
+- **[Troubleshooting](/troubleshooting.md)** - Common issues and solutions
 
 ## Complete Example Pipeline
 
@@ -137,16 +137,4 @@ If something doesn't work:
 1. **Check Prerequisites**: Ensure COBRAxy is properly installed
 2. **Verify File Format**: Make sure your data is tab-separated TSV
 3. **Review Logs**: Look for error messages in the terminal output
-4. **Consult Guides**: [Troubleshooting](troubleshooting.md) and [Installation](installation.md)
-
-**Still stuck?** Ask for help in [GitHub Discussions](https://github.com/CompBtBs/COBRAxy/discussions).
-
-## Summary
-
-🎉 **Congratulations!** You've completed your first COBRAxy analysis. You now know how to:
-
-- ✅ Generate metabolic activity scores from gene expression
-- ✅ Create statistical pathway visualizations  
-- ✅ Interpret basic COBRAxy outputs
-
-Ready for more? Explore the [full documentation](/) to unlock COBRAxy's complete potential!
+4. **Consult Guides**: [Troubleshooting](/troubleshooting.md) and [Installation](/installation.md)

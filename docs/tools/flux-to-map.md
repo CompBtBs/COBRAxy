@@ -463,5 +463,5 @@ python merge_flux_results.py \
 
 - [Flux Simulation](flux-simulation.md) - Generate input flux distributions
 - [MAREA](marea.md) - Alternative pathway analysis approach
-- [Custom Map Creation Guide](../tutorials/custom-map-creation.md)
-- [Statistical Methods Reference](../tutorials/statistical-methods.md)
+- [Custom Map Creation Guide](/tutorials/custom-map-creation.md)
+- [Statistical Methods Reference](/tutorials/statistical-methods.md)

@@ -489,5 +489,5 @@ cobra_compare_models model_v1.xml model_v2.xml
 - [Import Metabolic Model](import-metabolic-model.md) - Extract tabular data from existing models
 - [RAS to Bounds](ras-to-bounds.md) - Apply constraints to custom models  
 - [Flux Simulation](flux-simulation.md) - Analyze custom models with flux sampling
-- [Model Creation Tutorial](../tutorials/custom-model-creation.md)
-- [COBRA Model Standards](../tutorials/cobra-model-standards.md)
+- [Model Creation Tutorial](/tutorials/custom-model-creation.md)
+- [COBRA Model Standards](/tutorials/cobra-model-standards.md)
