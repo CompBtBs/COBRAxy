@@ -300,7 +300,7 @@ flux_simulation -td /opt/COBRAxy \
 
 ### Upstream Tools
 - [RAS to Bounds](ras-to-bounds.md) - Generate constrained bounds from RAS
-- [Model Setting](metabolic-model-setting.md) - Extract model components
+- [Import Metabolic Model](import-metabolic-model.md) - Extract model components
 
 ### Downstream Tools
 - [Flux to Map](flux-to-map.md) - Visualize flux distributions on metabolic maps

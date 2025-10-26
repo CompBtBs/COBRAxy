@@ -64,7 +64,7 @@ Solution:
 ```python
 # Check gene overlap with model
 import pickle
-genes_dict = pickle.load(open('local/pickle files/ENGRO2_genes.p', 'rb'))
+genes_dict = pickle.load(open('src/local/pickle files/ENGRO2_genes.p', 'rb'))
 model_genes = set(genes_dict['hugo_id'].keys())
 
 import pandas as pd

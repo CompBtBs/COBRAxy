@@ -1,26 +1,26 @@
-# Tabular to Metabolic Model
+# Export Metabolic Model
 
-Convert tabular data (CSV/TSV) into COBRA metabolic models in various formats.
+Export tabular data (CSV/TSV) into COBRA metabolic models in various formats.
 
 ## Overview
 
-Tabular to Metabolic Model (tabular2MetabolicModel) converts structured tabular data containing reaction information into fully functional COBRA metabolic models. This tool enables creation of custom models from spreadsheet data and supports multiple output formats including SBML, JSON, MATLAB, and YAML.
+Export Metabolic Model (exportMetabolicModel) converts structured tabular data containing reaction information into fully functional COBRA metabolic models. This tool enables creation of custom models from spreadsheet data and supports multiple output formats including SBML, JSON, MATLAB, and YAML.
 
 ## Usage
 
 ### Command Line
 
 ```bash
-tabular2MetabolicModel --input model_data.csv \
-                       --format sbml \
-                       --output custom_model.xml \
-                       --out_log conversion.log \
-                       --tool_dir /path/to/COBRAxy
+exportMetabolicModel --input model_data.csv \
+                     --format sbml \
+                     --output custom_model.xml \
+                     --out_log conversion.log \
+                     --tool_dir /path/to/COBRAxy/src
 ```
 
 ### Galaxy Interface
 
-Select "Tabular to Metabolic Model" from the COBRAxy tool suite and configure conversion parameters.
+Select "Export Metabolic Model" from the COBRAxy tool suite and configure conversion parameters.
 
 ## Parameters
 
@@ -160,10 +160,11 @@ GENE1 and GENE2
 
 ```bash
 # Convert simple CSV to SBML model
-tabular2MetabolicModel --input simple_model.csv \
-                       --format sbml \
-                       --output simple_model.xml \
-                       --out_log simple_conversion.log
+exportMetabolicModel --input simple_model.csv \
+                     --format sbml \
+                     --output simple_model.xml \
+                     --out_log simple_conversion.log \
+                     --tool_dir /opt/COBRAxy/src
 ```
 
 ### Multi-format Export
@@ -172,10 +173,11 @@ tabular2MetabolicModel --input simple_model.csv \
 # Create models in all supported formats
 formats=("sbml" "json" "mat" "yaml")
 for fmt in "${formats[@]}"; do
-    tabular2MetabolicModel --input comprehensive_model.csv \
-                           --format "$fmt" \
-                           --output "model.$fmt" \
-                           --out_log "conversion_$fmt.log"
+    exportMetabolicModel --input comprehensive_model.csv \
+                         --format "$fmt" \
+                         --output "model.$fmt" \
+                         --out_log "conversion_$fmt.log" \
+                         --tool_dir /opt/COBRAxy/src
 done
 ```
 
@@ -183,26 +185,29 @@ done
 
 ```bash
 # Build tissue-specific model from curated data
-tabular2MetabolicModel --input liver_reactions.tsv \
-                       --format sbml \
-                       --output liver_model.xml \
-                       --out_log liver_model.log \
-                       --tool_dir /opt/COBRAxy
+exportMetabolicModel --input liver_reactions.tsv \
+                     --format sbml \
+                     --output liver_model.xml \
+                     --out_log liver_model.log \
+                     --tool_dir /opt/COBRAxy/src
 ```
 
 ### Model Integration Pipeline
 
 ```bash
 # Extract existing model, modify, and recreate
-metabolicModel2Tabular --model ENGRO2 --out_tabular base_model.csv
+importMetabolicModel --model ENGRO2 \
+                     --out_tabular base_model.csv \
+                     --tool_dir /opt/COBRAxy/src
 
 # Edit base_model.csv with custom reactions/constraints
 
 # Create modified model
-tabular2MetabolicModel --input modified_model.csv \
-                       --format sbml \
-                       --output custom_model.xml \
-                       --out_log custom_creation.log
+exportMetabolicModel --input modified_model.csv \
+                     --format sbml \
+                     --output custom_model.xml \
+                     --out_log custom_creation.log \
+                     --tool_dir /opt/COBRAxy/src
 ```
 
 ## Model Validation
@@ -243,7 +248,7 @@ if unbalanced:
 ### Upstream Data Sources
 
 #### COBRAxy Tools
-- [Metabolic Model Setting](metabolic-model-setting.md) - Extract tabular data for modification
+- [Import Metabolic Model](import-metabolic-model.md) - Extract tabular data for modification
 
 #### External Sources
 - **Databases**: KEGG, Reactome, BiGG
@@ -267,27 +272,31 @@ if unbalanced:
 
 ```bash
 # 1. Start with existing model data
-metabolicModel2Tabular --model ENGRO2 \
-                       --out_tabular base_reactions.csv
+importMetabolicModel --model ENGRO2 \
+                     --out_tabular base_reactions.csv \
+                     --tool_dir /opt/COBRAxy/src
 
 # 2. Modify/extend the reaction data
 # Edit base_reactions.csv to add tissue-specific reactions
 
 # 3. Create custom model
-tabular2MetabolicModel --input modified_reactions.csv \
-                       --format sbml \
-                       --output tissue_model.xml \
-                       --out_log tissue_creation.log
+exportMetabolicModel --input modified_reactions.csv \
+                     --format sbml \
+                     --output tissue_model.xml \
+                     --out_log tissue_creation.log \
+                     --tool_dir /opt/COBRAxy/src
 
 # 4. Validate and use custom model
 ras_to_bounds --model Custom --input tissue_model.xml \
               --ras_input tissue_expression.tsv \
-              --idop tissue_bounds/
+              --idop tissue_bounds/ \
+              --tool_dir /opt/COBRAxy/src
 
 # 5. Perform flux analysis
 flux_simulation --model Custom --input tissue_model.xml \
                 --bounds tissue_bounds/*.tsv \
-                --algorithm CBS --idop tissue_fluxes/
+                --algorithm CBS --idop tissue_fluxes/ \
+                --tool_dir /opt/COBRAxy/src
 ```
 
 ## Quality Control
@@ -430,11 +439,12 @@ for tissue in tissues:
     
     # Convert to SBML
     subprocess.run([
-        'tabular2MetabolicModel',
+        'exportMetabolicModel',
         '--input', f'{tissue}_model.csv',
         '--format', 'sbml',
         '--output', f'{tissue}_model.xml',
-        '--out_log', f'{tissue}_conversion.log'
+        '--out_log', f'{tissue}_conversion.log',
+        '--tool_dir', '/opt/COBRAxy/src'
     ])
 ```
 
@@ -449,9 +459,10 @@ tail -n +2 tissue_reactions.csv >> combined_model.csv
 tail -n +2 disease_reactions.csv >> combined_model.csv
 
 # Create merged model
-tabular2MetabolicModel --input combined_model.csv \
-                       --format sbml \
-                       --output comprehensive_model.xml
+exportMetabolicModel --input combined_model.csv \
+                     --format sbml \
+                     --output comprehensive_model.xml \
+                     --tool_dir /opt/COBRAxy/src
 ```
 
 ### Model Versioning
@@ -464,8 +475,10 @@ git add model_v1.csv
 git commit -m "Initial model version"
 
 # Create versioned models
-tabular2MetabolicModel --input model_v1.csv --format sbml --output model_v1.xml
-tabular2MetabolicModel --input model_v2.csv --format sbml --output model_v2.xml
+exportMetabolicModel --input model_v1.csv --format sbml \
+                     --output model_v1.xml --tool_dir /opt/COBRAxy/src
+exportMetabolicModel --input model_v2.csv --format sbml \
+                     --output model_v2.xml --tool_dir /opt/COBRAxy/src
 
 # Compare model versions
 cobra_compare_models model_v1.xml model_v2.xml
@@ -473,7 +486,7 @@ cobra_compare_models model_v1.xml model_v2.xml
 
 ## See Also
 
-- [Metabolic Model Setting](metabolic-model-setting.md) - Extract tabular data from existing models
+- [Import Metabolic Model](import-metabolic-model.md) - Extract tabular data from existing models
 - [RAS to Bounds](ras-to-bounds.md) - Apply constraints to custom models  
 - [Flux Simulation](flux-simulation.md) - Analyze custom models with flux sampling
 - [Model Creation Tutorial](../tutorials/custom-model-creation.md)

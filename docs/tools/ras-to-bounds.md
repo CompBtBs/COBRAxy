@@ -330,4 +330,4 @@ For advanced users, RAS scaling can be customized by modifying the constraint ap
 
 - [RAS Generator](ras-generator.md) - Generate input RAS data
 - [Flux Simulation](flux-simulation.md) - Use constrained bounds for sampling  
-- [Model Setting](metabolic-model-setting.md) - Extract model components
+- [Import Metabolic Model](import-metabolic-model.md) - Extract model components

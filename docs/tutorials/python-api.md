@@ -56,7 +56,8 @@ import marea
 import ras_to_bounds
 import flux_simulation  
 import flux_to_map
-import metabolicModel2Tabular as model_setting
+import importMetabolicModel
+import exportMetabolicModel
 ```
 
 ### Set Working Directory
@@ -103,12 +104,13 @@ print(f"Created sample data: {expression_file}")
 # Extract model components (optional, for understanding model structure)
 model_args = [
     '-td', tool_dir,
-    '-ms', 'ENGRO2',  # Use built-in ENGRO2 model
-    '-idop', str(work_dir / 'model_info')
+    '--model', 'ENGRO2',  # Use built-in ENGRO2 model
+    '--out_tabular', str(work_dir / 'model_info' / 'engro2_data.csv'),
+    '--out_log', str(work_dir / 'model_info' / 'import.log')
 ]
 
 try:
-    model_setting.main(model_args)
+    importMetabolicModel.main(model_args)
     print("✓ Model information extracted")
 except Exception as e:
     print(f"Model extraction failed: {e}")

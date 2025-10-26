@@ -54,7 +54,8 @@ flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_ma
 
 | Tool | Purpose | Input | Output |
 |------|---------|--------|---------|
-| `metabolic_model_setting` | Extract model components | SBML model | Rules, reactions, bounds, medium |
+| `importMetabolicModel` | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data |
+| `exportMetabolicModel` | Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model |
 | `ras_generator` | Compute reaction activity scores | Gene expression data | RAS values |
 | `rps_generator` | Compute reaction propensity scores | Metabolite abundance | RPS values |
 | `marea` | Statistical pathway analysis | RAS + RPS data | Enrichment + base maps |
@@ -115,7 +116,7 @@ COBRAxy includes ready-to-use resources:
 - **Pathway maps**: Pre-styled SVG templates
 - **Medium compositions**: Standard growth conditions
 
-Located in `local/` directory for immediate use.
+Located in `src/local/` directory for immediate use.
 
 ## Command Line Usage
 
@@ -147,131 +148,48 @@ COBRAxy provides Galaxy tool wrappers (`.xml` files) for web-based analysis:
 - Upload data through Galaxy interface
 - Chain tools in visual workflows  
 - Share and reproduce analyses
-- Access via Galaxy ToolShed
 
-## Tutorials
+For Galaxy installation and setup, refer to the [official Galaxy documentation](https://docs.galaxyproject.org/).
 
-### Local Galaxy Installation
-
-To set up a local Galaxy instance with COBRAxy tools:
-
-1. **Install Galaxy**:
-   ```bash
-   # Clone Galaxy repository
-   git clone -b release_23.1 https://github.com/galaxyproject/galaxy.git
-   cd galaxy
-   
-   # Install dependencies and start Galaxy
-   sh run.sh
-   ```
-
-2. **Install COBRAxy tools**:
-   ```bash
-   # Add COBRAxy tools to Galaxy
-   mkdir -p tools/cobraxy
-   cp path/to/COBRAxy/Galaxy_tools/*.xml tools/cobraxy/
-   
-   # Update tool_conf.xml to include COBRAxy tools
-   # Add section in config/tool_conf.xml:
-   # <section id="cobraxy" name="COBRAxy">
-   #   <tool file="cobraxy/ras_generator.xml" />
-   #   <tool file="cobraxy/rps_generator.xml" />
-   #   <tool file="cobraxy/marea.xml" />
-   #   <!-- Add other tools -->
-   # </section>
-   ```
-
-3. **Galaxy Tutorial Resources**:
-   - [Galaxy Installation Guide](https://docs.galaxyproject.org/en/master/admin/)
-   - [Tool Development Tutorial](https://training.galaxyproject.org/training-material/topics/dev/)
-   - [Galaxy Admin Training](https://training.galaxyproject.org/training-material/topics/admin/)
-
-### Python Direct Usage
+## Python API Usage
 
 For programmatic use of COBRAxy tools in Python scripts:
 
-1. **Installation for Development**:
-   ```bash
-   # Clone and install in development mode
-   git clone https://github.com/CompBtBs/COBRAxy.git
-   cd COBRAxy
-   pip install -e .
-   ```
+```python
+import sys
+import os
 
-2. **Python API Usage**:
-   ```python
-   import sys
-   import os
-   
-   # Add COBRAxy to Python path
-   sys.path.append('/path/to/COBRAxy')
-   
-   # Import tool modules
-   import ras_generator
-   import rps_generator
-   import flux_simulation
-   import marea
-   import ras_to_bounds
-   
-   # Set working directory
-   tool_dir = "/path/to/COBRAxy"
-   os.chdir(tool_dir)
-   
-   # Generate RAS scores
-   ras_args = [
-       '-td', tool_dir,
-       '-in', 'data/expression.tsv',
-       '-ra', 'output/ras_values.tsv',
-       '-rs', 'ENGRO2'
-   ]
-   ras_generator.main(ras_args)
-   
-   # Generate RPS scores (optional)
-   rps_args = [
-       '-td', tool_dir,
-       '-id', 'data/metabolites.tsv',
-       '-rp', 'output/rps_values.tsv'
-   ]
-   rps_generator.main(rps_args)
-   
-   # Create enriched pathway maps
-   marea_args = [
-       '-td', tool_dir,
-       '-using_RAS', 'true',
-       '-input_data', 'output/ras_values.tsv',
-       '-choice_map', 'ENGRO2',
-       '-gs', 'true',
-       '-idop', 'maps'
-   ]
-   marea.main(marea_args)
-   
-   # Apply RAS constraints to model
-   bounds_args = [
-       '-td', tool_dir,
-       '-ms', 'ENGRO2',
-       '-ir', 'output/ras_values.tsv',
-       '-rs', 'true',
-       '-idop', 'bounds'
-   ]
-   ras_to_bounds.main(bounds_args)
-   
-   # Sample metabolic fluxes
-   flux_args = [
-       '-td', tool_dir,
-       '-ms', 'ENGRO2',
-       '-in', 'bounds/bounds_output.tsv',
-       '-a', 'CBS',
-       '-ns', '1000',
-       '-idop', 'flux_results'
-   ]
-   flux_simulation.main(flux_args)
-   ```
+# Add COBRAxy to Python path
+sys.path.append('/path/to/COBRAxy/src')
 
-3. **Python Tutorial Resources**:
-   - [COBRApy Documentation](https://cobrapy.readthedocs.io/)
-   - [Metabolic Modeling with Python](https://opencobra.github.io/cobrapy/building_model.html)
-   - [Flux Sampling Tutorial](https://cobrapy.readthedocs.io/en/stable/sampling.html)
-   - [Jupyter Notebooks Examples](examples/) (included in repository)
+# Import tool modules
+import ras_generator
+import rps_generator
+import flux_simulation
+import marea
+import ras_to_bounds
+import importMetabolicModel
+import exportMetabolicModel
+
+# Set working directory
+tool_dir = "/path/to/COBRAxy/src"
+os.chdir(tool_dir)
+
+# Generate RAS scores
+ras_args = [
+    '-td', tool_dir,
+    '-in', 'data/expression.tsv',
+    '-ra', 'output/ras_values.tsv',
+    '-rs', 'ENGRO2'
+]
+ras_generator.main(ras_args)
+
+# Apply RAS constraints and sample fluxes
+ras_to_bounds.main(['-td', tool_dir, '-ms', 'ENGRO2', '-ir', 'output/ras_values.tsv', '-idop', 'bounds'])
+flux_simulation.main(['-td', tool_dir, '-ms', 'ENGRO2', '-in', 'bounds/*.tsv', '-a', 'CBS', '-idop', 'flux_results'])
+```
+
+For more examples and detailed tutorials, see the [documentation](https://compbtbs.github.io/COBRAxy).
 
 ## Input/Output Formats
 

@@ -108,7 +108,7 @@ COBRAxy includes ready-to-use metabolic models:
 | **ENGRO2** | Human | ~2,000 | ~500 | Focused human metabolism model |
 | **Recon** | Human | ~10,000 | ~2,000 | Comprehensive human metabolism |
 
-Models are stored in the `local/` directory and include:
+Models are stored in the `src/local/` directory and include:
 - SBML files
 - GPR rules  
 - Gene mapping tables

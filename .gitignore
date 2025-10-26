@@ -5,3 +5,4 @@ cobraxy.egg-info/
 outputs/
 build/
 dist/
+*/.pytest_cache/

@@ -38,7 +38,7 @@
 
     <!-- Tool outputs -->
     <outputs>
-        <data name="log" format="txt" label="Tabular to Model Conversion - Log" />
+        <data name="log" format="txt" label="Export Metabolic Model - Log" />
         <data name="output" format="xml" label="${model_name}.${format}">
             <change_format>
                 <when input="format" value="sbml" format="xml"/>

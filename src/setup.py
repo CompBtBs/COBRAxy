@@ -12,11 +12,12 @@ setup(
     license='',
     packages=find_packages(include=["utils", "utils.*"]),  
     py_modules=[
+        'importMetabolicModel',
+        'exportMetabolicModel',
         'ras_generator',
         'rps_generator',
         'marea_cluster',
         'marea',
-        'metabolic_model_setting',
         'ras_to_bounds',
         'flux_simulation',
         'flux_to_map'
@@ -40,7 +41,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'metabolic_model_setting=metabolic_model_setting:main',
+            'importMetabolicModel=importMetabolicModel:main',
+            'exportMetabolicModel=exportMetabolicModel:main',
             'ras_generator=ras_generator:main',
             'rps_generator=rps_generator:main',
             'marea_cluster=marea_cluster:main',

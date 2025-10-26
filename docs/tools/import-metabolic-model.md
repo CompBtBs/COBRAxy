@@ -1,28 +1,27 @@
-# Metabolic Model Setting
+# Import Metabolic Model
 
-Extract and organize metabolic model components into tabular format for analysis and integration.
+Import and extract metabolic model components into tabular format for analysis and integration.
 
 ## Overview
 
-Metabolic Model Setting (metabolicModel2Tabular) extracts key components from SBML metabolic models and generates comprehensive tabular summaries. This tool processes built-in or custom models, applies medium constraints, handles gene nomenclature conversion, and outputs structured data for downstream analysis.
+Import Metabolic Model (importMetabolicModel) imports metabolic models from various formats (SBML, JSON, MAT, YAML) and extracts key components into comprehensive tabular summaries. This tool processes built-in or custom models, applies medium constraints, handles gene nomenclature conversion, and outputs structured data for downstream analysis.
 
 ## Usage
 
 ### Command Line
 
 ```bash
-metabolicModel2Tabular --model ENGRO2 \
-                       --name ENGRO2 \
-                       --medium_selector allOpen \
-                       --gene_format Default \
-                       --out_tabular model_data.csv \
-                       --out_log extraction.log \
-                       --tool_dir /path/to/COBRAxy
+importMetabolicModel --model ENGRO2 \
+                     --name ENGRO2 \
+                     --medium_selector allOpen \
+                     --out_tabular model_data.csv \
+                     --out_log extraction.log \
+                     --tool_dir /path/to/COBRAxy/src
 ```
 
 ### Galaxy Interface
 
-Select "Metabolic Model Setting" from the COBRAxy tool suite and configure model extraction parameters.
+Select "Import Metabolic Model" from the COBRAxy tool suite and configure model extraction parameters.
 
 ## Parameters
 
@@ -49,7 +48,7 @@ Select "Metabolic Model Setting" from the COBRAxy tool suite and configure model
 
 | Parameter | Flag | Description | Default |
 |-----------|------|-------------|---------|
-| Gene Format | `--gene_format` | Gene ID format conversion | Default |
+| Custom Medium | `--custom_medium` | CSV file with medium constraints | - |
 
 ## Model Selection
 
@@ -93,19 +92,7 @@ Supported formats for custom model import:
 - Suitable for general analysis
 
 ### Custom Medium
-User can specify custom medium constraints through Galaxy interface or by modifying the tool configuration.
-
-## Gene Format Options
-
-| Format | Description | Example |
-|--------|-------------|---------|
-| Default | Original model gene IDs | As stored in model |
-| ENSNG | Ensembl Gene IDs | ENSG00000139618 |
-| HGNC_SYMBOL | HUGO Gene Symbols | BRCA2 |  
-| HGNC_ID | HUGO Gene Committee IDs | HGNC:1101 |
-| ENTREZ | NCBI Entrez Gene IDs | 675 |
-
-Gene format conversion uses internal mapping tables and may not cover all genes in custom models.
+Users can specify custom medium constraints by providing a CSV file with exchange reaction bounds.
 
 ## Output Format
 
@@ -141,39 +128,36 @@ EX_glc_e	-	glc_e <->	-1000.0	1000.0	0.0	TRUE	extracellular	Exchange
 
 ```bash
 # Extract ENGRO2 model with default settings
-metabolicModel2Tabular --model ENGRO2 \
-                       --name ENGRO2_extraction \
-                       --medium_selector allOpen \
-                       --gene_format Default \
-                       --out_tabular ENGRO2_data.csv \
-                       --out_log ENGRO2_log.txt \
-                       --tool_dir /opt/COBRAxy
+importMetabolicModel --model ENGRO2 \
+                     --name ENGRO2_extraction \
+                     --medium_selector allOpen \
+                     --out_tabular ENGRO2_data.csv \
+                     --out_log ENGRO2_log.txt \
+                     --tool_dir /opt/COBRAxy/src
 ```
 
 ### Process Custom Model
 
 ```bash
-# Extract custom SBML model with gene conversion
-metabolicModel2Tabular --input /data/custom_model.xml \
-                       --name CustomModel \
-                       --medium_selector allOpen \
-                       --gene_format HGNC_SYMBOL \
-                       --out_tabular custom_model_data.xlsx \
-                       --out_log custom_extraction.log \
-                       --tool_dir /opt/COBRAxy
+# Extract custom SBML model
+importMetabolicModel --input /data/custom_model.xml \
+                     --name CustomModel \
+                     --medium_selector allOpen \
+                     --out_tabular custom_model_data.csv \
+                     --out_log custom_extraction.log \
+                     --tool_dir /opt/COBRAxy/src
 ```
 
 ### Extract Core Model for Quick Analysis
 
 ```bash  
 # Extract HMRcore for rapid prototyping
-metabolicModel2Tabular --model HMRcore \
-                       --name CoreModel \
-                       --medium_selector allOpen \
-                       --gene_format ENSNG \
-                       --out_tabular core_reactions.csv \
-                       --out_log core_log.txt \
-                       --tool_dir /opt/COBRAxy
+importMetabolicModel --model HMRcore \
+                     --name CoreModel \
+                     --medium_selector allOpen \
+                     --out_tabular core_reactions.csv \
+                     --out_log core_log.txt \
+                     --tool_dir /opt/COBRAxy/src
 ```
 
 ### Batch Processing Multiple Models
@@ -182,13 +166,12 @@ metabolicModel2Tabular --model HMRcore \
 #!/bin/bash
 models=("ENGRO2" "HMRcore" "Recon")
 for model in "${models[@]}"; do
-    metabolicModel2Tabular --model "$model" \
-                           --name "${model}_extract" \
-                           --medium_selector allOpen \
-                           --gene_format HGNC_SYMBOL \
-                           --out_tabular "${model}_data.csv" \
-                           --out_log "${model}_log.txt" \
-                           --tool_dir /opt/COBRAxy
+    importMetabolicModel --model "$model" \
+                         --name "${model}_extract" \
+                         --medium_selector allOpen \
+                         --out_tabular "${model}_data.csv" \
+                         --out_log "${model}_log.txt" \
+                         --tool_dir /opt/COBRAxy/src
 done
 ```
 
@@ -245,20 +228,21 @@ The extracted tabular data serves as input for:
 
 ```bash
 # 1. Extract model components
-metabolicModel2Tabular --model ENGRO2 --name ModelData \
-                       --out_tabular model_components.csv
+importMetabolicModel --model ENGRO2 --name ModelData \
+                     --out_tabular model_components.csv \
+                     --tool_dir /opt/COBRAxy/src
 
 # 2. Use extracted data for RAS analysis
-ras_generator -td /opt/COBRAxy -rs Custom \
+ras_generator -td /opt/COBRAxy/src -rs Custom \
               -rl model_components.csv \
               -in expression_data.tsv -ra ras_scores.tsv
 
 # 3. Apply constraints and sample fluxes
-ras_to_bounds -td /opt/COBRAxy -ms Custom -mo model_components.csv \
+ras_to_bounds -td /opt/COBRAxy/src -ms Custom -mo model_components.csv \
               -ir ras_scores.tsv -idop constrained_bounds/
 
 # 4. Visualize results
-marea -td /opt/COBRAxy -input_data ras_scores.tsv \
+marea -td /opt/COBRAxy/src -input_data ras_scores.tsv \
       -choice_map Custom -custom_map custom.svg -idop results/
 ```
 
@@ -304,20 +288,12 @@ awk -F'\t' 'NR>1 && $7 == "TRUE" {print $1}' model_data.csv
 - **Recon**: Comprehensive analysis requiring computational resources
 - **Custom**: Organism-specific or specialized models
 
-### Gene Format Selection
-- **Default**: Preserve original model annotations
-- **HGNC_SYMBOL**: Human-readable gene names
-- **ENSNG**: Stable identifiers for bioinformatics
-- **ENTREZ**: Cross-database compatibility
-
 ### Output Format Optimization
 - **CSV**: Lightweight, universal compatibility
-- **XLSX**: Rich formatting, multiple sheets possible
 - Choose based on downstream analysis requirements
 
 ### Performance Considerations
 - Large models (Recon) may require substantial memory
-- Gene format conversion adds processing time
 - Consider batch processing for multiple extractions
 
 ## Troubleshooting
@@ -326,13 +302,8 @@ awk -F'\t' 'NR>1 && $7 == "TRUE" {print $1}' model_data.csv
 
 **Model loading fails**
 - Check file format and compression
-- Verify SBML validity for custom models
+- Verify SBML/JSON/MAT/YAML validity for custom models
 - Ensure sufficient system memory
-
-**Gene format conversion errors**
-- Mapping tables may not cover all genes
-- Original gene IDs retained when conversion fails
-- Check log file for conversion statistics
 
 **Empty output file**
 - Model may contain no reactions
@@ -344,15 +315,13 @@ awk -F'\t' 'NR>1 && $7 == "TRUE" {print $1}' model_data.csv
 | Error | Cause | Solution |
 |-------|-------|----------|
 | "Model file not found" | Invalid file path | Check file location and permissions |
-| "Unsupported format" | Invalid model format | Use SBML, JSON, MAT, or YML |
-| "Gene mapping failed" | Missing gene conversion data | Use Default format or update mappings |
+| "Unsupported format" | Invalid model format | Use SBML, JSON, MAT, or YAML |
 | "Memory allocation error" | Insufficient system memory | Use smaller model or increase memory |
 
 ### Performance Issues
 
 **Slow processing**
 - Large models require more time
-- Gene conversion adds overhead
 - Monitor system resource usage
 
 **Memory errors**
@@ -367,33 +336,26 @@ awk -F'\t' 'NR>1 && $7 == "TRUE" {print $1}' model_data.csv
 
 ## Advanced Usage
 
-### Custom Gene Mapping
-
-Advanced users can extend gene format conversion by modifying mapping files in the `local/mappings/` directory.
-
 ### Batch Extraction Script
 
 ```python
-#!/usr/bin env python3
+#!/usr/bin/env python3
 import subprocess
 import sys
 
 models = ['ENGRO2', 'HMRcore', 'Recon']
-formats = ['Default', 'HGNC_SYMBOL', 'ENSNG']
 
 for model in models:
-    for fmt in formats:
-        cmd = [
-            'metabolicModel2Tabular',
-            '--model', model,
-            '--name', f'{model}_{fmt}',
-            '--medium_selector', 'allOpen',
-            '--gene_format', fmt,
-            '--out_tabular', f'{model}_{fmt}.csv',
-            '--out_log', f'{model}_{fmt}.log',
-            '--tool_dir', '/opt/COBRAxy'
-        ]
-        subprocess.run(cmd, check=True)
+    cmd = [
+        'importMetabolicModel',
+        '--model', model,
+        '--name', f'{model}_data',
+        '--medium_selector', 'allOpen',
+        '--out_tabular', f'{model}.csv',
+        '--out_log', f'{model}.log',
+        '--tool_dir', '/opt/COBRAxy/src'
+    ]
+    subprocess.run(cmd, check=True)
 ```
 
 ### Database Integration
@@ -419,7 +381,7 @@ COPY model_reactions FROM 'model_data.csv' WITH CSV HEADER;
 
 ## See Also
 
+- [Export Metabolic Model](export-metabolic-model.md) - Export tabular data to model formats
 - [RAS Generator](ras-generator.md) - Use extracted GPR rules for RAS computation
 - [RPS Generator](rps-generator.md) - Use reaction formulas for RPS analysis
 - [Custom Model Tutorial](../tutorials/custom-model-integration.md)
-- [Gene Mapping Reference](../tutorials/gene-id-conversion.md)

@@ -44,17 +44,27 @@ For adding custom tools to Galaxy, refer to the official documentation:
 
 ### COBRAxy-Specific Setup
 
-1. **Copy COBRAxy files** to Galaxy's tools directory:
+1. **Link COBRAxy to Galaxy tools** directory:
    ```bash
-   mkdir -p tools/cobraxy
-   cp /path/to/COBRAxy/*.xml tools/cobraxy/
-   cp /path/to/COBRAxy/*.py tools/cobraxy/
-   cp -r /path/to/COBRAxy/utils tools/cobraxy/
-   cp -r /path/to/COBRAxy/local tools/cobraxy/
+   cd /path/to/galaxy
+   ln -s /path/to/COBRAxy/src tools/cobraxy
    ```
 
 2. **Add tools to Galaxy configuration**:
-   Edit `config/tool_conf.xml` and add a COBRAxy section with all tool XML files.
+   Edit `config/tool_conf.xml` and add a COBRAxy section:
+   ```xml
+   <section id="cobraxy" name="COBRAxy">
+     <tool file="cobraxy/importMetabolicModel.xml" />
+     <tool file="cobraxy/exportMetabolicModel.xml" />
+     <tool file="cobraxy/ras_generator.xml" />
+     <tool file="cobraxy/rps_generator.xml" />
+     <tool file="cobraxy/marea.xml" />
+     <tool file="cobraxy/ras_to_bounds.xml" />
+     <tool file="cobraxy/flux_simulation.xml" />
+     <tool file="cobraxy/flux_to_map.xml" />
+     <tool file="cobraxy/marea_cluster.xml" />
+   </section>
+   ```
 
 3. **Restart Galaxy** to load the new tools.
 
