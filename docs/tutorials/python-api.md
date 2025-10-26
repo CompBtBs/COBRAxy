@@ -1,4 +1,3 @@
-````markdown
 # Programmatic Usage Tutorial
 
 Learn how to use COBRAxy tools programmatically in Python scripts and analysis pipelines.

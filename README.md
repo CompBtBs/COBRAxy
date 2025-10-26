@@ -20,6 +20,12 @@ DOC: https://compbtbs.github.io/COBRAxy
 
 ## Quick Start
 
+## Requirements
+
+- **Python**: 3.8-3.12
+- **OS**: Linux, macOS, Windows (Linux/maxOS recommended)
+- **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
+
 ### Installation
 
 ```bash
@@ -63,12 +69,6 @@ flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_ma
 | `flux_simulation` | Sample metabolic fluxes | Constrained model | Flux distributions |
 | `flux_to_map` | Add fluxes to enriched maps | Flux samples + base maps | Final styled maps |
 | `marea_cluster` | Cluster analysis | Expression/flux data | Sample clusters |
-
-## Requirements
-
-- **Python**: 3.8-3.12
-- **OS**: Linux, macOS, Windows (Linux/maxOS recommended)
-- **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
 
 **Optional system libraries** (for enhanced features):
 ```bash
