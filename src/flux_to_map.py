@@ -21,6 +21,7 @@ import pyvips
 from PIL import Image
 from typing import Tuple, Union, Optional, List, Dict
 import matplotlib.pyplot as plt
+import os
 
 ERRORS = []
 ########################## argparse ##########################################
