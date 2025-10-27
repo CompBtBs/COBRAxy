@@ -26,19 +26,6 @@ DOC: https://compbtbs.github.io/COBRAxy
 - **Dependencies**: Automatically installed via pip (COBRApy, pandas, numpy, etc.)
 - **Build tools**: C/C++ compiler (gcc, clang, or MSVC), CMake for compiling Python extensions, pkg-config
 
-**System dependencies** (install before pip):
-```bash
-# Ubuntu/Debian
-sudo apt-get install build-essential cmake pkg-config libvips libglpk40 glpk-utils
-
-# macOS
-xcode-select --install
-brew install cmake pkg-config vips glpk
-
-# Windows (with Chocolatey)
-choco install cmake visualstudio2022buildtools pkgconfiglite
-```
-
 ### Installation
 
 **Recommended: Using Conda**
