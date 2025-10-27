@@ -26,9 +26,14 @@
 # - Implement integration tests as well, maybe!
 
 ## Imports:
+import sys
+import os
 from typing import Dict, Callable, Type, List
 from enum import Enum, auto
 from collections.abc import Iterable
+
+# Add src directory to path to allow imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 ## Generic utilities:
 class TestResult:
