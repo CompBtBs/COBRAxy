@@ -6,22 +6,28 @@ Import and extract metabolic model components into tabular format for analysis a
 
 Import Metabolic Model (importMetabolicModel) imports metabolic models from various formats (SBML, JSON, MAT, YAML) and extracts key components into comprehensive tabular summaries. This tool processes built-in or custom models, applies medium constraints, handles gene nomenclature conversion, and outputs structured data for downstream analysis.
 
+**Input**: SBML/JSON/MAT/YAML model files  
+**Output**: Tabular model data (CSV/XLSX)
+
 ## Usage
 
 ### Command Line
 
 ```bash
-importMetabolicModel --model ENGRO2 \
-                     --name ENGRO2 \
-                     --medium_selector allOpen \
-                     --out_tabular model_data.csv \
-                     --out_log extraction.log \
-                     --tool_dir /path/to/COBRAxy/src
+# Import built-in model
+importMetabolicModel \
+  --model ENGRO2 \
+  --name ENGRO2 \
+  --medium_selector allOpen \
+  --out_tabular model_data.csv \
+  --out_log extraction.log
 ```
 
 ### Galaxy Interface
 
-Select "Import Metabolic Model" from the COBRAxy tool suite and configure model extraction parameters.
+1. Select **Import Metabolic Model** from COBRAxy tools
+2. Choose built-in model or upload custom model file
+3. Configure extraction parameters and click **Execute**
 
 ## Parameters
 
@@ -33,13 +39,12 @@ Select "Import Metabolic Model" from the COBRAxy tool suite and configure model 
 | Medium Selector | `--medium_selector` | Medium configuration option |
 | Output Tabular | `--out_tabular` | Output file path (CSV or XLSX) |
 | Output Log | `--out_log` | Log file for processing information |
-| Tool Directory | `--tool_dir` | COBRAxy installation directory |
 
 ### Model Selection Parameters
 
 | Parameter | Flag | Description | Default |
 |-----------|------|-------------|---------|
-| Built-in Model | `--model` | Pre-installed model (ENGRO2, Recon, HMRcore) | - |
+| Built-in Model | `--model` | Pre-installed model (ENGRO2, Recon) | - |
 | Custom Model | `--input` | Path to custom SBML/JSON model file | - |
 
 **Note**: Provide either `--model` OR `--input`, not both.
@@ -48,32 +53,18 @@ Select "Import Metabolic Model" from the COBRAxy tool suite and configure model 
 
 | Parameter | Flag | Description | Default |
 |-----------|------|-------------|---------|
+| Tool Directory | `--tool_dir` | Path to COBRAxy installation directory | Auto-detected |
 | Custom Medium | `--custom_medium` | CSV file with medium constraints | - |
 
 ## Model Selection
 
 ### Built-in Models
 
-#### ENGRO2
-- **Species**: Homo sapiens
-- **Scope**: Genome-scale reconstruction
-- **Reactions**: ~2,000 reactions
-- **Metabolites**: ~1,500 metabolites  
-- **Coverage**: Comprehensive human metabolism
+Choose from two pre-installed models:
+- **ENGRO2**: ~2,000 reactions - recommended for most analyses  
+- **Recon**: ~10,000 reactions - comprehensive studies
 
-#### Recon  
-- **Species**: Homo sapiens
-- **Scope**: Recon3D human reconstruction
-- **Reactions**: ~10,000+ reactions
-- **Metabolites**: ~5,000+ metabolites
-- **Coverage**: Most comprehensive human model
-
-#### HMRcore
-- **Species**: Homo sapiens  
-- **Scope**: Core metabolic network
-- **Reactions**: ~300 essential reactions
-- **Metabolites**: ~200 core metabolites
-- **Coverage**: Central carbon and energy metabolism
+See [Built-in Models Reference](../reference/built-in-models.md) for detailed specifications.
 
 ### Custom Models
 
@@ -132,8 +123,7 @@ importMetabolicModel --model ENGRO2 \
                      --name ENGRO2_extraction \
                      --medium_selector allOpen \
                      --out_tabular ENGRO2_data.csv \
-                     --out_log ENGRO2_log.txt \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_log ENGRO2_log.txt
 ```
 
 ### Process Custom Model
@@ -144,34 +134,20 @@ importMetabolicModel --input /data/custom_model.xml \
                      --name CustomModel \
                      --medium_selector allOpen \
                      --out_tabular custom_model_data.csv \
-                     --out_log custom_extraction.log \
-                     --tool_dir /opt/COBRAxy/src
-```
-
-### Extract Core Model for Quick Analysis
-
-```bash  
-# Extract HMRcore for rapid prototyping
-importMetabolicModel --model HMRcore \
-                     --name CoreModel \
-                     --medium_selector allOpen \
-                     --out_tabular core_reactions.csv \
-                     --out_log core_log.txt \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_log custom_extraction.log
 ```
 
 ### Batch Processing Multiple Models
 
 ```bash
 #!/bin/bash
-models=("ENGRO2" "HMRcore" "Recon")
+models=("ENGRO2" "Recon")
 for model in "${models[@]}"; do
     importMetabolicModel --model "$model" \
                          --name "${model}_extract" \
                          --medium_selector allOpen \
                          --out_tabular "${model}_data.csv" \
-                         --out_log "${model}_log.txt" \
-                         --tool_dir /opt/COBRAxy/src
+                         --out_log "${model}_log.txt"
 done
 ```
 
@@ -229,20 +205,19 @@ The extracted tabular data serves as input for:
 ```bash
 # 1. Extract model components
 importMetabolicModel --model ENGRO2 --name ModelData \
-                     --out_tabular model_components.csv \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_tabular model_components.csv
 
 # 2. Use extracted data for RAS analysis
-ras_generator -td /opt/COBRAxy/src -rs Custom \
+ras_generator -rs Custom \
               -rl model_components.csv \
               -in expression_data.tsv -ra ras_scores.tsv
 
 # 3. Apply constraints and sample fluxes
-ras_to_bounds -td /opt/COBRAxy/src -ms Custom -mo model_components.csv \
+ras_to_bounds -ms Custom -mo model_components.csv \
               -ir ras_scores.tsv -idop constrained_bounds/
 
 # 4. Visualize results
-marea -td /opt/COBRAxy/src -input_data ras_scores.tsv \
+marea -input_data ras_scores.tsv \
       -choice_map Custom -custom_map custom.svg -idop results/
 ```
 
@@ -284,7 +259,6 @@ awk -F'\t' 'NR>1 && $7 == "TRUE" {print $1}' model_data.csv
 
 ### Model Selection
 - **ENGRO2**: Balanced coverage for human tissue analysis
-- **HMRcore**: Fast processing for algorithm development  
 - **Recon**: Comprehensive analysis requiring computational resources
 - **Custom**: Organism-specific or specialized models
 
@@ -343,7 +317,7 @@ awk -F'\t' 'NR>1 && $7 == "TRUE" {print $1}' model_data.csv
 import subprocess
 import sys
 
-models = ['ENGRO2', 'HMRcore', 'Recon']
+models = ['ENGRO2', 'Recon']
 
 for model in models:
     cmd = [
@@ -352,8 +326,7 @@ for model in models:
         '--name', f'{model}_data',
         '--medium_selector', 'allOpen',
         '--out_tabular', f'{model}.csv',
-        '--out_log', f'{model}.log',
-        '--tool_dir', '/opt/COBRAxy/src'
+        '--out_log', f'{model}.log'
     ]
     subprocess.run(cmd, check=True)
 ```

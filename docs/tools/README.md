@@ -29,10 +29,10 @@ All tools include Galaxy XML wrappers for web-based usage through the Galaxy int
 ### Command Line Usage
 ```bash
 # Basic pattern for all tools
-tool_name -td $(pwd) [tool-specific options]
+tool_name [tool-specific options]
 
 # Example: Generate RAS scores
-ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
+ras_generator -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 ```
 
 ## Parameter Reference
@@ -57,10 +57,12 @@ ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 
 ### Built-in Models
 
-| Model | Organism | Reactions | Genes | Best For |
-|-------|----------|-----------|-------|----------|
-| **ENGRO2** | Human | ~500 | ~500 | Focused analysis, faster computation |
-| **RECON3D** | Human | ~10,000 | ~2,000 | Comprehensive metabolism |
+COBRAxy includes two pre-installed models. See [Built-in Models Reference](../reference/built-in-models.md) for details.
+
+| Model | Size | Best For |
+|-------|------|----------|
+| **ENGRO2** | ~2,000 reactions | General analysis (recommended) |
+| **Recon** | ~10,000 reactions | Comprehensive studies |
 
 ## Tool Selection Guide
 

@@ -6,35 +6,37 @@ Metabolic Reaction Enrichment Analysis for statistical comparison and map visual
 
 MAREA performs statistical enrichment analysis on RAS/RPS data to identify significantly different metabolic reactions between sample groups. It generates enriched pathway maps with color-coded reactions showing statistical significance and fold changes.
 
+**Input**: RAS/RPS data + sample groups  
+**Output**: Statistical results + enriched pathway maps
+
 ## Usage
 
 ### Command Line
 
 ```bash
-marea -td /path/to/COBRAxy \
-      -using_RAS true \
-      -input_data ras_data.tsv \
-      -input_class class_labels.tsv \
-      -comparison manyvsmany \
-      -test ks \
-      -pv 0.05 \
-      -fc 1.5 \
-      -choice_map ENGRO2 \
-      -generate_svg true \
-      -idop results/
+# Basic RAS enrichment analysis
+marea \
+  -using_RAS true \
+  -input_data ras_data.tsv \
+  -input_class class_labels.tsv \
+  -choice_map ENGRO2 \
+  -generate_svg true \
+  -idop results/
 ```
 
 ### Galaxy Interface
 
-Select "MAREA" from the COBRAxy tool suite and configure analysis parameters through the web interface.
+1. Upload RAS/RPS data and class labels to Galaxy
+2. Select **MAREA** from COBRAxy tools
+3. Configure analysis parameters and click **Execute**
 
 ## Parameters
 
-### Required Parameters
+### Optional Parameters
 
-| Parameter | Flag | Description |
-|-----------|------|-------------|
-| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory |
+| Parameter | Flag | Description | Default |
+|-----------|------|-------------|---------|
+| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory | Auto-detected |
 
 ### Data Input Parameters
 
@@ -153,8 +155,7 @@ Compare one specific group against each other group separately:
 
 ```bash
 # Simple two-group comparison
-marea -td /opt/COBRAxy \
-      -using_RAS true \
+marea -using_RAS true \
       -input_data ras_scores.tsv \
       -input_class sample_groups.tsv \
       -comparison manyvsmany \
@@ -168,8 +169,7 @@ marea -td /opt/COBRAxy \
 
 ```bash
 # Multi-modal analysis
-marea -td /opt/COBRAxy \
-      -using_RAS true \
+marea -using_RAS true \
       -input_data ras_scores.tsv \
       -input_class ras_groups.tsv \
       -using_RPS true \
@@ -179,7 +179,7 @@ marea -td /opt/COBRAxy \
       -test DESeq \
       -adj true \
       -fc 2.0 \
-      -choice_map HMRcore \
+      -choice_map ENGRO2 \
       -generate_pdf true \
       -idop multimodal_results/
 ```
@@ -188,8 +188,7 @@ marea -td /opt/COBRAxy \
 
 ```bash
 # Compare multiple experiments
-marea -td /opt/COBRAxy \
-      -using_RAS true \
+marea -using_RAS true \
       -input_datas exp1_ras.tsv exp2_ras.tsv exp3_ras.tsv \
       -names "Experiment1" "Experiment2" "Experiment3" \
       -comparison onevsmany \
@@ -203,7 +202,9 @@ marea -td /opt/COBRAxy \
 
 ### Built-in Maps
 - **ENGRO2**: Human genome-scale reconstruction
-- **HMRcore**: Core human metabolic network  
+#### ENGRO2 (Default)
+- Full human metabolic network coverage
+- Pre-styled reaction elements  
 - **Recon**: Recon3D human model
 
 ### Color Coding

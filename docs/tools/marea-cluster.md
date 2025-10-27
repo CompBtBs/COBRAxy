@@ -11,8 +11,7 @@ MAREA Cluster performs unsupervised clustering analysis on RAS, RPS, or flux dat
 ### Command Line
 
 ```bash
-marea_cluster -td /path/to/COBRAxy \
-              -in metabolic_data.tsv \
+marea_cluster -in metabolic_data.tsv \
               -cy kmeans \
               -sc true \
               -k1 2 \
@@ -33,8 +32,13 @@ Select "MAREA Cluster" from the COBRAxy tool suite and configure clustering para
 
 | Parameter | Flag | Description |
 |-----------|------|-------------|
-| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory |
 | Input Data | `-in, --input` | Metabolic data file (TSV format) |
+
+### Optional Parameters
+
+| Parameter | Flag | Description | Default |
+|-----------|------|-------------|---------|
+| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory | Auto-detected |
 
 ### Clustering Parameters
 
@@ -204,8 +208,7 @@ Cluster	Size	Centroid_R00001	Centroid_R00002	Avg_Silhouette
 
 ```bash
 # Simple K-means with elbow analysis
-marea_cluster -td /opt/COBRAxy \
-              -in ras_data.tsv \
+marea_cluster -in ras_data.tsv \
               -cy kmeans \
               -sc true \
               -k1 2 \
@@ -220,8 +223,7 @@ marea_cluster -td /opt/COBRAxy \
 
 ```bash
 # Density-based clustering with custom parameters
-marea_cluster -td /opt/COBRAxy \
-              -in flux_samples.tsv \
+marea_cluster -in flux_samples.tsv \
               -cy dbscan \
               -sc true \
               -ms 5 \
@@ -235,8 +237,7 @@ marea_cluster -td /opt/COBRAxy \
 
 ```bash
 # Hierarchical clustering for small dataset
-marea_cluster -td /opt/COBRAxy \
-              -in rps_scores.tsv \
+marea_cluster -in rps_scores.tsv \
               -cy hierarchy \
               -sc true \
               -k1 2 \
@@ -252,8 +253,7 @@ marea_cluster -td /opt/COBRAxy \
 # Compare multiple algorithms
 algorithms=("kmeans" "dbscan" "hierarchy")
 for alg in "${algorithms[@]}"; do
-    marea_cluster -td /opt/COBRAxy \
-                  -in metabolomics_data.tsv \
+    marea_cluster -in metabolomics_data.tsv \
                   -cy "$alg" \
                   -sc true \
                   -k1 2 \
@@ -376,15 +376,15 @@ Use cluster labels for:
 
 ```bash
 # 1. Generate metabolic scores
-ras_generator -td /opt/COBRAxy -in expression.tsv -ra ras.tsv
+ras_generator -in expression.tsv -ra ras.tsv
 
 # 2. Perform clustering analysis
-marea_cluster -td /opt/COBRAxy -in ras.tsv -cy kmeans \
+marea_cluster -in ras.tsv -cy kmeans \
               -sc true -k1 2 -k2 8 -el true -si true \
               -idop clusters/ -bc best_clusters.tsv
 
 # 3. Analyze cluster differences
-marea -td /opt/COBRAxy -input_data ras.tsv \
+marea -input_data ras.tsv \
       -input_class best_clusters.tsv -comparison manyvsmany \
       -test ks -choice_map ENGRO2 -idop cluster_analysis/
 ```

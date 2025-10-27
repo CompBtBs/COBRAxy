@@ -6,27 +6,32 @@ Sample metabolic fluxes using constraint-based modeling with CBS or OPTGP algori
 
 Flux Simulation performs constraint-based sampling of metabolic flux distributions from constrained models. It supports two sampling algorithms (CBS and OPTGP) and provides comprehensive flux statistics including mean, median, quantiles, pFBA, FVA, and sensitivity analysis.
 
+**Input**: Constrained model bounds  
+**Output**: Flux distributions and statistics
+
 ## Usage
 
 ### Command Line
 
 ```bash
-flux_simulation -td /path/to/COBRAxy \
-                -ms ENGRO2 \
-                -in bounds1.tsv,bounds2.tsv \
-                -ni Sample1,Sample2 \
-                -a CBS \
-                -ns 1000 \
-                -nb 1 \
-                -sd 42 \
-                -ot mean,median,quantiles \
-                -ota pFBA,FVA,sensitivity \
-                -idop flux_results/
+# Basic CBS sampling
+flux_simulation \
+  -ms ENGRO2 \
+  -in bounds1.tsv,bounds2.tsv \
+  -ni Sample1,Sample2 \
+  -a CBS \
+  -ns 1000 \
+  -nb 1 \
+  -sd 42 \
+  -ot mean,median \
+  -idop flux_results/
 ```
 
 ### Galaxy Interface
 
-Select "Flux Simulation" from the COBRAxy tool suite and configure sampling parameters through the web interface.
+1. Upload bounds files to Galaxy
+2. Select **Flux Simulation** from COBRAxy tools
+3. Configure sampling parameters and click **Execute**
 
 ## Parameters
 
@@ -34,7 +39,6 @@ Select "Flux Simulation" from the COBRAxy tool suite and configure sampling para
 
 | Parameter | Flag | Description |
 |-----------|------|-------------|
-| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory |
 | Input Bounds | `-in, --input` | Comma-separated list of bounds files |
 | Sample Names | `-ni, --names` | Comma-separated sample names |
 | Algorithm | `-a, --algorithm` | Sampling algorithm (CBS or OPTGP) |
@@ -42,6 +46,12 @@ Select "Flux Simulation" from the COBRAxy tool suite and configure sampling para
 | Number of Batches | `-nb, --n_batches` | Number of sampling batches |
 | Random Seed | `-sd, --seed` | Random seed for reproducibility |
 | Output Types | `-ot, --output_type` | Flux statistics to compute |
+
+### Optional Parameters
+
+| Parameter | Flag | Description | Default |
+|-----------|------|-------------|---------|
+| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory | Auto-detected |
 
 ### Model Parameters
 
@@ -180,8 +190,7 @@ R00003	0.23	0.19	0.31
 
 ```bash
 # Simple CBS sampling with statistics
-flux_simulation -td /opt/COBRAxy \
-                -ms ENGRO2 \
+flux_simulation -ms ENGRO2 \
                 -in sample1_bounds.tsv,sample2_bounds.tsv \
                 -ni Sample1,Sample2 \
                 -a CBS \
@@ -197,8 +206,7 @@ flux_simulation -td /opt/COBRAxy \
 
 ```bash
 # Full analysis with OPTGP
-flux_simulation -td /opt/COBRAxy \
-                -ms ENGRO2 \
+flux_simulation -ms ENGRO2 \
                 -in bounds/*.tsv \
                 -ni Sample1,Sample2,Sample3,Control1,Control2 \
                 -a OPTGP \
@@ -216,8 +224,7 @@ flux_simulation -td /opt/COBRAxy \
 
 ```bash
 # Use custom model with CBS
-flux_simulation -td /opt/COBRAxy \
-                -ms Custom \
+flux_simulation -ms Custom \
                 -mo models/tissue_specific.xml \
                 -mn tissue_specific.xml \
                 -in patient_bounds.tsv \
@@ -235,8 +242,7 @@ flux_simulation -td /opt/COBRAxy \
 
 ```bash
 # Process multiple experimental conditions
-flux_simulation -td /opt/COBRAxy \
-                -ms ENGRO2 \
+flux_simulation -ms ENGRO2 \
                 -in ctrl1.tsv,ctrl2.tsv,treat1.tsv,treat2.tsv \
                 -ni Control1,Control2,Treatment1,Treatment2 \
                 -a CBS \
@@ -310,15 +316,15 @@ flux_simulation -td /opt/COBRAxy \
 
 ```bash
 # 1. Generate sample-specific bounds
-ras_to_bounds -td /opt/COBRAxy -ms ENGRO2 -ir ras.tsv -idop bounds/
+ras_to_bounds -ms ENGRO2 -ir ras.tsv -idop bounds/
 
 # 2. Sample fluxes from constrained models
-flux_simulation -td /opt/COBRAxy -ms ENGRO2 -in bounds/*.tsv \
+flux_simulation -ms ENGRO2 -in bounds/*.tsv \
                 -ni Sample1,Sample2,Sample3 -a CBS -ns 1000 \
                 -ot mean,quantiles -ota pFBA,FVA -idop fluxes/
 
 # 3. Visualize results on metabolic maps  
-flux_to_map -td /opt/COBRAxy -input_data_fluxes fluxes/mean.csv \
+flux_to_map -input_data_fluxes fluxes/mean.csv \
             -choice_map ENGRO2 -idop flux_maps/
 ```
 
@@ -381,7 +387,7 @@ For fine-tuning sampling behavior, advanced users can modify:
 ```bash
 # Split sampling across multiple cores/nodes
 for i in {1..4}; do
-    flux_simulation -td /opt/COBRAxy -ms ENGRO2 \
+    flux_simulation -ms ENGRO2 \
                     -in subset_${i}_bounds.tsv \
                     -ni Batch${i} -a CBS -ns 250 \
                     -sd $((42 + i)) -idop batch_${i}/ &

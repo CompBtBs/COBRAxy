@@ -11,8 +11,7 @@ The RAS to Bounds tool integrates RAS values into metabolic model flux bounds, c
 ### Command Line
 
 ```bash
-ras_to_bounds -td /path/to/COBRAxy \
-              -ms ENGRO2 \
+ras_to_bounds -ms ENGRO2 \
               -ir ras_scores.tsv \
               -rs true \
               -mes allOpen \
@@ -29,9 +28,14 @@ Select "RAS to Bounds" from the COBRAxy tool suite and configure model and const
 
 | Parameter | Flag | Description |
 |-----------|------|-------------|
-| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory |
 | Model Selector | `-ms, --model_selector` | Built-in model (ENGRO2, Custom) |
 | RAS Selector | `-rs, --ras_selector` | Enable RAS constraint application |
+
+### Optional Parameters
+
+| Parameter | Flag | Description | Default |
+|-----------|------|-------------|---------|
+| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory | Auto-detected |
 
 ### Model Parameters
 
@@ -145,12 +149,198 @@ ras_to_bounds/
 
 ## Examples
 
+### Basic Usage
+
+```bash
+# Apply RAS constraints to ENGRO2 model
+ras_to_bounds \
+  -ms ENGRO2 \
+  -ir ras_scores.tsv \
+  -rs true \
+  -idop constrained_bounds/
+```
+
+### Custom Model
+
+```bash
+# Use custom SBML model
+ras_to_bounds \
+  -ms Custom \
+  -mo custom_model.xml \
+  -mn "MyModel" \
+  -ir ras_scores.tsv \
+  -rs true \
+  -idop custom_bounds/
+```
+
+### Custom Medium
+
+```bash
+# Apply specific medium constraints
+ras_to_bounds \
+  -ms ENGRO2 \
+  -mes custom \
+  -meo medium_composition.csv \
+  -ir ras_scores.tsv \
+  -rs true \
+  -idop bounds/
+```
+
+### Complete Pipeline
+
+```bash
+# Generate RAS then apply constraints
+ras_generator \
+  -in expression.tsv \
+  -ra ras.tsv \
+  -rs ENGRO2
+
+ras_to_bounds \
+  -ms ENGRO2 \
+  -ir ras.tsv \
+  -rs true \
+  -idop bounds/
+
+flux_simulation \
+  -ms ENGRO2 \
+  -in bounds/*.tsv \
+  -a CBS \
+  -idop fluxes/
+```
+
+## Integration
+
+### Workflow Position
+
+```
+Gene Expression → RAS Generator → RAS Values
+                                      ↓
+                              RAS to Bounds
+                                      ↓
+                             Constrained Model
+                                      ↓
+                             Flux Simulation
+                                      ↓
+                              Flux Distributions
+```
+
+### Upstream Tools
+
+- **[RAS Generator](ras-generator.md)**: Generates RAS input
+
+### Downstream Tools
+
+- **[Flux Simulation](flux-simulation.md)**: Samples fluxes from constrained models
+- **[Flux to Map](flux-to-map.md)**: Visualizes flux distributions
+
+## Troubleshooting
+
+### Common Issues
+
+**"Model not found" error**
+- Verify model selector (ENGRO2, Recon, Custom)
+- Check custom model file path if using Custom
+- Ensure SBML file is valid
+
+**"RAS file format error"**
+- Verify TSV format with tabs (not spaces)
+- Check first column is "Reaction" or "Reactions"
+- Ensure sample names are in header row
+
+**"No reactions constrained" warning**
+- Check reaction IDs match between RAS and model
+- Verify RAS file has data (not all NaN)
+- Ensure model contains expected reactions
+
+**Output directory issues**
+- Check write permissions
+- Verify directory path exists or can be created
+- Ensure sufficient disk space
+
+### Debug Mode
+
+```bash
+# Enable detailed logging
+ras_to_bounds \
+  -ms ENGRO2 \
+  -ir ras_scores.tsv \
+  -rs true \
+  -idop bounds/ \
+  -ol debug.log
+```
+
+### Validation
+
+```bash
+# Check bounds files generated
+ls -lh bounds/
+
+# Inspect bounds for specific sample
+head bounds/bounds_Sample1.tsv
+
+# Verify number of constrained reactions
+grep -v "^#" bounds/bounds_Sample1.tsv | wc -l
+```
+
+## Advanced Usage
+
+### Batch Processing
+
+```bash
+# Process multiple RAS files
+for ras_file in ras_data/*.tsv; do
+  basename=$(basename "$ras_file" .tsv)
+  ras_to_bounds \
+    -ms ENGRO2 \
+    -ir "$ras_file" \
+    -rs true \
+    -idop "bounds_${basename}/"
+done
+```
+
+### Programmatic Use
+
+```python
+from cobraxy import ras_to_bounds
+
+# Apply constraints programmatically
+ras_to_bounds.main([
+    '-ms', 'ENGRO2',
+    '-ir', 'ras_scores.tsv',
+    '-rs', 'true',
+    '-idop', 'constrained_bounds/'
+])
+```
+
+### Custom Constraint Scaling
+
+The tool applies standard scaling. For custom scaling logic, modify bounds files manually:
+
+```python
+import pandas as pd
+
+# Load bounds file
+bounds = pd.read_csv('bounds/bounds_Sample1.tsv', sep='\t')
+
+# Apply custom scaling
+bounds['upper_bound'] *= custom_scale_factor
+
+# Save modified bounds
+bounds.to_csv('bounds/bounds_Sample1_custom.tsv', sep='\t', index=False)
+```
+
+## See Also
+
+- [RAS Generator](ras-generator.md) - Generate RAS input
+- [Flux Simulation](flux-simulation.md) - Sample fluxes from constrained models
+- [Import Metabolic Model](import-metabolic-model.md) - Create custom models
+- [Flux to Map](flux-to-map.md) - Visualize flux results
+
 ### Basic Usage with Built-in Model
 
 ```bash
 # Apply RAS constraints to ENGRO2 model
-ras_to_bounds -td /opt/COBRAxy \
-              -ms ENGRO2 \
+ras_to_bounds -ms ENGRO2 \
               -ir ras_data.tsv \
               -rs true \
               -idop results/bounds/
@@ -160,8 +350,7 @@ ras_to_bounds -td /opt/COBRAxy \
 
 ```bash
 # Use custom model with specific medium
-ras_to_bounds -td /opt/COBRAxy \
-              -ms Custom \
+ras_to_bounds -ms Custom \
               -mo models/custom_model.xml \
               -mn custom_model.xml \
               -mes custom \
@@ -176,8 +365,7 @@ ras_to_bounds -td /opt/COBRAxy \
 
 ```bash
 # Process cohort data with sample classes
-ras_to_bounds -td /opt/COBRAxy \
-              -ms ENGRO2 \
+ras_to_bounds -ms ENGRO2 \
               -ir cohort_ras_scores.tsv \
               -rn "Patient1,Patient2,Patient3,Healthy1,Healthy2" \
               -rs true \
@@ -187,12 +375,7 @@ ras_to_bounds -td /opt/COBRAxy \
 
 ## Built-in Models
 
-### ENGRO2
-- **Species**: Homo sapiens
-- **Scope**: Genome-scale reconstruction  
-- **Reactions**: ~2,000 reactions
-- **Metabolites**: ~1,500 metabolites
-- **Use Case**: General human metabolism
+COBRAxy includes pre-installed models (ENGRO2, Recon). See [Built-in Models Reference](../reference/built-in-models.md).
 
 ### Custom Model Requirements
 - Valid SBML format
@@ -254,16 +437,16 @@ ras_to_bounds -td /opt/COBRAxy \
 
 ```bash
 # 1. Generate RAS from expression data
-ras_generator -td /opt/COBRAxy -in expression.tsv -ra ras.tsv
+ras_generator -in expression.tsv -ra ras.tsv
 
 # 2. Apply RAS constraints to model bounds  
-ras_to_bounds -td /opt/COBRAxy -ms ENGRO2 -ir ras.tsv -rs true -idop bounds/
+ras_to_bounds -ms ENGRO2 -ir ras.tsv -rs true -idop bounds/
 
 # 3. Sample fluxes with constraints
-flux_simulation -td /opt/COBRAxy -ms ENGRO2 -in bounds/*.tsv -a CBS -idop fluxes/
+flux_simulation -ms ENGRO2 -in bounds/*.tsv -a CBS -idop fluxes/
 
 # 4. Analyze and visualize results
-marea -td /opt/COBRAxy -input_data fluxes/mean.tsv -choice_map ENGRO2 -idop maps/
+marea -input_data fluxes/mean.tsv -choice_map ENGRO2 -idop maps/
 ```
 
 ## Troubleshooting
@@ -314,8 +497,7 @@ marea -td /opt/COBRAxy -input_data fluxes/mean.tsv -choice_map ENGRO2 -idop maps
 # Process multiple RAS files
 for ras_file in ras_data/*.tsv; do
     sample_name=$(basename "$ras_file" .tsv)
-    ras_to_bounds -td /opt/COBRAxy \
-                  -ms ENGRO2 \
+    ras_to_bounds -ms ENGRO2 \
                   -ir "$ras_file" \
                   -rs true \
                   -idop "bounds_$sample_name/"

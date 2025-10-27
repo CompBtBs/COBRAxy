@@ -60,22 +60,22 @@ pip install .
 
 ```bash
 # 1. Generate RAS from expression data
-ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
+ras_generator -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 
 # 2. Generate RPS from metabolite data (optional)
-rps_generator -td $(pwd) -id metabolites.tsv -rp rps_output.tsv
+rps_generator -id metabolites.tsv -rp rps_output.tsv
 
 # 3. Create enriched pathway maps with statistical analysis
-marea -td $(pwd) -using_RAS true -input_data ras_output.tsv -choice_map ENGRO2 -gs true -idop base_maps
+marea -using_RAS true -input_data ras_output.tsv -choice_map ENGRO2 -gs true -idop base_maps
 
 # 4. Apply RAS constraints to model for flux simulation
-ras_to_bounds -td $(pwd) -ms ENGRO2 -ir ras_output.tsv -rs true -idop bounds_output
+ras_to_bounds -ms ENGRO2 -ir ras_output.tsv -rs true -idop bounds_output
 
 # 5. Sample metabolic fluxes with constrained model
-flux_simulation -td $(pwd) -ms ENGRO2 -in bounds_output/*.tsv -a CBS -ns 1000 -idop flux_results
+flux_simulation -ms ENGRO2 -in bounds_output/*.tsv -a CBS -ns 1000 -idop flux_results
 
 # 6. Add flux data to enriched maps
-flux_to_map -td $(pwd) -if flux_results/*.tsv -mp base_maps/*.svg -idop final_maps
+flux_to_map -if flux_results/*.tsv -mp base_maps/*.svg -idop final_maps
 ```
 
 ## Tools
@@ -125,9 +125,9 @@ Gene Expression    Metabolite Data    SBML Model
 
 COBRAxy includes ready-to-use resources:
 
-- **Models**: ENGRO2, Recon (human metabolism)
+- **Models**: ENGRO2 (recommended), Recon (comprehensive) - see [Built-in Models Reference](docs/reference/built-in-models.md)
 - **Gene mappings**: HGNC, Ensembl, Entrez ID conversions
-- **Pathway map**: Pre-styled SVG templates for ENGRO2 
+- **Pathway maps**: Pre-styled SVG templates for ENGRO2 
 - **Medium compositions**: Standard growth conditions
 
 Located in `src/local/` directory for immediate use.
@@ -139,20 +139,20 @@ All tools support `--help` for detailed options. Key commands:
 ### Generate RAS/RPS scores
 ```bash
 # From gene expression
-ras_generator -td $(pwd) -in expression.tsv -ra ras_output.tsv -rs ENGRO2
+ras_generator -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 
 # From metabolite data  
-rps_generator -td $(pwd) -id metabolites.tsv -rp rps_output.tsv
+rps_generator -id metabolites.tsv -rp rps_output.tsv
 ```
 
 ### Flux sampling
 ```bash
-flux_simulation -td $(pwd) -ms ENGRO2 -in bounds/*.tsv -a CBS -ns 1000 -idop results/
+flux_simulation -ms ENGRO2 -in bounds/*.tsv -a CBS -ns 1000 -idop results/
 ```
 
 ### Statistical analysis & visualization
 ```bash
-marea -td $(pwd) -using_RAS true -input_data ras.tsv -choice_map ENGRO2 -gs true -idop maps/
+marea -using_RAS true -input_data ras.tsv -choice_map ENGRO2 -gs true -idop maps/
 ```
 
 ## Galaxy Integration

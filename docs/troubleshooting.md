@@ -133,10 +133,9 @@ Solution:
 # Use absolute paths
 from pathlib import Path
 
-tool_dir = str(Path('/path/to/COBRAxy').absolute())
 input_file = str(Path('expression.tsv').absolute())
 
-args = ['-td', tool_dir, '-in', input_file, ...]
+args = ['-in', input_file, ...]
 ```
 
 **Problem**: Permission denied
@@ -317,7 +316,7 @@ with open('test_input.tsv', 'w') as f:
     f.write(test_data)
 
 # Test basic functionality
-ras_generator.main(['-td', tool_dir, '-in', 'test_input.tsv', 
+ras_generator.main(['-in', 'test_input.tsv', 
                    '-ra', 'test_output.tsv', '-rs', 'ENGRO2'])
 ```
 
@@ -362,12 +361,12 @@ When reporting issues, include:
 
 Before reporting issues:
 
-- ✅ Checked this troubleshooting guide
-- ✅ Verified installation completeness
-- ✅ Tested with built-in example data
-- ✅ Searched existing GitHub issues
-- ✅ Tried alternative models/parameters
-- ✅ Checked file formats and permissions
+- Checked this troubleshooting guide
+- Verified installation completeness
+- Tested with built-in example data
+- Searched existing GitHub issues
+- Tried alternative models/parameters
+- Checked file formats and permissions
 
 ## Prevention Tips
 

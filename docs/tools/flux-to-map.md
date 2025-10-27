@@ -11,16 +11,14 @@ Flux to Map performs statistical analysis on flux distribution data and generate
 ### Command Line
 
 ```bash
-flux_to_map -td /path/to/COBRAxy \
-            -input_data_fluxes flux_data.tsv \
-            -input_class_fluxes sample_groups.tsv \
-            -comparison manyvsmany \
-            -test ks \
+flux_to_map -idf treatment_vs_control_fluxes.tsv \
+            -icf sample_groups.tsv \
+            -co manyvsmany \
+            -te ks \
             -pv 0.05 \
-            -fc 1.5 \
-            -choice_map ENGRO2 \
-            -generate_svg true \
-            -generate_pdf true \
+            -mc ENGRO2 \
+            -gs true \
+            -gp true \
             -idop flux_maps/
 ```
 
@@ -30,11 +28,11 @@ Select "Flux to Map" from the COBRAxy tool suite and configure flux analysis and
 
 ## Parameters
 
-### Required Parameters
+### Optional Parameters
 
-| Parameter | Flag | Description |
-|-----------|------|-------------|
-| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory |
+| Parameter | Flag | Description | Default |
+|-----------|------|-------------|---------|
+| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory | Auto-detected |
 
 ### Data Input Parameters
 
@@ -60,7 +58,7 @@ Select "Flux to Map" from the COBRAxy tool suite and configure flux analysis and
 
 | Parameter | Flag | Description | Default |
 |-----------|------|-------------|---------|
-| Map Choice | `-mc, --choice_map` | Built-in metabolic map | HMRcore |
+| Map Choice | `-mc, --choice_map` | Built-in metabolic map | ENGRO2 |
 | Custom Map | `-cm, --custom_map` | Path to custom SVG map | - |
 | Generate SVG | `-gs, --generate_svg` | Create SVG output | true |
 | Generate PDF | `-gp, --generate_pdf` | Create PDF output | true |
@@ -153,24 +151,11 @@ Reactions are considered significant when:
 
 ### Built-in Maps
 
-#### HMRcore (Default)
-- **Scope**: Core human metabolic network
-- **Reactions**: ~300 essential reactions
-- **Coverage**: Central carbon, amino acid, lipid metabolism
-- **Use Case**: General overview, publication figures
-
-#### ENGRO2  
+#### ENGRO2 (Default)
 - **Scope**: Extended human genome-scale reconstruction
 - **Reactions**: ~2,000 reactions
 - **Coverage**: Comprehensive metabolic network
-- **Use Case**: Detailed analysis, specialized tissues
-
-#### Custom Maps
-User-provided SVG files with reaction elements:
-```xml
-<rect id="R00001" class="reaction" fill="gray" stroke="black"/>
-<path id="R00002" class="reaction" fill="gray" stroke="black"/>
-```
+- **Use Case**: General analysis and publication figures
 
 ### Color Coding Scheme
 
@@ -221,14 +206,13 @@ User-provided SVG files with reaction elements:
 
 ```bash
 # Compare treatment vs control fluxes
-flux_to_map -td /opt/COBRAxy \
-            -idf treatment_vs_control_fluxes.tsv \
+flux_to_map -idf treatment_vs_control_fluxes.tsv \
             -icf sample_groups.tsv \
             -co manyvsmany \
             -te ks \
             -pv 0.05 \
             -fc 2.0 \
-            -mc HMRcore \
+            -mc ENGRO2 \
             -gs true \
             -gp true \
             -idop flux_comparison/
@@ -238,8 +222,7 @@ flux_to_map -td /opt/COBRAxy \
 
 ```bash
 # Compare multiple experimental conditions
-flux_to_map -td /opt/COBRAxy \
-            -idsf "cond1_flux.tsv cond2_flux.tsv cond3_flux.tsv" \
+flux_to_map -idsf "cond1_flux.tsv cond2_flux.tsv cond3_flux.tsv" \
             -naf "Control Treatment1 Treatment2" \
             -co onevsrest \
             -te wilcoxon \
@@ -255,8 +238,7 @@ flux_to_map -td /opt/COBRAxy \
 
 ```bash
 # Use tissue-specific custom map
-flux_to_map -td /opt/COBRAxy \
-            -idf liver_flux_data.tsv \
+flux_to_map -idf liver_flux_data.tsv \
             -icf liver_conditions.tsv \
             -co manyvsmany \
             -te ttest_ind \
@@ -273,15 +255,14 @@ flux_to_map -td /opt/COBRAxy \
 
 ```bash
 # Process multiple datasets with stringent criteria
-flux_to_map -td /opt/COBRAxy \
-            -idsf "exp1.tsv exp2.tsv exp3.tsv exp4.tsv" \
+flux_to_map -idsf "exp1.tsv exp2.tsv exp3.tsv exp4.tsv" \
             -naf "Exp1 Exp2 Exp3 Exp4" \
             -co manyvsmany \
             -te ks \
             -adj true \
             -pv 0.001 \
             -fc 3.0 \
-            -mc HMRcore \
+            -mc ENGRO2 \
             -colorm jet \
             -gs true \
             -gp true \
@@ -339,7 +320,6 @@ flux_to_map -td /opt/COBRAxy \
 - Include comprehensive legends and annotations
 
 ### Performance Tips
-- Use HMRcore for faster processing and clearer visualizations
 - Reduce dataset size for initial exploratory analysis
 - Process large datasets in batches if memory constrained
 - Cache intermediate results for parameter optimization
@@ -359,14 +339,14 @@ flux_to_map -td /opt/COBRAxy \
 
 ```bash
 # 1. Generate flux samples from constrained models
-flux_simulation -td /opt/COBRAxy -ms ENGRO2 -in bounds/*.tsv \
+flux_simulation -ms ENGRO2 -in bounds/*.tsv \
                 -ni Sample1,Sample2,Control1,Control2 -a CBS \
                 -ot mean -idop fluxes/
 
 # 2. Analyze and visualize flux differences
-flux_to_map -td /opt/COBRAxy -idf fluxes/mean.csv \
+flux_to_map -idf fluxes/mean.csv \
             -icf sample_groups.tsv -co manyvsmany -te ks \
-            -mc HMRcore -gs true -gp true -idop flux_maps/
+            -mc ENGRO2 -gs true -gp true -idop flux_maps/
 
 # 3. Further analysis with custom scripts
 python analyze_flux_results.py -i flux_maps/ -o final_results/
@@ -406,7 +386,6 @@ python analyze_flux_results.py -i flux_maps/ -o final_results/
 ### Performance Issues
 
 **Slow processing**
-- Use HMRcore instead of ENGRO2 for faster rendering
 - Reduce dataset size for testing
 - Process subsets of reactions separately
 - Monitor system resource usage
@@ -438,11 +417,10 @@ Process multiple experiments systematically:
 #!/bin/bash
 experiments=("exp1" "exp2" "exp3" "exp4")
 for exp in "${experiments[@]}"; do
-    flux_to_map -td /opt/COBRAxy \
-                -idf "data/${exp}_flux.tsv" \
+    flux_to_map -idf "data/${exp}_flux.tsv" \
                 -icf "data/${exp}_classes.tsv" \
                 -co manyvsmany -te ks -pv 0.05 \
-                -mc HMRcore -gs true -gp true \
+                -mc ENGRO2 -gs true -gp true \
                 -idop "results/${exp}/"
 done
 ```

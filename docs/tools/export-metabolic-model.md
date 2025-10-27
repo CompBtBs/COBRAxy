@@ -6,21 +6,27 @@ Export tabular data (CSV/TSV) into COBRA metabolic models in various formats.
 
 Export Metabolic Model (exportMetabolicModel) converts structured tabular data containing reaction information into fully functional COBRA metabolic models. This tool enables creation of custom models from spreadsheet data and supports multiple output formats including SBML, JSON, MATLAB, and YAML.
 
+**Input**: Tabular model data (CSV/TSV)  
+**Output**: SBML/JSON/MAT/YAML model files
+
 ## Usage
 
 ### Command Line
 
 ```bash
-exportMetabolicModel --input model_data.csv \
-                     --format sbml \
-                     --output custom_model.xml \
-                     --out_log conversion.log \
-                     --tool_dir /path/to/COBRAxy/src
+# Export tabular data to SBML
+exportMetabolicModel \
+  --input model_data.csv \
+  --format sbml \
+  --output custom_model.xml \
+  --out_log conversion.log
 ```
 
 ### Galaxy Interface
 
-Select "Export Metabolic Model" from the COBRAxy tool suite and configure conversion parameters.
+1. Upload tabular model data to Galaxy
+2. Select **Export Metabolic Model** from COBRAxy tools
+3. Choose output format and click **Execute**
 
 ## Parameters
 
@@ -37,7 +43,7 @@ Select "Export Metabolic Model" from the COBRAxy tool suite and configure conver
 
 | Parameter | Flag | Description | Default |
 |-----------|------|-------------|---------|
-| Tool Directory | `--tool_dir` | COBRAxy installation directory | Current directory |
+| Tool Directory | `--tool_dir` | Path to COBRAxy installation directory | Auto-detected |
 
 ## Input Format
 
@@ -100,37 +106,43 @@ BIOMASS,GENE5,0.5 A + 0.3 B -> 1 BIOMASS,0.0,1000.0,1.0,FALSE,cytosol,Biomass
 
 ## Reaction Formula Syntax
 
-### Standard Notation
+Reactions use standard metabolic notation:
+
 ```
-# Irreversible reaction
+# Irreversible
 A + B -> C + D
 
-# Reversible reaction  
+# Reversible  
 A + B <-> C + D
 
-# With stoichiometric coefficients
+# With stoichiometry
 2 A + 3 B -> 1 C + 4 D
 
-# Compartmentalized metabolites
+# Compartmentalized
 glc_c + atp_c -> g6p_c + adp_c
 ```
 
-### Compartment Suffixes
-- `_c`: Cytosol
-- `_m`: Mitochondria  
-- `_e`: Extracellular
-- `_r`: Endoplasmic reticulum
-- `_x`: Peroxisome
-- `_n`: Nucleus
+**Compartment suffixes**: `_c` (cytosol), `_m` (mitochondria), `_e` (extracellular)
 
-### Exchange Reactions
-```
-# Import reaction
-EX_glc_e: glc_e <->
+## GPR Rule Syntax
 
-# Export reaction  
-EX_co2_e: co2_e <->
+Gene-Protein-Reaction rules use Boolean logic:
+
 ```
+# Single gene
+GENE1
+
+# Alternative genes (OR)
+GENE1 or GENE2
+
+# Required complex (AND)
+GENE1 and GENE2
+
+# Nested logic
+(GENE1 and GENE2) or GENE3
+```
+
+## Model Validation
 
 ## GPR Rule Syntax
 
@@ -163,8 +175,7 @@ GENE1 and GENE2
 exportMetabolicModel --input simple_model.csv \
                      --format sbml \
                      --output simple_model.xml \
-                     --out_log simple_conversion.log \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_log simple_conversion.log
 ```
 
 ### Multi-format Export
@@ -176,8 +187,7 @@ for fmt in "${formats[@]}"; do
     exportMetabolicModel --input comprehensive_model.csv \
                          --format "$fmt" \
                          --output "model.$fmt" \
-                         --out_log "conversion_$fmt.log" \
-                         --tool_dir /opt/COBRAxy/src
+                         --out_log "conversion_$fmt.log"
 done
 ```
 
@@ -188,8 +198,7 @@ done
 exportMetabolicModel --input liver_reactions.tsv \
                      --format sbml \
                      --output liver_model.xml \
-                     --out_log liver_model.log \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_log liver_model.log
 ```
 
 ### Model Integration Pipeline
@@ -197,8 +206,7 @@ exportMetabolicModel --input liver_reactions.tsv \
 ```bash
 # Extract existing model, modify, and recreate
 importMetabolicModel --model ENGRO2 \
-                     --out_tabular base_model.csv \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_tabular base_model.csv
 
 # Edit base_model.csv with custom reactions/constraints
 
@@ -206,8 +214,7 @@ importMetabolicModel --model ENGRO2 \
 exportMetabolicModel --input modified_model.csv \
                      --format sbml \
                      --output custom_model.xml \
-                     --out_log custom_creation.log \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_log custom_creation.log
 ```
 
 ## Model Validation
@@ -273,8 +280,7 @@ if unbalanced:
 ```bash
 # 1. Start with existing model data
 importMetabolicModel --model ENGRO2 \
-                     --out_tabular base_reactions.csv \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_tabular base_reactions.csv
 
 # 2. Modify/extend the reaction data
 # Edit base_reactions.csv to add tissue-specific reactions
@@ -283,20 +289,17 @@ importMetabolicModel --model ENGRO2 \
 exportMetabolicModel --input modified_reactions.csv \
                      --format sbml \
                      --output tissue_model.xml \
-                     --out_log tissue_creation.log \
-                     --tool_dir /opt/COBRAxy/src
+                     --out_log tissue_creation.log
 
 # 4. Validate and use custom model
 ras_to_bounds --model Custom --input tissue_model.xml \
               --ras_input tissue_expression.tsv \
-              --idop tissue_bounds/ \
-              --tool_dir /opt/COBRAxy/src
+              --idop tissue_bounds/
 
 # 5. Perform flux analysis
 flux_simulation --model Custom --input tissue_model.xml \
                 --bounds tissue_bounds/*.tsv \
-                --algorithm CBS --idop tissue_fluxes/ \
-                --tool_dir /opt/COBRAxy/src
+                --algorithm CBS --idop tissue_fluxes/
 ```
 
 ## Quality Control
@@ -443,8 +446,7 @@ for tissue in tissues:
         '--input', f'{tissue}_model.csv',
         '--format', 'sbml',
         '--output', f'{tissue}_model.xml',
-        '--out_log', f'{tissue}_conversion.log',
-        '--tool_dir', '/opt/COBRAxy/src'
+        '--out_log', f'{tissue}_conversion.log'
     ])
 ```
 
@@ -461,8 +463,7 @@ tail -n +2 disease_reactions.csv >> combined_model.csv
 # Create merged model
 exportMetabolicModel --input combined_model.csv \
                      --format sbml \
-                     --output comprehensive_model.xml \
-                     --tool_dir /opt/COBRAxy/src
+                     --output comprehensive_model.xml
 ```
 
 ### Model Versioning
@@ -476,9 +477,9 @@ git commit -m "Initial model version"
 
 # Create versioned models
 exportMetabolicModel --input model_v1.csv --format sbml \
-                     --output model_v1.xml --tool_dir /opt/COBRAxy/src
+                     --output model_v1.xml
 exportMetabolicModel --input model_v2.csv --format sbml \
-                     --output model_v2.xml --tool_dir /opt/COBRAxy/src
+                     --output model_v2.xml
 
 # Compare model versions
 cobra_compare_models model_v1.xml model_v2.xml
