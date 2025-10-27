@@ -4,17 +4,17 @@ Visualize flux distributions on metabolic pathway maps.
 
 ## Overview
 
-Flux to Map performs statistical comparison of flux distributions and visualizes results on SVG metabolic maps.
+This tool analyzes and visualizes statistical differences in reaction fluxes of groups of samples, returned by the Flux Simulation tool. The results can be visualized on s SVG metabolic map.
 
 ## Galaxy Interface
 
-In Galaxy: **COBRAxy → Flux to Map**
+In Galaxy: **COBRAxy → Metabolic Flux Enrichment Analysis**
 
 1. Upload flux data and sample class file
-2. Select map and configure comparison type
-3. Click **Execute**
+2. Select the map and configure the comparison type
+3. Click **Run tool**
 
-## Usage
+## Command-line console
 
 ```bash
 flux_to_map -input_data fluxes.csv \
@@ -22,7 +22,6 @@ flux_to_map -input_data fluxes.csv \
             -choice_map ENGRO2 \
             -comparison manyvsmany \
             -pvalue 0.05 \
-            -fdecoration true \
             -idop output/
 ```
 
@@ -39,7 +38,6 @@ flux_to_map -input_data fluxes.csv \
 | FDR Correction | `-fdr` | Apply FDR correction | true |
 | Test Type | `-test_type` | t, wilcoxon, ks | t |
 | Color Map | `--color_map` | Color scheme: viridis or jet | viridis |
-| Arrows | `-fdecoration` | Show fold-change arrows | false |
 | Output Path | `-idop` | Output directory | flux_to_map/ |
 
 ## Input Formats
@@ -61,6 +59,9 @@ Sample2	Treatment
 Sample3	Treatment
 ```
 
+**Note on Metabolic Map**
+We provide a default SVG map for the ENGRO2 model. If another model is used, we suggest uploading a custom SVG map.
+
 **File Format Notes:**
 - Use **tab-separated** values (TSV) or **comma-separated** (CSV)
 - First row must contain column headers
@@ -78,15 +79,6 @@ Sample3	Treatment
 - **manyvsmany**: All pairwise class comparisons
 - **onevsrest**: Each class vs all others
 - **onevsmany**: One reference vs multiple classes
-
-## Visualization Options
-
-### Color Maps
-
-- **viridis**: Perceptually uniform color scheme (recommended, colorblind-friendly)
-- **jet**: Traditional rainbow color scheme (high contrast)
-
-**Recommendation**: Use `viridis` for publications and presentations as it maintains perceptual uniformity and is accessible to colorblind readers.
 
 ## Output
 
@@ -116,19 +108,6 @@ flux_to_map -input_data fluxes.csv \
             -custom_map pathway.svg \
             -comparison onevsrest \
             -test_type wilcoxon \
-            -idop results/
-```
-
-### With Fold-Change Arrows
-
-```bash
-flux_to_map -input_data fluxes.csv \
-            -input_class classes.csv \
-            -choice_map ENGRO2 \
-            -comparison manyvsmany \
-            -pvalue 0.01 \
-            -fdr true \
-            -fdecoration true \
             -idop results/
 ```
 
