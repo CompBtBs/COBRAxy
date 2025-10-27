@@ -6,7 +6,7 @@
 
 A Python-based command-line suite for metabolic flux analysis and visualization, with [Galaxy](http://marea4galaxy.cloud.ba.infn.it/galaxy) integration.
 
-COBRAxy transforms gene expression and metabolite data into meaningful metabolic insights through flux sampling and interactive pathway maps.
+COBRAxy enables the integration of transcriptomics data with COBRA-based metabolic models, offering a comprehensive framework for studying metabolism in both health and disease. With COBRAxy, users can load and enrich metabolic models by incorporating transcriptomic data and adjusting the model's medium conditions.
 DOC: https://compbtbs.github.io/COBRAxy
 ## Features
 - **Import/Export** of metabolic models in multiple formats (SBML, JSON, MAT, YAML)
