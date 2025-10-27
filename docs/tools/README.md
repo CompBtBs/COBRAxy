@@ -34,35 +34,6 @@ tool_name [tool-specific options]
 ras_generator -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 ```
 
-## Parameter Reference
-
-### File Format Requirements
-
-**Gene Expression Files**
-- Format: TSV (tab-separated values)
-- Structure: Genes (rows) × Samples (columns)
-- First column: Gene IDs (HGNC, Ensembl, etc.)
-- Subsequent columns: Expression values
-
-**Metabolite Files**
-- Format: TSV (tab-separated values)  
-- Structure: Metabolites (rows) × Samples (columns)
-- First column: Metabolite names
-- Subsequent columns: Abundance values
-
-**Model Files**
-- Format: SBML (.xml) or tabular rules (.tsv)
-- Content: Metabolic network with GPR rules
-
-### Built-in Models
-
-COBRAxy includes two pre-installed models. See [Built-in Models Reference](reference/built-in-models) for details.
-
-| Model | Size | Best For |
-|-------|------|----------|
-| **ENGRO2** | ~2,000 reactions | General analysis (recommended) |
-| **Recon** | ~10,000 reactions | Comprehensive studies |
-
 ## Tool Selection Guide
 
 ### Choose Your Analysis Path
@@ -78,19 +49,9 @@ COBRAxy includes two pre-installed models. See [Built-in Models Reference](refer
 3. [Flux Simulation](tools/flux-simulation) → Sample fluxes
 4. [Flux to Map](tools/flux-to-map) → Create visualizations
 
-**For Model Exploration**
-1. [Import Metabolic Model](tools/import-metabolic-model) → Extract model info
-2. Analyze model structure and gene coverage
-
 **For Model Creation**
 1. Create/edit tabular model data
 2. [Export Metabolic Model](tools/export-metabolic-model) → Create SBML/JSON/MAT/YAML model
-
-**For Sample Classification**
-1. Generate RAS/RPS scores
-2. [MAREA Cluster](tools/marea-cluster) → Cluster samples
-
-
 
 ## Troubleshooting
 
@@ -99,7 +60,6 @@ COBRAxy includes two pre-installed models. See [Built-in Models Reference](refer
 **Model Issues**
 - Verify model file format and gene ID consistency
 - Check gene ID mapping between data and model
-- Use built-in models to avoid compatibility issues
 
 ### Getting Help
 
@@ -117,4 +77,4 @@ Help improve tool documentation:
 - Contribute usage patterns
 - Fix documentation errors
 
-Each tool page includes detailed parameter descriptions, examples, and troubleshooting tips. Select a tool from the sidebar to get started!
+Each tool page includes detailed parameter descriptions, examples, and troubleshooting tips.
