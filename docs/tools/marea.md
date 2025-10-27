@@ -8,13 +8,13 @@ MAREA performs statistical comparison of metabolic scores (RAS/RPS) and visualiz
 
 ## Galaxy Interface
 
-In Galaxy: **COBRAxy → MAREA**
+In Galaxy: **COBRAxy → Metabolic Reaction Enrichment Analysis**
 
 1. Upload RAS/RPS scores and sample class file
 2. Select map and configure statistical parameters
-3. Click **Execute**
+3. Click **Run tool**
 
-## Usage
+## Command-line console
 
 ```bash
 marea -input_data scores.tsv \
@@ -71,8 +71,6 @@ Sample3	Treatment
 - **wilcoxon**: Wilcoxon/Mann-Whitney (non-parametric)
 - **ks**: Kolmogorov-Smirnov (distribution-free)
 - **DESeq**: DESeq2-like test (**RAS only**, requires ≥2 replicates per sample)
-
-**Note on DESeq**: The DESeq2-like statistical test is specifically designed for RAS data and implements variance modeling similar to RNA-seq differential expression analysis. It requires at least 2 biological replicates per sample group and should NOT be used with RPS data.
 
 ## Comparison Types
 
