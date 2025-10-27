@@ -2,18 +2,17 @@ Complete reference for all COBRAxy tools with parameters, examples, and usage gu
 
 ## Available Tools
 
-| Tool | Purpose | Input | Output |
-|------|---------|--------|--------|
-| [Import Metabolic Model](tools/import-metabolic-model) | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data |
-| [Export Metabolic Model](tools/export-metabolic-model) | Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model |
-| [RAS Generator](tools/ras-generator) | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
-| [RPS Generator](tools/rps-generator) | Compute reaction propensity scores | Metabolite abundance | RPS values |
-| [MAREA](tools/marea) | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
-| [RAS to Bounds](tools/ras-to-bounds) | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
-| [Flux Simulation](tools/flux-simulation) | Sample metabolic fluxes | Constrained model | Flux distributions |
-| [Flux to Map](tools/flux-to-map) | Visualize flux data on maps | Flux samples + statistical comparison | Color-coded pathway maps |
-| [MAREA Cluster](tools/marea-cluster) | Cluster analysis | Expression/RAS/RPS/flux data | Sample clusters + validation plots |
-
+| Galaxy Tool | Python script | Purpose | Input | Output |
+|------|---------|---------|--------|--------|
+| [Import Metabolic Model](tools/import-metabolic-model) | importMetabolicModel | Import and extract model components | SBML/JSON/MAT/YAML model | Tabular model data |
+| [Export Metabolic Model](tools/export-metabolic-model) | exportMetabolicModel |Export tabular data to model format | Tabular model data | SBML/JSON/MAT/YAML model |
+| [Expression2RAS](tools/ras-generator) | ras_generator | Compute reaction activity scores | Gene expression + GPR rules | RAS values |
+| [Expression2RPS](tools/rps-generator) | rps_generator | Compute reaction propensity scores | Metabolite abundance | RPS values |
+| [Metabolic Reaction Enrichment Analysis](tools/marea) | marea | Statistical pathway enrichment | RAS/RPS data | Enriched maps + statistics |
+| [RAS2Bounds](tools/ras-to-bounds) | ras_to_bounds | Apply RAS constraints to model | RAS + SBML model | Constrained bounds |
+| [Flux Simulation](tools/flux-simulation) | flux_simulation | Sample metabolic fluxes | Constrained model | Flux distributions |
+| [Metabolic Flux Enrichment Analysis](tools/flux-to-map) | flux_to_map | Visualize flux data on maps | Flux samples + statistical comparison | Color-coded pathway maps |
+| [Cluster Analysis](tools/marea-cluster) | marea_cluster | Cluster analysis | Expression/RAS/RPS/flux data | Sample clusters + validation plots |
 
 ## Analysis Workflows
 
