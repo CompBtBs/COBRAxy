@@ -4,10 +4,10 @@ Import and extract metabolic model components into tabular format.
 
 ## Overview
 
-Import Metabolic Model extracts metabolic models from SBML/JSON/MAT/YAML formats into tabular summaries for analysis.
+Import Metabolic Model extracts metabolic models from SBML/JSON/MAT/YAML formats into tabular summary for analysis.
 
-**Input**: Model files or built-in models  
-**Output**: Tabular data (CSV/XLSX)
+**Input**: Model file or built-in models  
+**Output**: Tabular data (CSV/TSV)
 
 ## Galaxy Interface
 
@@ -15,9 +15,9 @@ In Galaxy: **COBRAxy → Import Metabolic Model**
 
 1. Select built-in model or upload custom file
 2. Set model name and medium configuration
-3. Click **Execute**
+3. Click **Run tool**
 
-## Usage
+## Command-line console
 
 ```bash
 # Import built-in model
@@ -31,15 +31,6 @@ importMetabolicModel \
 
 ## Parameters
 
-### Required
-
-| Parameter | Flag | Description |
-|-----------|------|-------------|
-| Model Name | `--name` | Model identifier |
-| Medium Selector | `--medium_selector` | Medium configuration (use `allOpen`) |
-| Output Tabular | `--out_tabular` | Output file (CSV/XLSX) |
-| Output Log | `--out_log` | Log file |
-
 ### Model Selection
 
 | Parameter | Flag | Description |
@@ -49,17 +40,27 @@ importMetabolicModel \
 
 **Note**: Use either `--model` OR `--input`.
 
+
+### Required
+
+| Parameter | Flag | Description |
+|-----------|------|-------------|
+| Model Name | `--name` | Model identifier |
+| Medium Selector | `--medium_selector` | Medium configuration (use `allOpen`) |
+| Output Tabular | `--out_tabular` | Output file (CSV/XLSX) |
+| Output Log | `--out_log` | Log file |
+
 ### Optional
 
 | Parameter | Flag | Description | Default |
 |-----------|------|-------------|---------|
-| Gene Format | `--gene_format` | Gene ID conversion: Default, ENSG, HGNC_ID, entrez_id | Default |
 | Custom Medium | `--custom_medium` | CSV file with medium constraints | - |
+| Gene Format | `--gene_format` | Gene ID conversion: Default, ENSG, HGNC_ID, entrez_id | Default |
 
 ## Built-in Models
 
-- **ENGRO2**: ~2,000 reactions (recommended)
-- **Recon**: ~10,000 reactions (comprehensive)
+- **ENGRO2**: ~500 reactions (recommended)
+- **Recon**: ~10,000 reactions (genome-wide)
 
 See [Built-in Models](reference/built-in-models) for details.
 
@@ -93,7 +94,7 @@ EX_glc_e	glc_e <->	-	-1000.0	1000.0	0.0	TRUE
 
 ## Understanding Medium Composition
 
-Exchange reactions with `InMedium = TRUE` represent active nutrients in the medium:
+Exchange reactions with `InMedium = TRUE` represent nutrients in the medium:
 - **Lower bound**: Uptake rate (negative value, e.g., -10 = uptake 10 mmol/gDW/hr)
 - **Upper bound**: Secretion rate (positive value)
 
