@@ -99,17 +99,6 @@ exportMetabolicModel --input model.csv \
                      --out_log conversion.log
 ```
 
-### Multi-format Export
-
-```bash
-for fmt in sbml json mat yaml; do
-    exportMetabolicModel --input model.csv \
-                         --format "$fmt" \
-                         --output "model.$fmt" \
-                         --out_log "log_$fmt.txt"
-done
-```
-
 ## Troubleshooting
 
 | Error | Solution |
