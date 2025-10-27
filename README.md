@@ -125,7 +125,7 @@ Gene Expression    Metabolite Data    SBML Model
 
 COBRAxy includes ready-to-use resources:
 
-- **Models**: ENGRO2 (recommended), Recon (comprehensive) - see [Built-in Models Reference](docs/reference/built-in-models.md)
+- **Models**: ENGRO2 (recommended), Recon (comprehensive) - see [Built-in Models Reference](https://compbtbs.github.io/COBRAxy/#/reference/built-in-models)
 - **Gene mappings**: HGNC, Ensembl, Entrez ID conversions
 - **Pathway maps**: Pre-styled SVG templates for ENGRO2 
 - **Medium compositions**: Standard growth conditions

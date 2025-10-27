@@ -127,4 +127,4 @@ flux_to_map -input_data fluxes.csv \
 
 - [MAREA](marea.md)
 - [Flux Simulation](flux-simulation.md)
-- [Built-in Models](../reference/built-in-models.md)
+- [Built-in Models](reference/built-in-models)

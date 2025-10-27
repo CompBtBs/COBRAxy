@@ -60,7 +60,7 @@ importMetabolicModel \
 - **ENGRO2**: ~2,000 reactions (recommended)
 - **Recon**: ~10,000 reactions (comprehensive)
 
-See [Built-in Models](../reference/built-in-models.md) for details.
+See [Built-in Models](reference/built-in-models) for details.
 
 ## Output Format
 

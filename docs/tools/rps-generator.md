@@ -82,4 +82,4 @@ rps_generator -rs Custom \
 
 - [MAREA](marea.md)
 - [RAS Generator](ras-generator.md)
-- [Built-in Models](../reference/built-in-models.md)
+- [Built-in Models](reference/built-in-models)

@@ -57,7 +57,7 @@ ras_generator -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 
 ### Built-in Models
 
-COBRAxy includes two pre-installed models. See [Built-in Models Reference](../reference/built-in-models.md) for details.
+COBRAxy includes two pre-installed models. See [Built-in Models Reference](reference/built-in-models) for details.
 
 | Model | Size | Best For |
 |-------|------|----------|
