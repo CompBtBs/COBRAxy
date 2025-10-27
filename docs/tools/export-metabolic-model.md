@@ -1,6 +1,6 @@
 # Export Metabolic Model
 
-Convert tabular data into COBRA metabolic models.
+Convert tabular data into COBRA metabolic model.
 
 ## Overview
 
@@ -15,9 +15,9 @@ In Galaxy: **COBRAxy → Export Metabolic Model**
 
 1. Upload tabular model data file
 2. Select output format (SBML/JSON/MAT/YAML)
-3. Click **Execute**
+3. Click **Run tool**
 
-## Usage
+## Command-line console
 
 ```bash
 exportMetabolicModel \
