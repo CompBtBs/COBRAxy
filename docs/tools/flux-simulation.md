@@ -7,6 +7,7 @@ Simulate flux distributions from constraint-based metabolic models using differe
 Two types of analysis are available:
 - **flux optimization**
 - **flux sampling**
+  
 For flux optimization, one of the following methods can be performed: parsimonious-FBA, Flux Variability Analysis, Biomass sensitivity analysis (single reaction knock-out)
 The objective function, a linear combination of fluxes weighted by specific coefficients, depends on the provided metabolic network.
 
@@ -18,9 +19,9 @@ In Galaxy: **COBRAxy → Flux Simulation**
 
 1. Select model and upload bounds files
 2. Choose algorithm (CBS/OPTGP) and sampling parameters
-3. Click **Execute**
+3. Click **Run tool**
 
-## Usage
+## Command-line console
 
 ```bash
 flux_simulation -ms ENGRO2 \
@@ -49,7 +50,7 @@ flux_simulation -ms ENGRO2 \
 
 ## Algorithms
 
-### CBS (Constraint-Based Sampling)
+### CBS (Corner-Based Sampling)
 - Random objective optimization
 - Requires GLPK (recommended) or COBRApy solver
 - Suitable for large models
@@ -73,7 +74,7 @@ Upload one base model + multiple bound files (one per sample/context):
 Upload pre-built model files, each already containing integrated bounds:
 - Each file is a complete tabular model with reaction structure + bounds
 - Use when models are already prepared with specific constraints
-- Useful for comparing different modeling scenarios
+- Useful for comparing different modelling scenarios
 
 ## Input Format
 
@@ -95,18 +96,18 @@ R00002	-65.0	65.0
 
 The tool can generate different types of output from flux sampling:
 
-| Output Type | Description | Use Case |
-|-------------|-------------|----------|
-| **mean** | Mean flux across all samples | Central tendency analysis |
-| **median** | Median flux across all samples | Robust central tendency |
-| **quantiles** | 25th, 50th, 75th percentiles | Distribution spread analysis |
-| **fluxes** | Complete flux distributions (all samples, all reactions) | Detailed statistical analysis, custom processing |
+| Output Type | Description |
+|-------------|-------------|
+| **mean** | Mean flux across all samples |
+| **median** | Median flux across all samples |
+| **quantiles** | 25th, 50th, 75th percentiles |
+| **fluxes** | Complete flux distributions (all samples, all reactions) |
 
 **Note**: The `fluxes` output can be very large for many samples. Use summary statistics (mean/median/quantiles) unless you need the complete distribution.
 
 ## Optimization Methods
 
-In addition to sampling, the tool can perform constraint-based optimization analyses:
+In alternative to sampling, the tool can perform optimization analyses:
 
 | Method | Description | Output |
 |--------|-------------|--------|
@@ -120,8 +121,6 @@ The `--perc_opt` parameter (default: 0.90) controls the optimality constraint fo
 - **1.0**: Only optimal solutions (100% of maximum biomass)
 - **0.90**: Allow suboptimal solutions (≥90% of maximum biomass)
 - **Lower values**: Explore broader flux ranges
-
-**Recommendation**: Use 0.90-0.95 for more realistic flux ranges; use 1.0 for strict optimality.
 
 ## Output
 
@@ -159,7 +158,7 @@ flux_simulation -ms ENGRO2 \
                 -idop output/
 ```
 
-### Custom Model
+### Custom Model with CBS Sampling
 
 ```bash
 flux_simulation -ms Custom \
@@ -170,24 +169,6 @@ flux_simulation -ms Custom \
                 -ns 2000 \
                 -idop output/
 ```
-
-### Batch Processing
-
-```bash
-flux_simulation -ms ENGRO2 \
-                -in bounds/*.tsv \
-                -ni Sample1,Sample2,Sample3 \
-                -a CBS \
-                -ns 500 \
-                -nb 4 \
-                -ot mean,quantiles \
-                -idop output/
-```
-
-## Algorithm Selection
-
-- **CBS**: Large models (>1000 reactions), GLPK available
-- **OPTGP**: Theoretical sampling guarantees needed
 
 ## Troubleshooting
 
