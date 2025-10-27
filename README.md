@@ -43,28 +43,16 @@ git clone https://github.com/CompBtBs/COBRAxy.git
 cd COBRAxy/src
 pip install .
 ```
+## Galaxy Integration
 
-### Basic Workflow
+COBRAxy provides Galaxy tool wrappers (`.xml` files) for web-based analysis:
 
-```bash
-# 1. Generate RAS from expression data
-ras_generator -in expression.tsv -ra ras_output.tsv -rs ENGRO2
+- Upload data through Galaxy interface
+- Chain tools in visual workflows  
+- Share and reproduce analyses
 
-# 2. Generate RPS from metabolite data (optional)
-rps_generator -id metabolites.tsv -rp rps_output.tsv
+For Galaxy installation and setup, refer to the [official Galaxy documentation](https://docs.galaxyproject.org/).
 
-# 3. Create enriched pathway maps with statistical analysis
-marea -using_RAS true -input_data ras_output.tsv -choice_map ENGRO2 -gs true -idop base_maps
-
-# 4. Apply RAS constraints to model for flux simulation
-ras_to_bounds -ms ENGRO2 -ir ras_output.tsv -rs true -idop bounds_output
-
-# 5. Sample metabolic fluxes with constrained model
-flux_simulation -ms ENGRO2 -in bounds_output/*.tsv -a CBS -ns 1000 -idop flux_results
-
-# 6. Add flux data to enriched maps
-flux_to_map -if flux_results/*.tsv -mp base_maps/*.svg -idop final_maps
-```
 
 ## Tools
 
@@ -109,49 +97,27 @@ Gene Expression    Metabolite Data    SBML Model
                Final Enriched Maps
 ```
 
-## Built-in Models & Data
+### Basic Workflow
 
-COBRAxy includes ready-to-use resources:
-
-- **Models**: ENGRO2 (recommended), Recon (comprehensive) - see [Built-in Models Reference](https://compbtbs.github.io/COBRAxy/#/reference/built-in-models)
-- **Gene mappings**: HGNC, Ensembl, Entrez ID conversions
-- **Pathway maps**: Pre-styled SVG templates for ENGRO2 
-- **Medium compositions**: Standard growth conditions
-
-Located in `src/local/` directory for immediate use.
-
-## Command Line Usage
-
-All tools support `--help` for detailed options. Key commands:
-
-### Generate RAS/RPS scores
 ```bash
-# From gene expression
+# 1. Generate RAS from expression data
 ras_generator -in expression.tsv -ra ras_output.tsv -rs ENGRO2
 
-# From metabolite data  
+# 2. Generate RPS from metabolite data (optional)
 rps_generator -id metabolites.tsv -rp rps_output.tsv
+
+# 3. Create enriched pathway maps with statistical analysis
+marea -using_RAS true -input_data ras_output.tsv -choice_map ENGRO2 -gs true -idop base_maps
+
+# 4. Apply RAS constraints to model for flux simulation
+ras_to_bounds -ms ENGRO2 -ir ras_output.tsv -rs true -idop bounds_output
+
+# 5. Sample metabolic fluxes with constrained model
+flux_simulation -ms ENGRO2 -in bounds_output/*.tsv -a CBS -ns 1000 -idop flux_results
+
+# 6. Add flux data to enriched maps
+flux_to_map -if flux_results/*.tsv -mp base_maps/*.svg -idop final_maps
 ```
-
-### Flux sampling
-```bash
-flux_simulation -ms ENGRO2 -in bounds/*.tsv -a CBS -ns 1000 -idop results/
-```
-
-### Statistical analysis & visualization
-```bash
-marea -using_RAS true -input_data ras.tsv -choice_map ENGRO2 -gs true -idop maps/
-```
-
-## Galaxy Integration
-
-COBRAxy provides Galaxy tool wrappers (`.xml` files) for web-based analysis:
-
-- Upload data through Galaxy interface
-- Chain tools in visual workflows  
-- Share and reproduce analyses
-
-For Galaxy installation and setup, refer to the [official Galaxy documentation](https://docs.galaxyproject.org/).
 
 ## Troubleshooting
 
