@@ -8,13 +8,13 @@ RAS Generator computes reaction activity scores by evaluating GPR rules with gen
 
 ## Galaxy Interface
 
-In Galaxy: **COBRAxy → RAS Generator**
+In Galaxy: **COBRAxy → Expression2RAS**
 
 1. Select built-in model or upload custom GPR rules
 2. Upload gene expression data
-3. Click **Execute**
+3. Click **Run tool**
 
-## Usage
+## Command-line console
 
 ```bash
 ras_generator -rs ENGRO2 \
@@ -50,7 +50,7 @@ PFKM	200.3	185.6	210.1
 **File Format Notes:**
 - Use **tab-separated** values (TSV)
 - First row must contain column headers (Gene, Sample names)
-- Gene names must match selected gene ID type
+- Gene names must match the selected gene ID type
 - Numeric values only for expression data
 
 ## GPR Rules
@@ -91,24 +91,6 @@ R00002	85.2	110.4	95.8
 ras_generator -rs ENGRO2 \
               -in expression.tsv \
               -ra ras_scores.tsv
-```
-
-### Custom Rules
-
-```bash
-ras_generator -rs Custom \
-              -rl custom_gpr.csv \
-              -in expression.tsv \
-              -ra ras_scores.tsv
-```
-
-### Strict Mode (Keep Missing Genes)
-
-```bash
-ras_generator -rs ENGRO2 \
-              -in expression.tsv \
-              -ra ras_scores.tsv \
-              -rg false
 ```
 
 ## Troubleshooting
