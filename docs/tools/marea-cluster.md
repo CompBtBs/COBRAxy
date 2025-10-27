@@ -8,13 +8,13 @@ MAREA Cluster performs unsupervised clustering on metabolic data using K-means, 
 
 ## Galaxy Interface
 
-In Galaxy: **COBRAxy → MAREA Cluster**
+In Galaxy: **COBRAxy → Cluster Analysis**
 
 1. Upload metabolic data file
 2. Select clustering algorithm and parameters
-3. Click **Execute**
+3. Click **Run tool**
 
-## Usage
+## Command-line console
 
 ```bash
 marea_cluster -in metabolic_data.tsv \
@@ -66,50 +66,6 @@ R00002	0.65	1.35	0.72
 - `silhouette_scores.tsv`: Cluster quality metrics
 - `elbow_plot.svg`: Optimal K visualization (K-means)
 - `*.log`: Processing log
-
-## Examples
-
-### K-means Clustering
-
-```bash
-marea_cluster -in ras_data.tsv \
-              -cy kmeans \
-              -sc true \
-              -k1 2 \
-              -k2 10 \
-              -el true \
-              -si true \
-              -idop kmeans_results/
-```
-
-### DBSCAN Clustering
-
-```bash
-marea_cluster -in flux_data.tsv \
-              -cy dbscan \
-              -sc true \
-              -ep 0.5 \
-              -ms 5 \
-              -idop dbscan_results/
-```
-
-### Hierarchical Clustering
-
-```bash
-marea_cluster -in rps_data.tsv \
-              -cy hierarchy \
-              -sc true \
-              -k1 2 \
-              -k2 6 \
-              -idop hierarchy_results/
-```
-
-## Troubleshooting
-
-| Error | Solution |
-|-------|----------|
-| "Convergence failed" | Increase max iterations or check data |
-| "No clusters found" | Adjust DBSCAN parameters |
 
 ## See Also
 
