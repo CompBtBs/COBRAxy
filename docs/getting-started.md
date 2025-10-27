@@ -139,7 +139,6 @@ Now that you understand the basics:
 1. **[Quick Start Guide](quickstart)** - Complete walkthrough with example data
 2. **[Galaxy Tutorial](tutorials/galaxy-setup)** - Web-based analysis setup
 3. **[Tools Reference](/tools/)** - Detailed documentation for each tool
-4. **[Examples](/examples/)** - Real-world analysis examples
 
 ## Need Help?
 

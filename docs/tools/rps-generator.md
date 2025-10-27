@@ -86,6 +86,6 @@ rps_generator -rs Custom \
 
 ## See Also
 
-- [MAREA](marea)
-- [RAS Generator](ras-generator)
-- [Built-in Models](../reference/built-in-models)
+- [MAREA](tools/marea)
+- [RAS Generator](tools/ras-generator)
+- [Built-in Models](reference/built-in-models)

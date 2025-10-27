@@ -147,7 +147,7 @@ marea -input_data scores.tsv \
 
 ## See Also
 
-- [RAS Generator](ras-generator)
-- [RPS Generator](rps-generator)
-- [Flux to Map](flux-to-map)
-- [Built-in Models](../reference/built-in-models)
+- [RAS Generator](tools/ras-generator)
+- [RPS Generator](tools/rps-generator)
+- [Flux to Map](tools/flux-to-map)
+- [Built-in Models](reference/built-in-models)

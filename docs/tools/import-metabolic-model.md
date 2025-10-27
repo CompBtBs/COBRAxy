@@ -136,6 +136,6 @@ importMetabolicModel --input custom_model.xml \
 
 ## See Also
 
-- [Export Metabolic Model](export-metabolic-model)
-- [RAS Generator](ras-generator)
-- [RPS Generator](rps-generator)
+- [Export Metabolic Model](reference/export-metabolic-model)
+- [RAS Generator](tools/ras-generator)
+- [RPS Generator](tools/rps-generator)

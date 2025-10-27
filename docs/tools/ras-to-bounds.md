@@ -104,6 +104,6 @@ ras_to_bounds -ms Custom \
 
 ## See Also
 
-- [RAS Generator](ras-generator)
-- [Flux Simulation](flux-simulation)
-- [Built-in Models](../reference/built-in-models)
+- [RAS Generator](tools/ras-generator)
+- [Flux Simulation](tools/flux-simulation)
+- [Built-in Models](reference/built-in-models)

@@ -120,6 +120,6 @@ ras_generator -rs ENGRO2 \
 
 ## See Also
 
-- [RAS to Bounds](ras-to-bounds)
-- [MAREA](marea)
-- [Built-in Models](../reference/built-in-models)
+- [RAS to Bounds](tools/ras-to-bounds)
+- [MAREA](tools/marea)
+- [Built-in Models](reference/built-in-models)

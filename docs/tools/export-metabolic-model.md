@@ -119,6 +119,6 @@ done
 
 ## See Also
 
-- [Import Metabolic Model](import-metabolic-model)
-- [RAS to Bounds](ras-to-bounds)
-- [Flux Simulation](flux-simulation)
+- [Import Metabolic Model](reference/import-metabolic-model)
+- [RAS to Bounds](tools/ras-to-bounds)
+- [Flux Simulation](tools/flux-simulation)

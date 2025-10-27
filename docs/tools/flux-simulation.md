@@ -192,6 +192,6 @@ flux_simulation -ms ENGRO2 \
 
 ## See Also
 
-- [RAS to Bounds](ras-to-bounds)
-- [Flux to Map](flux-to-map)
-- [Built-in Models](../reference/built-in-models)
+- [RAS to Bounds](tools/ras-to-bounds)
+- [Flux to Map](tools/flux-to-map)
+- [Built-in Models](reference/built-in-models)

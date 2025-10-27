@@ -113,6 +113,6 @@ marea_cluster -in rps_data.tsv \
 
 ## See Also
 
-- [MAREA](marea)
-- [RAS Generator](ras-generator)
-- [Flux Simulation](flux-simulation)
+- [MAREA](tools/marea)
+- [RAS Generator](tools/ras-generator)
+- [Flux Simulation](tools/flux-simulation)
