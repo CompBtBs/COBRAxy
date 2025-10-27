@@ -7,7 +7,7 @@ COBRAxy includes two pre-installed metabolic models for human metabolism analysi
 **Best for**: General metabolic analysis
 
 - ~2,000 reactions, ~1,500 metabolites, ~500 genes
-- Balanced coverage with fast computation
+- Balanced coverage
 - Core metabolic pathways well-represented
 - **Use for**: Tissue profiling, disease comparisons, time-series analysis
 
@@ -18,7 +18,7 @@ COBRAxy includes two pre-installed metabolic models for human metabolism analysi
 - ~10,000 reactions, ~5,000 metabolites, ~2,000 genes
 - Most complete human metabolic network
 - Includes rare and specialized pathways
-- **Use for**: Comprehensive studies, rare diseases (requires >16 GB RAM)
+- **Use for**: Comprehensive studies, rare diseases
 
 ## Usage
 

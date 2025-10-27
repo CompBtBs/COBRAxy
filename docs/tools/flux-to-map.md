@@ -1,445 +1,130 @@
 # Flux to Map
 
-Visualize metabolic flux data on pathway maps with statistical analysis and color coding.
+Visualize flux distributions on metabolic pathway maps.
 
 ## Overview
 
-Flux to Map performs statistical analysis on flux distribution data and generates color-coded metabolic pathway maps. It compares flux values between sample groups and highlights significantly different reactions with appropriate colors and line weights.
+Flux to Map performs statistical comparison of flux distributions and visualizes results on SVG metabolic maps.
+
+## Galaxy Interface
+
+In Galaxy: **COBRAxy → Flux to Map**
+
+1. Upload flux data and sample class file
+2. Select map and configure comparison type
+3. Click **Execute**
 
 ## Usage
 
-### Command Line
-
 ```bash
-flux_to_map -idf treatment_vs_control_fluxes.tsv \
-            -icf sample_groups.tsv \
-            -co manyvsmany \
-            -te ks \
-            -pv 0.05 \
-            -mc ENGRO2 \
-            -gs true \
-            -gp true \
-            -idop flux_maps/
+flux_to_map -input_data fluxes.csv \
+            -input_class classes.csv \
+            -choice_map ENGRO2 \
+            -comparison manyvsmany \
+            -pvalue 0.05 \
+            -fdecoration true \
+            -idop output/
 ```
-
-### Galaxy Interface
-
-Select "Flux to Map" from the COBRAxy tool suite and configure flux analysis and visualization parameters.
 
 ## Parameters
 
-### Optional Parameters
-
 | Parameter | Flag | Description | Default |
 |-----------|------|-------------|---------|
-| Tool Directory | `-td, --tool_dir` | Path to COBRAxy installation directory | Auto-detected |
-
-### Data Input Parameters
-
-| Parameter | Flag | Description | Default |
-|-----------|------|-------------|---------|
-| Flux Data | `-idf, --input_data_fluxes` | Flux values TSV file | - |
-| Flux Classes | `-icf, --input_class_fluxes` | Sample group labels for fluxes | - |
-| Multiple Flux Files | `-idsf, --input_datas_fluxes` | Multiple flux datasets (space-separated) | - |
-| Flux Names | `-naf, --names_fluxes` | Names for multiple flux datasets | - |
-| Analysis Option | `-op, --option` | Analysis mode (datasets or dataset_class) | - |
-
-### Statistical Parameters
-
-| Parameter | Flag | Description | Default |
-|-----------|------|-------------|---------|
-| Comparison Type | `-co, --comparison` | Statistical comparison mode | manyvsmany |
-| Statistical Test | `-te, --test` | Statistical test method | ks |
-| P-Value Threshold | `-pv, --pValue` | Significance threshold | 0.1 |
-| Adjusted P-values | `-adj, --adjusted` | Apply FDR correction | false |
-| Fold Change | `-fc, --fChange` | Minimum fold change threshold | 1.5 |
-
-### Visualization Parameters
-
-| Parameter | Flag | Description | Default |
-|-----------|------|-------------|---------|
-| Map Choice | `-mc, --choice_map` | Built-in metabolic map | ENGRO2 |
-| Custom Map | `-cm, --custom_map` | Path to custom SVG map | - |
-| Generate SVG | `-gs, --generate_svg` | Create SVG output | true |
-| Generate PDF | `-gp, --generate_pdf` | Create PDF output | true |
-| Color Map | `-colorm, --color_map` | Color scheme (jet, viridis) | - |
-| Output Directory | `-idop, --output_path` | Results directory | result/ |
-
-### Advanced Parameters
-
-| Parameter | Flag | Description | Default |
-|-----------|------|-------------|---------|
-| Output Log | `-ol, --out_log` | Log file path | - |
-| Control Sample | `-on, --control` | Control group identifier | - |
+| Input Data | `-input_data` | Flux data file | - |
+| Input Class | `-input_class` | Sample class definitions | - |
+| Map Choice | `-choice_map` | ENGRO2, Recon, or Custom | ENGRO2 |
+| Custom Map | `-custom_map` | Path to custom SVG map | - |
+| Comparison | `-comparison` | manyvsmany, onevsrest, onevsmany | manyvsmany |
+| P-value | `-pvalue` | Significance threshold | 0.05 |
+| FDR Correction | `-fdr` | Apply FDR correction | true |
+| Test Type | `-test_type` | t, wilcoxon, ks | t |
+| Arrows | `-fdecoration` | Show fold-change arrows | false |
+| Output Path | `-idop` | Output directory | flux_to_map/ |
 
 ## Input Formats
 
-### Flux Data File
-
-Tab-separated format with reactions as rows and samples as columns:
+### Flux Data
 
 ```
-Reaction	Sample1	Sample2	Sample3	Control1	Control2
-R00001	15.23	-8.45	22.1	12.8	14.2
-R00002	0.0	12.67	-5.3	8.9	7.4
-R00003	45.8	38.2	51.7	42.1	39.8
-R00004	-12.4	-15.8	-9.2	-11.5	-13.1
+Reaction	Sample1	Sample2	Sample3
+R00001	12.5	8.5	14.2
+R00002	-6.5	13.5	7.2
 ```
 
-### Sample Class File
-
-Group assignment for statistical comparisons:
+### Sample Classes
 
 ```
-Sample	Class
-Sample1	Treatment
-Sample2	Treatment  
+SampleID	Class
+Sample1	Control
+Sample2	Treatment
 Sample3	Treatment
-Control1	Control
-Control2	Control
 ```
 
-### Multiple Dataset Format
+## Statistical Tests
 
-When using multiple flux files, provide space-separated paths and corresponding names:
+- **t**: Student's t-test (parametric, assumes normality)
+- **wilcoxon**: Wilcoxon/Mann-Whitney (non-parametric)
+- **ks**: Kolmogorov-Smirnov (distribution-free)
 
-```bash
--idsf "dataset1_flux.tsv dataset2_flux.tsv dataset3_flux.tsv"
--naf "Condition_A Condition_B Condition_C"
-```
+## Comparison Types
 
-## Statistical Analysis
+- **manyvsmany**: All pairwise class comparisons
+- **onevsrest**: Each class vs all others
+- **onevsmany**: One reference vs multiple classes
 
-### Comparison Types
+## Output
 
-#### manyvsmany
-Compare all possible group pairs:
-- Treatment vs Control
-- Condition_A vs Condition_B
-- Condition_A vs Condition_C
-- Condition_B vs Condition_C
-
-#### onevsrest
-Compare each group against all others combined:
-- Treatment vs (Control + Other)
-- Control vs (Treatment + Other)
-
-#### onevsmany
-Compare one reference group against each other group:
-- Control vs Treatment
-- Control vs Condition_A
-- Control vs Condition_B
-
-### Statistical Tests
-
-| Test | Description | Best For |
-|------|-------------|----------|
-| `ks` | Kolmogorov-Smirnov | Non-parametric, distribution-free |
-| `ttest_p` | Paired t-test | Related samples, normal distributions |
-| `ttest_ind` | Independent t-test | Independent samples, normal distributions |
-| `wilcoxon` | Wilcoxon signed-rank | Non-parametric paired comparisons |
-| `mw` | Mann-Whitney U | Non-parametric independent comparisons |
-
-### Significance Assessment
-
-Reactions are considered significant when:
-1. **P-value** ≤ specified threshold (default: 0.1)
-2. **Fold change** ≥ specified threshold (default: 1.5)
-3. **FDR correction** (if enabled) maintains significance
-
-## Map Visualization
-
-### Built-in Maps
-
-#### ENGRO2 (Default)
-- **Scope**: Extended human genome-scale reconstruction
-- **Reactions**: ~2,000 reactions
-- **Coverage**: Comprehensive metabolic network
-- **Use Case**: General analysis and publication figures
-
-### Color Coding Scheme
-
-#### Significance Colors
-- **Red Gradient**: Significantly upregulated (positive fold change)
-- **Blue Gradient**: Significantly downregulated (negative fold change)  
-- **Gray**: Not statistically significant
-- **White**: No data available
-
-#### Visual Elements
-- **Line Width**: Proportional to fold change magnitude
-- **Color Intensity**: Proportional to statistical significance (-log10 p-value)
-- **Transparency**: Indicates confidence level
-
-### Color Maps
-
-#### Jet (Default)
-- High contrast color transitions
-- Blue (low) → Green → Yellow → Red (high)
-- Good for identifying extreme values
-
-#### Viridis
-- Perceptually uniform color scale
-- Colorblind-friendly
-- Purple (low) → Blue → Green → Yellow (high)
-
-## Output Files
-
-### Statistical Results
-- `flux_statistics.tsv`: P-values, fold changes, test statistics for all reactions
-- `significant_fluxes.tsv`: Only reactions meeting significance criteria
-- `comparison_summary.txt`: Analysis parameters and summary statistics
-
-### Visualizations
-- `flux_map.svg`: Interactive color-coded pathway map
-- `flux_map.pdf`: High-resolution PDF (if requested)  
-- `flux_map.png`: Raster image (if requested)
-- `legend.svg`: Color scale and statistical significance legend
-
-### Analysis Files
-- `fold_changes.tsv`: Detailed fold change calculations
-- `group_statistics.tsv`: Per-group summary statistics
-- `comparison_matrix.tsv`: Pairwise comparison results
+- `*_map.svg`: Annotated pathway maps
+- `comparison_results.tsv`: Statistical results
+- `*.log`: Processing log
 
 ## Examples
 
-### Basic Flux Comparison
+### Basic Comparison
 
 ```bash
-# Compare treatment vs control fluxes
-flux_to_map -idf treatment_vs_control_fluxes.tsv \
-            -icf sample_groups.tsv \
-            -co manyvsmany \
-            -te ks \
-            -pv 0.05 \
-            -fc 2.0 \
-            -mc ENGRO2 \
-            -gs true \
-            -gp true \
-            -idop flux_comparison/
+flux_to_map -input_data fluxes.csv \
+            -input_class classes.csv \
+            -choice_map ENGRO2 \
+            -comparison manyvsmany \
+            -pvalue 0.05 \
+            -idop results/
 ```
 
-### Multiple Condition Analysis
+### With Custom Map
 
 ```bash
-# Compare multiple experimental conditions
-flux_to_map -idsf "cond1_flux.tsv cond2_flux.tsv cond3_flux.tsv" \
-            -naf "Control Treatment1 Treatment2" \
-            -co onevsrest \
-            -te wilcoxon \
-            -adj true \
-            -pv 0.01 \
-            -fc 1.8 \
-            -mc ENGRO2 \
-            -colorm viridis \
-            -idop multi_condition_flux/
+flux_to_map -input_data fluxes.csv \
+            -input_class classes.csv \
+            -choice_map Custom \
+            -custom_map pathway.svg \
+            -comparison onevsrest \
+            -test_type wilcoxon \
+            -idop results/
 ```
 
-### Custom Map Visualization
+### With Fold-Change Arrows
 
 ```bash
-# Use tissue-specific custom map
-flux_to_map -idf liver_flux_data.tsv \
-            -icf liver_conditions.tsv \
-            -co manyvsmany \
-            -te ttest_ind \
-            -pv 0.05 \
-            -fc 1.5 \
-            -cm maps/liver_specific_map.svg \
-            -gs true \
-            -gp true \
-            -idop liver_flux_analysis/ \
-            -ol liver_analysis.log
-```
-
-### High-Throughput Analysis
-
-```bash
-# Process multiple datasets with stringent criteria
-flux_to_map -idsf "exp1.tsv exp2.tsv exp3.tsv exp4.tsv" \
-            -naf "Exp1 Exp2 Exp3 Exp4" \
-            -co manyvsmany \
-            -te ks \
-            -adj true \
-            -pv 0.001 \
-            -fc 3.0 \
-            -mc ENGRO2 \
-            -colorm jet \
-            -gs true \
-            -gp true \
-            -idop high_throughput_flux/
-```
-
-## Quality Control
-
-### Data Validation
-
-#### Pre-analysis Checks
-- Verify flux value distributions (check for outliers)
-- Ensure sample names match between data and class files
-- Validate reaction coverage across samples
-- Check for missing values and their patterns
-
-#### Statistical Validation  
-- Assess normality assumptions for parametric tests
-- Verify adequate sample sizes per group (n≥3 recommended)
-- Check variance homogeneity between groups
-- Evaluate multiple testing burden
-
-### Result Interpretation
-
-#### Biological Validation
-- Compare results with known pathway activities
-- Check for pathway coherence (related reactions should cluster)
-- Validate against literature or experimental evidence
-- Assess metabolic network connectivity
-
-#### Technical Validation
-- Compare results across different statistical tests
-- Check sensitivity to parameter changes
-- Validate fold change calculations
-- Verify map element correspondence
-
-## Tips and Best Practices
-
-### Data Preparation
-- **Normalization**: Ensure consistent flux units across samples
-- **Filtering**: Remove reactions with excessive missing values (>50%)
-- **Outlier Detection**: Identify and handle extreme flux values
-- **Batch Effects**: Account for technical variation between experiments
-
-### Statistical Considerations
-- Use FDR correction for multiple comparisons (`-adj true`)
-- Choose appropriate statistical tests based on data distribution
-- Consider effect size (fold change) alongside significance
-- Validate results with independent datasets when possible
-
-### Visualization Optimization
-- Select appropriate color maps for your audience
-- Use high fold change thresholds (>2.0) for cleaner maps
-- Export both SVG (editable) and PDF (publication) formats
-- Include comprehensive legends and annotations
-
-### Performance Tips
-- Reduce dataset size for initial exploratory analysis
-- Process large datasets in batches if memory constrained
-- Cache intermediate results for parameter optimization
-
-## Integration Workflow
-
-### Upstream Tools
-- [Flux Simulation](flux-simulation.md) - Generate flux distributions for comparison
-- [MAREA](marea.md) - Alternative analysis pathway for RAS/RPS data
-
-### Downstream Analysis
-- Export results to statistical software (R, Python) for advanced analysis
-- Integrate with pathway databases (KEGG, Reactome)
-- Combine with other omics data for systems-level insights
-
-### Typical Pipeline
-
-```bash
-# 1. Generate flux samples from constrained models
-flux_simulation -ms ENGRO2 -in bounds/*.tsv \
-                -ni Sample1,Sample2,Control1,Control2 -a CBS \
-                -ot mean -idop fluxes/
-
-# 2. Analyze and visualize flux differences
-flux_to_map -idf fluxes/mean.csv \
-            -icf sample_groups.tsv -co manyvsmany -te ks \
-            -mc ENGRO2 -gs true -gp true -idop flux_maps/
-
-# 3. Further analysis with custom scripts
-python analyze_flux_results.py -i flux_maps/ -o final_results/
+flux_to_map -input_data fluxes.csv \
+            -input_class classes.csv \
+            -choice_map ENGRO2 \
+            -comparison manyvsmany \
+            -pvalue 0.01 \
+            -fdr true \
+            -fdecoration true \
+            -idop results/
 ```
 
 ## Troubleshooting
 
-### Common Issues
-
-**No significant reactions found**
-- Lower p-value threshold (`-pv 0.2`)
-- Reduce fold change requirement (`-fc 1.2`)  
-- Check sample group definitions and sizes
-- Verify flux data quality and normalization
-
-**Map rendering problems**
-- Check SVG map file integrity and format
-- Verify reaction ID matching between data and map
-- Ensure sufficient system memory for large maps
-- Validate XML structure of custom maps
-
-**Statistical test failures**
-- Check data distribution assumptions
-- Verify sufficient sample sizes per group
-- Consider alternative non-parametric tests
-- Examine variance patterns between groups
-
-### Error Messages
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| "Map file not found" | Missing/invalid map path | Check file location and format |
-| "No matching reactions" | ID mismatch between data and map | Verify reaction naming consistency |
-| "Insufficient data" | Too few samples per group | Increase sample sizes or merge groups |
-| "Memory allocation failed" | Large dataset/map combination | Reduce data size or increase system memory |
-
-### Performance Issues
-
-**Slow processing**
-- Reduce dataset size for testing
-- Process subsets of reactions separately
-- Monitor system resource usage
-
-**Large output files**
-- Use compressed formats when possible
-- Reduce map resolution for preliminary analysis
-- Export only essential output formats
-- Clean temporary files regularly
-
-## Advanced Usage
-
-### Custom Statistical Functions
-
-Advanced users can implement custom statistical tests by modifying the analysis functions:
-
-```python
-def custom_test(group1, group2):
-    # Custom statistical test implementation
-    statistic, pvalue = your_test_function(group1, group2)
-    return statistic, pvalue
-```
-
-### Batch Processing Script
-
-Process multiple experiments systematically:
-
-```bash
-#!/bin/bash
-experiments=("exp1" "exp2" "exp3" "exp4")
-for exp in "${experiments[@]}"; do
-    flux_to_map -idf "data/${exp}_flux.tsv" \
-                -icf "data/${exp}_classes.tsv" \
-                -co manyvsmany -te ks -pv 0.05 \
-                -mc ENGRO2 -gs true -gp true \
-                -idop "results/${exp}/"
-done
-```
-
-### Result Aggregation
-
-Combine results across multiple analyses:
-
-```bash
-# Merge significant reactions across experiments
-python merge_flux_results.py \
-    -i results/exp*/significant_fluxes.tsv \
-    -o combined_significant_reactions.tsv \
-    --method intersection
-```
+| Error | Solution |
+|-------|----------|
+| "No matching reactions" | Verify reaction ID consistency |
+| "Insufficient data" | Increase sample sizes |
 
 ## See Also
 
-- [Flux Simulation](flux-simulation.md) - Generate input flux distributions
-- [MAREA](marea.md) - Alternative pathway analysis approach
-- [Custom Map Creation Guide](/tutorials/custom-map-creation.md)
-- [Statistical Methods Reference](/tutorials/statistical-methods.md)
+- [MAREA](marea.md)
+- [Flux Simulation](flux-simulation.md)
+- [Built-in Models](../reference/built-in-models.md)
