@@ -65,15 +65,15 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
                         default=os.path.dirname(os.path.abspath(__file__)),
                         help='your tool directory (default: auto-detected package location)')
     
-    parser.add_argument('-in', '--input',
+    parser.add_argument('-inf', '--input_file',
                         required=True,
                         type=str,
-                        help='input bounds files or complete model files')
+                        help='path to file containing list of input bounds files or complete model files (one per line)')
     
-    parser.add_argument('-ni', '--name',
+    parser.add_argument('-nif', '--name_file',
                         required=True,
                         type=str,
-                        help='cell names')
+                        help='path to file containing list of cell names (one per line)')
     
     parser.add_argument('-a', '--algorithm',
                         type=str,
@@ -528,9 +528,13 @@ def main(args: List[str] = None) -> None:
     if not os.path.exists('flux_simulation'):
         os.makedirs('flux_simulation')
 
-    # --- Normalize inputs (the tool may pass comma-separated --input and either --name or --names) ---
-    ARGS.input_files = ARGS.input.split(",") if ARGS.input else []
-    ARGS.file_names = ARGS.name.split(",")
+    # --- Read input files and names from the provided file paths ---
+    with open(ARGS.input_file, 'r') as f:
+        ARGS.input_files = [line.strip() for line in f if line.strip()]
+    
+    with open(ARGS.name_file, 'r') as f:
+        ARGS.file_names = [line.strip() for line in f if line.strip()]
+    
     # output types (required) -> list
     ARGS.output_types = ARGS.output_type.split(",") if ARGS.output_type else []
     # optional analysis output types -> list or empty

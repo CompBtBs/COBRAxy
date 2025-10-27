@@ -22,19 +22,11 @@
         
         #if $model_and_bounds.model_and_bounds == 'True':
             --model_upload $model_and_bounds.model_upload
-            --input "${",".join(map(str, $model_and_bounds.inputs))}"
-            #set $names_list = []
-            #for $input_temp in $model_and_bounds.inputs:
-                #silent $names_list.append(str($input_temp.element_identifier))
-            #end for
-            --name "${",".join($names_list)}"
+            --input_file $input_paths_file
+            --name_file $input_names_file
         #else:
-            --input "${",".join(map(str, $model_and_bounds.model_files))}"
-            #set $names_list = []
-            #for $input_temp in $model_and_bounds.model_files:
-                #silent $names_list.append(str($input_temp.element_identifier))
-            #end for
-            --name "${",".join($names_list)}"
+            --input_file $model_paths_file
+            --name_file $model_names_file
         #end if
         
         --sampling_enabled $sampling_params.sampling_enabled
@@ -91,6 +83,32 @@
         #end if
         ]]>
     </command>
+
+    <configfiles>
+        <configfile name="input_paths_file"><![CDATA[#if $model_and_bounds.model_and_bounds == 'True'
+#for $input_temp in $model_and_bounds.inputs
+${input_temp}
+#end for
+#end if]]></configfile>
+        
+        <configfile name="input_names_file"><![CDATA[#if $model_and_bounds.model_and_bounds == 'True'
+#for $input_temp in $model_and_bounds.inputs
+${input_temp.element_identifier}
+#end for
+#end if]]></configfile>
+        
+        <configfile name="model_paths_file"><![CDATA[#if $model_and_bounds.model_and_bounds == 'False'
+#for $input_temp in $model_and_bounds.model_files
+${input_temp}
+#end for
+#end if]]></configfile>
+        
+        <configfile name="model_names_file"><![CDATA[#if $model_and_bounds.model_and_bounds == 'False'
+#for $input_temp in $model_and_bounds.model_files
+${input_temp.element_identifier}
+#end for
+#end if]]></configfile>
+    </configfiles>
 
     <inputs>
         <conditional name="model_and_bounds">
