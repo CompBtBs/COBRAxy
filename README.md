@@ -9,14 +9,15 @@ A Python-based command-line suite for metabolic flux analysis and visualization,
 COBRAxy enables the integration of transcriptomics data with COBRA-based metabolic models, offering a comprehensive framework for studying metabolism in both health and disease. With COBRAxy, users can load and enrich metabolic models by incorporating transcriptomic data and adjusting the model's medium conditions.
 DOC: https://compbtbs.github.io/COBRAxy
 ## Features
+
+- **Galaxy Tools** - Web-based analysis with intuitive interface
 - **Import/Export** of metabolic models in multiple formats (SBML, JSON, MAT, YAML)
-- **Reaction Activity Scores (RAS)** from gene expression data
-- **Reaction Propensity Scores (RPS)** from metabolite abundance
-- **Flux sampling** with CBS or OptGP algorithms  
-- **Statistical analysis** with pFBA, FVA, and sensitivity analysis
-- **Interactive maps** with SVG/PDF export and custom styling
-- **Galaxy tools** for web-based analysis
-- **Built-in models** including ENGRO2 and Recon
+- **Reaction Activity Scores (RAS)** - Compute metabolic activity from gene expression data
+- **Reaction Propensity Scores (RPS)** - Infer metabolic preferences from metabolite abundance
+- **Flux computation** - Compute metabolic flux distributions using different optimization or sampling algorithms
+- **Statistical Analysis** - Perform statistically significant flux differences between groups of samples and report on an enriched metabolic map
+- **Built-in Models** - Ready-to-use models including ENGRO2 and Recon3D
+
 
 ## Requirements
 
