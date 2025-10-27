@@ -48,6 +48,12 @@ R00001	1.25	0.85	1.42
 R00002	0.65	1.35	0.72
 ```
 
+**File Format Notes:**
+- Use **tab-separated** values (TSV) or **comma-separated** (CSV)
+- First row must contain column headers (Reaction, Sample names)
+- Numeric values only for metabolic data
+- Missing values should be avoided or handled before clustering
+
 ## Algorithms
 
 - **K-means**: Fast, requires number of clusters
@@ -107,6 +113,6 @@ marea_cluster -in rps_data.tsv \
 
 ## See Also
 
-- [MAREA](marea.md)
-- [RAS Generator](ras-generator.md)
-- [Flux Simulation](flux-simulation.md)
+- [MAREA](marea)
+- [RAS Generator](ras-generator)
+- [Flux Simulation](flux-simulation)

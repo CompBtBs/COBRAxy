@@ -43,7 +43,7 @@ The tutorial data includes:
 If you encounter issues during tutorials:
 
 1. Check the specific tutorial's troubleshooting section
-2. Refer to the main [Troubleshooting Guide](/troubleshooting.md)
+2. Refer to the main [Troubleshooting Guide](../troubleshooting)
 
 ## Contributing
 

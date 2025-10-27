@@ -44,6 +44,12 @@ atp_c	5.2	4.9	5.8
 pyr_c	1.5	2.1	1.8
 ```
 
+**File Format Notes:**
+- Use **tab-separated** values (TSV)
+- First row must contain column headers (Metabolite, Sample names)
+- Metabolite names must include compartment suffix (e.g., _c, _m, _e)
+- Numeric values only for abundance data
+
 ## Output Format
 
 ```
@@ -80,6 +86,6 @@ rps_generator -rs Custom \
 
 ## See Also
 
-- [MAREA](marea.md)
-- [RAS Generator](ras-generator.md)
-- [Built-in Models](reference/built-in-models)
+- [MAREA](marea)
+- [RAS Generator](ras-generator)
+- [Built-in Models](../reference/built-in-models)

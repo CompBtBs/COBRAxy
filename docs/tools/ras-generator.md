@@ -34,6 +34,7 @@ ras_generator -rs ENGRO2 \
 | Custom Rules | `-rl` | Custom GPR rules file | - |
 | Gene Names | `-gn` | Gene ID type | HGNC_Symbol |
 | Remove Gene | `-rg` | Remove missing genes | true |
+| Ignore NaN | `--none` | Handle missing gene expression | true |
 
 ## Input Format
 
@@ -46,11 +47,33 @@ ENO1	85.2	110.4	95.8
 PFKM	200.3	185.6	210.1
 ```
 
+**File Format Notes:**
+- Use **tab-separated** values (TSV)
+- First row must contain column headers (Gene, Sample names)
+- Gene names must match selected gene ID type
+- Numeric values only for expression data
+
 ## GPR Rules
 
 - **AND**: All genes required
 - **OR**: Any gene sufficient
 - Example: `(GENE1 and GENE2) or GENE3`
+
+## NaN Handling
+
+The `--none` parameter controls how missing gene expression values are treated in GPR rules:
+
+**When `--none true` (default):**
+- `(GENE1 and NaN)` → evaluated as `GENE1` value
+- `(GENE1 or NaN)` → evaluated as `GENE1` value
+- Missing genes don't block reaction activity calculation
+
+**When `--none false` (strict mode):**
+- `(GENE1 and NaN)` → `NaN` (reaction cannot be evaluated)
+- `(GENE1 or NaN)` → `NaN` (reaction cannot be evaluated)
+- Any missing gene propagates NaN through the entire GPR expression
+
+**Recommendation**: Use default (`true`) for datasets with incomplete gene coverage.
 
 ## Output Format
 
@@ -97,6 +120,6 @@ ras_generator -rs ENGRO2 \
 
 ## See Also
 
-- [RAS to Bounds](ras-to-bounds.md)
-- [MAREA](marea.md)
-- [Built-in Models](reference/built-in-models)
+- [RAS to Bounds](ras-to-bounds)
+- [MAREA](marea)
+- [Built-in Models](../reference/built-in-models)

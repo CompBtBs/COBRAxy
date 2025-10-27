@@ -146,14 +146,14 @@ deactivate
 
 After successful installation:
 
-1. **[Quick Start Guide](/quickstart.md)** - Run your first analysis
-2. **[Tutorial: Galaxy Setup](/tutorials/galaxy-setup.md)** - Set up web interface
+1. **[Quick Start Guide](quickstart)** - Run your first analysis
+2. **[Tutorial: Galaxy Setup](tutorials/galaxy-setup)** - Set up web interface
 
 ## Getting Help
 
 If you encounter issues:
 
-1. Check the [Troubleshooting Guide](/troubleshooting.md)
+1. Check the [Troubleshooting Guide](troubleshooting)
 2. Search [existing issues](https://github.com/CompBtBs/COBRAxy/issues)
 3. Create a [new issue](https://github.com/CompBtBs/COBRAxy/issues/new) with:
    - Your operating system

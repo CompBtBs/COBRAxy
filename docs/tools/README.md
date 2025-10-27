@@ -108,7 +108,7 @@ For tool-specific issues:
 1. Check individual tool documentation
 2. Review parameter requirements and formats
 3. Test with smaller datasets first
-4. Consult [troubleshooting guide](/troubleshooting.md)
+4. Consult [troubleshooting guide](../troubleshooting)
 
 ## Contributing
 
