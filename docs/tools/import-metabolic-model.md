@@ -51,9 +51,10 @@ importMetabolicModel \
 
 ### Optional
 
-| Parameter | Flag | Description |
-|-----------|------|-------------|
-| Custom Medium | `--custom_medium` | CSV file with medium constraints |
+| Parameter | Flag | Description | Default |
+|-----------|------|-------------|---------|
+| Gene Format | `--gene_format` | Gene ID conversion: Default, ENSG, HGNC_ID, entrez_id | Default |
+| Custom Medium | `--custom_medium` | CSV file with medium constraints | - |
 
 ## Built-in Models
 
@@ -62,13 +63,47 @@ importMetabolicModel \
 
 See [Built-in Models](reference/built-in-models) for details.
 
+## Supported Formats
+
+- **Model formats**: SBML (.xml), JSON (.json), MAT (.mat), YAML (.yml)
+- **Compression**: .zip, .gz, .bz2 (e.g., `model.xml.gz`)
+
+Compressed files are automatically detected and extracted.
+
 ## Output Format
 
+**ENGRO2 model:**
 ```
-Reaction_ID	GPR_Rule	Reaction_Formula	Lower_Bound	Upper_Bound	Objective_Coefficient	Medium_Member	Compartment	Subsystem
-R00001	GENE1 or GENE2	A + B -> C + D	-1000.0	1000.0	0.0	FALSE	cytosol	Glycolysis
-EX_glc_e	-	glc_e <->	-1000.0	1000.0	0.0	TRUE	extracellular	Exchange
+ReactionID	Formula	GPR	lower_bound	upper_bound	ObjectiveCoefficient	Pathway_1	Pathway_2	InMedium	TranslationIssues
+R00001	A + B -> C + D	GENE1 or GENE2	-1000.0	1000.0	0.0	Glycolysis	Central_Metabolism	FALSE	
+EX_glc_e	glc_e <->	-	-1000.0	1000.0	0.0	Exchange	Transport	TRUE	
 ```
+
+**Other models (Recon):**
+```
+ReactionID	Formula	GPR	lower_bound	upper_bound	ObjectiveCoefficient	InMedium	TranslationIssues
+R00001	A + B -> C + D	GENE1 or GENE2	-1000.0	1000.0	0.0	FALSE	
+EX_glc_e	glc_e <->	-	-1000.0	1000.0	0.0	TRUE	
+```
+
+**File Format Notes:**
+- Output can be **tab-separated** (CSV) or Excel (XLSX)
+- Contains all model information in tabular format
+- Can be edited and re-imported using Export Metabolic Model
+
+## Understanding Medium Composition
+
+Exchange reactions with `InMedium = TRUE` represent active nutrients in the medium:
+- **Lower bound**: Uptake rate (negative value, e.g., -10 = uptake 10 mmol/gDW/hr)
+- **Upper bound**: Secretion rate (positive value)
+
+Example:
+```
+EX_glc_e	glc_e <->	-	-10.0	1000.0	0.0	TRUE
+```
+Glucose uptake: 10 mmol/gDW/hr (lower bound = -10)
+
+More info: [COBRApy Media Documentation](https://cobrapy.readthedocs.io/en/latest/media.html)
 
 ## Examples
 
@@ -101,6 +136,6 @@ importMetabolicModel --input custom_model.xml \
 
 ## See Also
 
-- [Export Metabolic Model](export-metabolic-model.md)
-- [RAS Generator](ras-generator.md)
-- [RPS Generator](rps-generator.md)
+- [Export Metabolic Model](reference/export-metabolic-model)
+- [RAS Generator](tools/ras-generator)
+- [RPS Generator](tools/rps-generator)

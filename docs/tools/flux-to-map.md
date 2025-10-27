@@ -38,6 +38,7 @@ flux_to_map -input_data fluxes.csv \
 | P-value | `-pvalue` | Significance threshold | 0.05 |
 | FDR Correction | `-fdr` | Apply FDR correction | true |
 | Test Type | `-test_type` | t, wilcoxon, ks | t |
+| Color Map | `--color_map` | Color scheme: viridis or jet | viridis |
 | Arrows | `-fdecoration` | Show fold-change arrows | false |
 | Output Path | `-idop` | Output directory | flux_to_map/ |
 
@@ -60,6 +61,12 @@ Sample2	Treatment
 Sample3	Treatment
 ```
 
+**File Format Notes:**
+- Use **tab-separated** values (TSV) or **comma-separated** (CSV)
+- First row must contain column headers
+- Sample names must match between flux data and class file
+- Class names should not contain spaces
+
 ## Statistical Tests
 
 - **t**: Student's t-test (parametric, assumes normality)
@@ -71,6 +78,15 @@ Sample3	Treatment
 - **manyvsmany**: All pairwise class comparisons
 - **onevsrest**: Each class vs all others
 - **onevsmany**: One reference vs multiple classes
+
+## Visualization Options
+
+### Color Maps
+
+- **viridis**: Perceptually uniform color scheme (recommended, colorblind-friendly)
+- **jet**: Traditional rainbow color scheme (high contrast)
+
+**Recommendation**: Use `viridis` for publications and presentations as it maintains perceptual uniformity and is accessible to colorblind readers.
 
 ## Output
 
@@ -125,6 +141,6 @@ flux_to_map -input_data fluxes.csv \
 
 ## See Also
 
-- [MAREA](marea.md)
-- [Flux Simulation](flux-simulation.md)
+- [MAREA](tools/marea)
+- [Flux Simulation](tools/flux-simulation)
 - [Built-in Models](reference/built-in-models)

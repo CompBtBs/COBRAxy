@@ -41,10 +41,16 @@ exportMetabolicModel \
 Required columns:
 
 ```csv
-Reaction_ID,GPR_Rule,Reaction_Formula,Lower_Bound,Upper_Bound,Objective_Coefficient
-R00001,GENE1 or GENE2,A + B -> C + D,-1000.0,1000.0,0.0
-EX_glc_e,-,glc_e <->,-1000.0,1000.0,0.0
+ReactionID,Formula,GPR,lower_bound,upper_bound,ObjectiveCoefficient,InMedium,TranslationIssues
+R00001,A + B -> C + D,GENE1 or GENE2,-1000.0,1000.0,0.0,FALSE,
+EX_glc_e,glc_e <->,-,-1000.0,1000.0,0.0,TRUE,
 ```
+
+**File Format Notes:**
+- Use **comma-separated** (CSV) or **tab-separated** (TSV)
+- First row must contain column headers
+- Required columns: ReactionID, Formula, lower_bound, upper_bound
+- Optional columns: GPR, ObjectiveCoefficient, InMedium, Pathway_1, Pathway_2
 
 ## Reaction Formula Syntax
 
@@ -113,6 +119,6 @@ done
 
 ## See Also
 
-- [Import Metabolic Model](import-metabolic-model.md)
-- [RAS to Bounds](ras-to-bounds.md)
-- [Flux Simulation](flux-simulation.md)
+- [Import Metabolic Model](reference/import-metabolic-model)
+- [RAS to Bounds](tools/ras-to-bounds)
+- [Flux Simulation](tools/flux-simulation)

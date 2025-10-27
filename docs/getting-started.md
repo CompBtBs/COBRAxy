@@ -136,13 +136,12 @@ lactate	23.9	41.2	19.4
 
 Now that you understand the basics:
 
-1. **[Quick Start Guide](/quickstart.md)** - Complete walkthrough with example data
-2. **[Galaxy Tutorial](/tutorials/galaxy-setup.md)** - Web-based analysis setup
+1. **[Quick Start Guide](quickstart)** - Complete walkthrough with example data
+2. **[Galaxy Tutorial](tutorials/galaxy-setup)** - Web-based analysis setup
 3. **[Tools Reference](/tools/)** - Detailed documentation for each tool
-4. **[Examples](/examples/)** - Real-world analysis examples
 
 ## Need Help?
 
-- **[Troubleshooting](/troubleshooting.md)** - Common issues and solutions
+- **[Troubleshooting](troubleshooting)** - Common issues and solutions
 - **[GitHub Issues](https://github.com/CompBtBs/COBRAxy/issues)** - Report bugs or ask questions
-- **[Contributing](/contributing.md)** - Help improve COBRAxy
+- **[Contributing](contributing)** - Help improve COBRAxy

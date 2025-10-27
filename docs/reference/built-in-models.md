@@ -33,12 +33,12 @@ tool_name --model ENGRO2 [options]
 
 **GPR Rules**: Gene-Protein-Reaction associations use Boolean logic (`and`, `or`).
 
-**Custom Models**: Use [Import Metabolic Model](../tools/import-metabolic-model.md) to extract and [Export Metabolic Model](../tools/export-metabolic-model.md) to create custom models.
+**Custom Models**: Use [Import Metabolic Model](../tools/import-metabolic-model) to extract and [Export Metabolic Model](../tools/export-metabolic-model) to create custom models.
 
 ## See Also
 
-- [RAS Generator](../tools/ras-generator.md) - Uses model GPR rules
-- [RAS to Bounds](../tools/ras-to-bounds.md) - Applies flux constraints to models
-- [Flux Simulation](../tools/flux-simulation.md) - Samples model flux distributions
-- [Import Metabolic Model](../tools/import-metabolic-model.md) - Extract model data
-- [Export Metabolic Model](../tools/export-metabolic-model.md) - Create custom models
+- [RAS Generator](../tools/ras-generator) - Uses model GPR rules
+- [RAS to Bounds](../tools/ras-to-bounds) - Applies flux constraints to models
+- [Flux Simulation](../tools/flux-simulation) - Samples model flux distributions
+- [Import Metabolic Model](../tools/import-metabolic-model) - Extract model data
+- [Export Metabolic Model](../tools/export-metabolic-model) - Create custom models

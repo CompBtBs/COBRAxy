@@ -26,7 +26,7 @@ By offering an intuitive and accessible platform for multi-omics integration and
 
 ## Quick Navigation
 
-### [Installation](installation.md)
+### [Installation](installation)
 Install COBRAxy and get it running on your system
 
 ### [Tutorials](tutorials/)
@@ -54,4 +54,4 @@ COBRAxy supports three main analysis workflows:
 - **Issues**: Report bugs and request features on [GitHub](https://github.com/CompBtBs/COBRAxy/issues)
 - **Contributing**: Help improve COBRAxy
 
-**Ready to start?** Follow the [Installation Guide](installation.md) to get COBRAxy up and running!
+**Ready to start?** Follow the [Installation Guide](installation) to get COBRAxy up and running!
