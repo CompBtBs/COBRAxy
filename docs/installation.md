@@ -8,22 +8,6 @@ This guide walks you through installing COBRAxy on your system.
 - **Operating System**: Linux (recommended), macOS, Windows
 - **Build tools**: C/C++ compiler (gcc, clang, or MSVC), CMake, pkg-config
 
-## System Dependencies
-
-Install required build tools before installing COBRAxy:
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install build-essential cmake pkg-config libvips libglpk40 glpk-utils
-
-# macOS
-xcode-select --install
-brew install cmake pkg-config vips glpk
-
-# Windows (with Chocolatey)
-choco install cmake visualstudio2022buildtools pkgconfiglite
-```
-
 ## Installation Methods
 
 ### Recommended: Using Conda
@@ -44,29 +28,6 @@ cd COBRAxy/src
 pip install .
 ```
 
-### Alternative: Direct Installation
-
-If you have system dependencies already installed:
-
-```bash
-# Clone the repository
-git clone https://github.com/CompBtBs/COBRAxy.git
-cd COBRAxy/src
-
-# Install COBRAxy
-pip install .
-```
-
-### Development Install
-
-For development or if you want to modify COBRAxy:
-
-```bash
-# Clone and install in editable mode
-git clone https://github.com/CompBtBs/COBRAxy.git
-cd COBRAxy/src
-pip install -e .
-```
 
 ## Verify Installation
 
