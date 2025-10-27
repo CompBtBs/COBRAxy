@@ -1,10 +1,16 @@
 # Flux Simulation
 
-Sample flux distributions from constraint-based metabolic models.
+Simulate flux distributions from constraint-based metabolic models using different optimization or sampling strategies.
 
 ## Overview
 
-Flux Simulation generates flux samples using CBS (Constraint-Based Sampling) or OPTGP (MCMC-based) algorithms.
+Two types of analysis are available:
+- **flux optimization**
+- **flux sampling**
+For flux optimization, one of the following methods can be performed: parsimonious-FBA, Flux Variability Analysis, Biomass sensitivity analysis (single reaction knock-out)
+The objective function, a linear combination of fluxes weighted by specific coefficients, depends on the provided metabolic network.
+
+For flux sampling, one of the following methods can be performed: CBS (Corner-based sampling), OPTGP (Improved Artificial Centering Hit-and-Run sampler).
 
 ## Galaxy Interface
 
