@@ -378,11 +378,11 @@ def model_sampler_with_bounds(model_path: str, bounds_path: str, cell_name: str)
             model_input.reactions.get_by_id(rxn_index).upper_bound = row.upper_bound
         except KeyError:
             warning(f"Warning: Reaction {rxn_index} not found in model. Skipping.")
-    
-    return perform_sampling_and_analysis(model_input, cell_name)
+
+    return perform_sampling_and_analysis(None, cell_name, model_input=model_input)
 
 
-def perform_sampling_and_analysis(model_path: str, cell_name: str) -> List[pd.DataFrame]:
+def perform_sampling_and_analysis(model_path: str, cell_name: str, model_input: cobra.Model=None) -> List[pd.DataFrame]:
     """
     Common function to perform sampling and analysis on a prepared model.
 
@@ -395,8 +395,9 @@ def perform_sampling_and_analysis(model_path: str, cell_name: str) -> List[pd.Da
     """
 
     returnList = []
-
-    model_input = model_utils.build_cobra_model_from_csv(model_path)
+    
+    if model_input is None:
+        model_input = model_utils.build_cobra_model_from_csv(model_path)
 
     if ARGS.sampling_enabled == "true":
     
