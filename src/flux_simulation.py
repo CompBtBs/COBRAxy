@@ -346,20 +346,29 @@ def CBS_sampler(model: cobra.Model, model_name: str, n_samples: int = 1000, n_ba
 
 
 
-def model_sampler_with_bounds(model_input_original: cobra.Model, bounds_path: str, cell_name: str) -> List[pd.DataFrame]:
+def model_sampler_with_bounds(model_path: str, bounds_path: str, cell_name: str) -> List[pd.DataFrame]:
     """
-    MODE 1: Prepares the model with bounds from separate bounds file and performs sampling.
+    MODE 1: Loads model from file, applies bounds from separate bounds file and performs sampling.
 
     Args:
-        model_input_original (cobra.Model): The original COBRA model.
+        model_path (str): Path to the tabular model file.
         bounds_path (str): Path to the CSV file containing the bounds dataset.
         cell_name (str): Name of the cell, used to generate filenames for output.
 
     Returns:
         List[pd.DataFrame]: A list of DataFrames containing statistics and analysis results.
     """
+    # Load the model from file inside the worker process (avoids serialization issues)
+    model_input = model_utils.build_cobra_model_from_csv(model_path)
 
-    model_input = model_input_original.copy()
+    validation = model_utils.validate_model(model_input)
+
+    print("\n=== MODEL VALIDATION ===")
+    for key, value in validation.items():
+        print(f"{key}: {value}")
+
+    model_input.solver.configuration.verbosity = 1
+    
     bounds_df = read_dataset(bounds_path, "bounds dataset")
     
     # Apply bounds to model
@@ -373,12 +382,12 @@ def model_sampler_with_bounds(model_input_original: cobra.Model, bounds_path: st
     return perform_sampling_and_analysis(model_input, cell_name)
 
 
-def perform_sampling_and_analysis(model_input: cobra.Model, cell_name: str) -> List[pd.DataFrame]:
+def perform_sampling_and_analysis(model_path: str, cell_name: str) -> List[pd.DataFrame]:
     """
     Common function to perform sampling and analysis on a prepared model.
 
     Args:
-        model_input (cobra.Model): The prepared COBRA model with bounds applied.
+        model_path (str): Path to the tabular model file. model with bounds applied.
         cell_name (str): Name of the cell, used to generate filenames for output.
 
     Returns:
@@ -386,6 +395,9 @@ def perform_sampling_and_analysis(model_input: cobra.Model, cell_name: str) -> L
     """
 
     returnList = []
+
+    # Load the model from file inside the worker process (avoids serialization issues)
+    model_input = model_utils.build_cobra_model_from_csv(model_path)
 
     if ARGS.sampling_enabled == "true":
     
@@ -562,20 +574,10 @@ def main(args: List[str] = None) -> None:
         if not ARGS.model_upload:
             sys.exit("Error: model_upload is required for Mode 1")
 
-        base_model = model_utils.build_cobra_model_from_csv(ARGS.model_upload)
-
-        validation = model_utils.validate_model(base_model)
-
-        print("\n=== MODEL VALIDATION ===")
-        for key, value in validation.items():
-            print(f"{key}: {value}")
-
-        # Set solver verbosity to 1 to see warning and error messages only.
-        base_model.solver.configuration.verbosity = 1
 
         # Process each bounds file with the base model
         results = Parallel(n_jobs=num_processors)(
-            delayed(model_sampler_with_bounds)(base_model, bounds_file, cell_name) 
+            delayed(model_sampler_with_bounds)(ARGS.model_upload, bounds_file, cell_name) 
             for bounds_file, cell_name in zip(ARGS.input_files, ARGS.file_names)
         )
 
@@ -585,7 +587,7 @@ def main(args: List[str] = None) -> None:
         
         # Process each complete model file
         results = Parallel(n_jobs=num_processors)(
-            delayed(perform_sampling_and_analysis)(model_utils.build_cobra_model_from_csv(model_file), cell_name) 
+            delayed(perform_sampling_and_analysis)(model_file, cell_name) 
             for model_file, cell_name in zip(ARGS.input_files, ARGS.file_names)
         )
 
