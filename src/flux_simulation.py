@@ -358,7 +358,7 @@ def model_sampler_with_bounds(model_path: str, bounds_path: str, cell_name: str)
     Returns:
         List[pd.DataFrame]: A list of DataFrames containing statistics and analysis results.
     """
-    # Load the model from file inside the worker process (avoids serialization issues)
+    
     model_input = model_utils.build_cobra_model_from_csv(model_path)
 
     validation = model_utils.validate_model(model_input)
@@ -396,7 +396,6 @@ def perform_sampling_and_analysis(model_path: str, cell_name: str) -> List[pd.Da
 
     returnList = []
 
-    # Load the model from file inside the worker process (avoids serialization issues)
     model_input = model_utils.build_cobra_model_from_csv(model_path)
 
     if ARGS.sampling_enabled == "true":
@@ -573,7 +572,6 @@ def main(args: List[str] = None) -> None:
         # Load base model
         if not ARGS.model_upload:
             sys.exit("Error: model_upload is required for Mode 1")
-
 
         # Process each bounds file with the base model
         results = Parallel(n_jobs=num_processors)(
