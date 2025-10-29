@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/_media/logoWHITE_GALA.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/_media/logoBLACK-GALA.png">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/_media/logoWHITE_GALAXY.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/_media/logoBLACK-GALAXY.png">
     <img alt="COBRAxy Logo" src="docs/_media/logo-light.png" width="200">
   </picture>
 </p>
