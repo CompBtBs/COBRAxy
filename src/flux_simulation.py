@@ -363,9 +363,9 @@ def model_sampler_with_bounds(model_path: str, bounds_path: str, cell_name: str)
 
     validation = model_utils.validate_model(model_input)
 
-    print("\n=== MODEL VALIDATION ===")
-    for key, value in validation.items():
-        print(f"{key}: {value}")
+    #print("\n=== MODEL VALIDATION ===")
+    #for key, value in validation.items():
+    #    print(f"{key}: {value}")
 
     model_input.solver.configuration.verbosity = 1
     
