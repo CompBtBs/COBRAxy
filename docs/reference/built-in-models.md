@@ -4,21 +4,17 @@ COBRAxy includes two pre-installed metabolic models for human metabolism analysi
 
 ## ENGRO2 (Recommended)
 
-**Best for**: General metabolic analysis
+**Best for**: Core metabolic analysis
 
-- ~2,000 reactions, ~1,500 metabolites, ~500 genes
-- Balanced coverage
-- Core metabolic pathways well-represented
-- **Use for**: Tissue profiling, disease comparisons, time-series analysis
+- ~500 reactions, ~400 metabolites, ~500 genes
+- Core metabolic model
 
 ## Recon (Comprehensive)
 
 **Best for**: Genome-wide studies
 
 - ~10,000 reactions, ~5,000 metabolites, ~2,000 genes
-- Most complete human metabolic network
-- Includes rare and specialized pathways
-- **Use for**: Comprehensive studies, rare diseases
+- Most complete human metabolic network, including all metabolic pathways
 
 ## Usage
 
