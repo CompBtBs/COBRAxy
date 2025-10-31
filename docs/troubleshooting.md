@@ -69,7 +69,27 @@ conda install -c conda-forge glpk swiglpk
 
 ## Galaxy Tool Issues
 
-### 1. Flux simulation 
+### Import Metabolic Model
+
+**Error message**: 
+```bash
+Traceback (most recent call last):
+  File "/export/tool_deps/_conda/envs/mulled-v1-d3fef6bda7daedb89425f527672b54ab0a4be6cfe3c8725b7f8c0948e0c80773/lib/python3.11/site-packages/cobra/io/sbml.py", line 458, in read_sbml_model
+    return _sbml_to_model(doc, number=number, f_replace=f_replace, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/tool_deps/_conda/envs/mulled-v1-d3fef6bda7daedb89425f527672b54ab0a4be6cfe3c8725b7f8c0948e0c80773/lib/python3.11/site-packages/cobra/io/sbml.py", line 563, in _sbml_to_model
+    raise CobraSBMLError("No SBML model detected in file.")
+cobra.io.sbml.CobraSBMLError: No SBML model detected in file.
+```
+
+**Meaning:**  
+The Import Metabolic Model tool cannot read the input file as a valid SBML model with FBC annotations.
+
+**Suggested Action:**  
+Verify that the input XML file is in proper SBML format and includes all necessary FBC annotations.
+
+
+### Flux simulation 
 
 **Error message**: 
 ```bash
