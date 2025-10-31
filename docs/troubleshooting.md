@@ -71,7 +71,10 @@ conda install -c conda-forge glpk swiglpk
 
 ### 1. Flux simulation 
 
-**Error message**: Execution aborted: wrong format of bounds dataset
+**Error message**: 
+```bash
+Execution aborted: wrong format of bounds dataset
+```
 
 **Meaning:**  
 Flux simulation cannot read the bounds of the metabolic model for the constrained simulation problem (optimization or sampling).  
