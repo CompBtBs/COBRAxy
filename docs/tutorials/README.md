@@ -15,11 +15,10 @@ Learn COBRAxy through hands-on tutorials for web-based analysis.
 
 | Tutorial | Description |
 |----------|-------------|
-| [http://marea4galaxy.cloud.ba.infn.it/galaxy/workflows/list_published#] (Flux clustering (sampling mean) + Flux Enrichment Analys) |  Creation of maps of the fluxes, using one dataset differently expressed for each condition and its sample group specification |
+| [Flux clustering (sampling mean) + Flux Enrichment Analys](http://marea4galaxy.cloud.ba.infn.it/galaxy/workflows/list_published#) |  Creation of maps of the fluxes, using one dataset differently expressed for each condition and its sample group specification |
 |  |  |
 |  |  |
 
-http://marea4galaxy.cloud.ba.infn.it/galaxy/workflows/list_published#
 
 ## Tutorial Data
 
