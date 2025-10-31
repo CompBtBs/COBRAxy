@@ -2,14 +2,7 @@
 
 Learn COBRAxy through hands-on tutorials for web-based analysis.
 
-## Available Tutorials
-
-| Tutorial | Description |
-|----------|-------------|
-| [Galaxy Setup](tutorials/galaxy-setup) | Set up Galaxy for web-based analysis |
-|  |  |
-|  |  |
-
+To set up Galaxy and start using it for web-based analyses, see the [Galaxy Setup](tutorials/galaxy-setup)
 
 ## Available Workflows
 
