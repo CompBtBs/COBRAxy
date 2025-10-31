@@ -212,7 +212,7 @@
 	<help>
 	<![CDATA[
 
-What it does
+Overview
 -------------
 
 This tool analyzes and visualizes differences in the Reaction Activity Scores (RASs) of groups of samples, as computed by the Expression2RAS tool, of groups of samples.
@@ -220,7 +220,7 @@ This tool analyzes and visualizes differences in the Reaction Activity Scores (R
 Accepted files are: 
     - option 1) two or more RAS datasets, each referring to samples in a given group. The user can specify a label for each group (as e.g. "classA" and "classB");
     - option 2) one RAS dataset and one group-file specifying the group each sample belongs to.
-    
+
 RAS datasets format: tab-separated text files, reporting the RAS value of each reaction (row) for a given sample (column).
 
 Column header: sample ID.
@@ -325,7 +325,9 @@ Fold-Change threshold: threshold of the fold-change between the average RAS of t
 
 .. class:: infomark
 
-**TIP**: If your dataset is not split into classes, use MaREA cluster analysis.
+**TIP**: If the user provide just one dataset for analysis:
+		-Use the Cluster Analysis tool to assign group labels when no prior division information is available
+		-provide an external group file specifying the assignment of each sample, if the group division is known a priori
 
 .. class:: infomark
 
@@ -340,4 +342,5 @@ Fold-Change threshold: threshold of the fold-change between the average RAS of t
 ]]>
 	</help>
 	<expand macro="citations" />
+
 </tool>
