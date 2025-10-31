@@ -248,11 +248,13 @@ Group-file
 +---------------+-----------+
 
 
-**TIP**: If your dataset is not split into classes, use MaREA cluster analysis.
-
+**TIP**: If the user provides just one dataset for analysis:
+		-Use the Cluster Analysis tool to assign group labels when no prior division information is available
+		-provide an external group file specifying the assignment of each sample, if the group division is known a priori
 
 ]]>
 	</help>
 	<expand macro="citations" />
 
 </tool>
+
