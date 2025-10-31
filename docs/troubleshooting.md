@@ -69,16 +69,16 @@ conda install -c conda-forge glpk swiglpk
 
 ## Galaxy Tool Issues
 
-### expression2RAS
+### 1. Flux simulation 
 
-**Problem**:
+**Error message**: Execution aborted: wrong format of bounds dataset
 
+**Meaning:**  
+Flux simulation cannot read the bounds of the metabolic model for the constrained simulation problem (optimization or sampling).  
+This usually happens if the input “Bound file(s): *” is incorrect. For example, it occurs when the **RasToBounds - Cell Class** file is passed instead of the collection of bound files named **"RAS to bounds"**.
 
-### Flux simulation 
-
-**Problem**:
-
-
+**Suggested Action:**  
+Check the input files and ensure the correct bounds collection is used.
 
 ## Getting Help
 
