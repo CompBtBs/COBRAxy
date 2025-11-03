@@ -136,7 +136,7 @@ The tool generates:
 	- one tabular file (.tabular) containing reaction IDs, reaction formula, GPR rules, reaction bounds, objective function coefficients, pathways in which the reaction is involved and a flag indicating whether the reaction is an exchange reaction (i.e., related to the growth medium).
     - a log file (.txt).
 
-**TIP 1**: Different input files can be used as the input model. The possible formats are XML (SBML), JSON, MAT or YAML (.yml). 
+**TIP 1**: Different input files can be used as the input model. The possible formats are SBML, JSON, MAT or YAML (.yml). 
     Supported compressed formats: .zip, .gz and .bz2. Filename must follow the pattern: {model_name}.{extension}.[zip|gz|bz2]
     More detail can be found at https://cobrapy.readthedocs.io/en/latest/io.html
 
@@ -151,5 +151,6 @@ More info: [COBRApy Media](https://cobrapy-cdiener.readthedocs.io/en/latest/medi
     <expand macro="citations" />
 
 </tool>
+
 
 
