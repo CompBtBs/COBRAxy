@@ -74,7 +74,7 @@
 
             <!-- Custom model -->
             <when value="Custom_model">
-                <param name="input" argument="--input" type="data" format="json,xml,sbml" label="Custom model file:" />
+                <param name="input" argument="--input" type="data" format="sbml,json,mat,yaml" label="Custom model file:" />
                 <conditional name="cond_medium">
                     <param name="medium_selector" argument="--medium_selector" type="select" label="Medium">
                         <option value="Default" selected="true">Default (custom model medium)</option>
@@ -151,6 +151,7 @@ More info: [COBRApy Media](https://cobrapy-cdiener.readthedocs.io/en/latest/medi
     <expand macro="citations" />
 
 </tool>
+
 
 
 
