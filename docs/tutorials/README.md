@@ -24,6 +24,35 @@ To use a workflow, click the "Import" button, and it will be added to your perso
 
 A more detailed description of the tools is available on the corresponding GALAXY page.
 
+### Flux Enrichment Analysis (Sampling Mean) — Separated Datasets
+
+#### Goal
+Perform a **statistical analysis of fluxes** from two different datasets derived from flux simulations using the **sampling mean** method.
+
+#### Scenario
+You have **one gene expression dataset per condition** (e.g., *Cancer vs Normal*).
+
+#### 1. Import Metabolic Model
+- Load the metabolic model.  
+- Define the **medium** and the **gene nomenclature format**.
+
+#### 2. Expression to RAS
+- Transform a **gene expression file** into a **RAS dataset**.  
+- This step must be applied **individually for each dataset**.
+
+#### 3. RAS to Bounds
+- Use the **two RAS datasets** (one per condition) as input.  
+- Generate the corresponding **flux bounds**.
+
+#### 4. Flux Simulation
+- Use the **output from the RAS to Bounds** step as input.  
+- Select **sampling mean (mean)** as the simulation method.
+
+#### 5. Metabolic Flux Enrichment Analysis
+- Create a **map of significant differences** between fluxes from the two datasets.  
+- Use the **flux simulation output** together with the **RASToBounds results** to identify enriched pathways or reactions.
+
+
 ## Tutorial Data
 
 Download example datasets used in tutorials:
