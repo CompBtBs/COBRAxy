@@ -11,16 +11,16 @@ The general repository is at the following link: [Galaxy workflows](http://marea
 
 To use a workflow, click the "Import" button, and it will be added to your personal workflow page.
 
-| Tutorial | Description | More details |
-|----------|-------------|-------------|
-|[Flux Enrichment Analysis - separated datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=a64417ff266b740e) | Creation of maps of the fluxes differently expressed between two conditions. One gene expression dataset different for each condition. | [Flux Enrichment Analysis (Sampling Mean) — Separated Datasets](#flux-enrichment-analysis-sampling-mean--separated-datasets) |
-| [Flux Enrichment Analysis (sampling mean) - separated datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=16e792953f5b45db) |  Creation of maps of the fluxes differently expressed between two conditions. One gene expression dataset different for each condition. ||
-| [Flux clustering (sampling mean) + Flux Enrichment Analys](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=c851ab275e52f8af) | Creation of maps of the fluxes, using one dataset differently expressed for each condition and its sample group specification||
-| [Flux Enrichment Analysis (pFBA) - separated datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=bf0806da5b28c6d9) | Creation of maps of the fluxes differently expressed between two conditions. One gene expression dataset different for each condition. ||
-| [Flux clustering (pFBA) + Flux Enrichment Analysis](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=be0a27b9edd0db03) | Creation of maps of the fluxes, using one dataset differently expressed for each condition and its sample group specification ||
-| [RAS clustering + Reaction Enrichment Analysis](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=81991b32733a4fc4) | Creation of RAS maps, one single expression gene dataset and its sample group specification ||
-| [Reaction Enrichment Analysis - unified datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=0d16186aaff7cbfd) |Creation of RAS maps starting from an expression dataset and its corresponding classes. One gene expression dataset as input and its classes to compare. ||
-| [Reaction Enrichment Analysis - separated datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=290670ee50ab85f0) | Creation of RAS maps using the tool MaREA. Confrontation of two datasets that must be different from one another. ||
+| Tutorial | Description | More Details |
+|-----------|-------------|--------------|
+| [Flux Enrichment Analysis (Sampling Mean) — Separated Datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=16e792953f5b45db) | Generate flux maps highlighting differences between two conditions (one expression dataset per condition). | [See section](#flux-enrichment-analysis-sampling-mean--separated-datasets) |
+| [Flux Clustering (Sampling Mean) + Flux Enrichment Analysis](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=c851ab275e52f8af) | Cluster fluxes and identify condition-specific differences using sampling mean simulations. | [See section](#flux-clustering-sampling-mean--flux-enrichment-analysis) |
+| [Flux Enrichment Analysis (pFBA) — Separated Datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=bf0806da5b28c6d9) | Compare fluxes between two conditions using pFBA simulations (one dataset per condition). | [See section](#flux-enrichment-analysis-pfba--separated-datasets) |
+| [Flux Clustering (pFBA) + Flux Enrichment Analysis](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=be0a27b9edd0db03) | Perform clustering on pFBA-derived fluxes and analyze enriched pathways across clusters. | [See section](#flux-clustering-pfba--flux-enrichment-analysis) |
+| [RAS Clustering + Reaction Enrichment Analysis](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=81991b32733a4fc4) | Cluster RAS profiles from a single dataset and identify significantly enriched reactions. | [See section](#ras-clustering--reaction-enrichment-analysis) |
+| [Reaction Enrichment Analysis — Unified Datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=0d16186aaff7cbfd) | Compare RAS profiles between predefined classes within a single expression dataset. | [See section](#reaction-enrichment-analysis--unified-datasets) |
+| [Reaction Enrichment Analysis — Separated Datasets](http://marea4galaxy.cloud.ba.infn.it/galaxy/published/workflow?id=290670ee50ab85f0) | Analyze RAS differences between two separate gene expression datasets. | [See section](#reaction-enrichment-analysis--separated-datasets) |
+
 
 A more detailed description of the tools is available on the corresponding GALAXY page.
 
