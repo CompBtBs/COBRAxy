@@ -239,7 +239,6 @@ def fold_change(avg1 :float, avg2 :float) -> FoldChange:
     # (threshold_F_C - 1) / (abs(threshold_F_C) + 1) con threshold_F_C > 1
     return (avg1 - avg2) / (abs(avg1) + abs(avg2))
 
-# TODO: I would really like for this one to get the Thanos treatment
 def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
     """
     Produces a "fixed" style string to assign to a reaction arrow in the SVG map, assigning style properties to the corresponding values passed as input params.
