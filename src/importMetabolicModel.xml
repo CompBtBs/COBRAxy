@@ -96,7 +96,7 @@
     </inputs>
 
     <outputs>
-        <data name="log" format="txt" label="MetabolicModelSetting - Log" />
+        <data name="log" format="txt" label="Import Metabolic Model - Log" />
         
         <data name="out_tabular_engro2" format="tabular" label="ENGRO2_model_tabular">
             <filter>cond_model['model_selector'] == 'ENGRO2'</filter>
@@ -151,6 +151,7 @@ More info: [COBRApy Media](https://cobrapy-cdiener.readthedocs.io/en/latest/medi
     <expand macro="citations" />
 
 </tool>
+
 
 
 
