@@ -120,7 +120,7 @@ def process_args(args: List[str] = None) -> argparse.Namespace:
 
     parser.add_argument('-idop', '--output_path',
                         type=str,
-                        default='flux_simulation/',
+                        default='flux_simulation',
                         help = 'output path for fluxes')
     
     parser.add_argument('-otm', '--out_mean',
@@ -537,8 +537,8 @@ def main(args: List[str] = None) -> None:
     global ARGS
     ARGS = process_args(args)
 
-    if not os.path.exists('flux_simulation'):
-        os.makedirs('flux_simulation')
+    if not os.path.exists(ARGS.output_path):
+        os.makedirs(ARGS.output_path)
 
     # --- Read input files and names from the provided file paths ---
     with open(ARGS.input_file, 'r') as f:
