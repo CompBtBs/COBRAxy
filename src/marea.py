@@ -410,8 +410,8 @@ class ArrowColor(Enum):
     """
     Invalid       = "#BEBEBE" # gray, fold-change under treshold or not significant p-value
     Transparent   = "#ffffff00" # transparent, to make some arrow segments disappear
-    UpRegulated   = ARGS.upRegCol #"#ecac68" # orange, up-regulated reaction
-    DownRegulated = ARGS.downRegCol #"#6495ed" # lightblue, down-regulated reaction
+    UpRegulated   = "#ecac68" # orange, up-regulated reaction
+    DownRegulated = "#6495ed" # lightblue, down-regulated reaction
 
     UpRegulatedInv = "#FF0000"  # bright red for reversible with conflicting directions
 
@@ -991,6 +991,9 @@ def main(args:List[str] = None) -> None:
     """
     global ARGS
     ARGS = process_args(args)
+
+    ArrowColor.DownRegulated.value = ARGS.downRegCol
+    ArrowColor.UpRegulated.value   = ARGS.upRegCol
 
     # Create output folder
     if not os.path.isdir(ARGS.output_path):
