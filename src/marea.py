@@ -182,6 +182,16 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         '-mc',  '--choice_map',
         type = utils.Model, default = utils.Model.HMRcore,
         choices = [utils.Model.HMRcore, utils.Model.ENGRO2, utils.Model.Custom])
+    
+    parser.add_argument(
+        '-upc', '--upRegCol',
+        type = str, default = "#ecac68",
+        help = 'Color for up-regulated reactions (default: %(default)s)')
+    
+    parser.add_argument(
+        '-dnc', '--downRegCol',
+        type = str, default = "#6495ed",
+        help = 'Color for down-regulated reactions (default: %(default)s)')
 
     args :argparse.Namespace = parser.parse_args(args)
     if args.using_RAS and not args.using_RPS: args.net = False
@@ -400,8 +410,8 @@ class ArrowColor(Enum):
     """
     Invalid       = "#BEBEBE" # gray, fold-change under treshold or not significant p-value
     Transparent   = "#ffffff00" # transparent, to make some arrow segments disappear
-    UpRegulated   = "#ecac68" # orange, up-regulated reaction
-    DownRegulated = "#6495ed" # lightblue, down-regulated reaction
+    UpRegulated   = ARGS.upRegCol #"#ecac68" # orange, up-regulated reaction
+    DownRegulated = ARGS.downRegCol #"#6495ed" # lightblue, down-regulated reaction
 
     UpRegulatedInv = "#FF0000"  # bright red for reversible with conflicting directions
 
