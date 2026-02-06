@@ -293,9 +293,6 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
     """
     maxT = 12
     minT = 2
-    grey = '#BEBEBE'
-    blue = '#6495ed'
-    red = '#ecac68'
     for el in core_map.iter():
         el_id = str(el.get('id'))
         if el_id.startswith('R_'):
@@ -308,13 +305,13 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 if p_val <= threshold_P_V: # p-value is OK
                     if not isinstance(f_c, str): # FC is finite
                         if abs(f_c) < ((threshold_F_C - 1) / (abs(threshold_F_C) + 1)): # FC is not OK
-                            col = grey
+                            col = ArrowColor.Invalid.value
                             width = str(minT)
                         else: # FC is OK
                             if f_c < 0:
-                                col = blue
+                                col = ArrowColor.DownRegulated.value
                             elif f_c > 0:
-                                col = red
+                                col = ArrowColor.UpRegulated.value
                             width = str(
                                 min(
                                     max(abs(z_score * maxT) / max_z_score, minT),
@@ -322,14 +319,14 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                     
                     else: # FC is infinite
                         if f_c == '-INF':
-                            col = blue
+                            col = ArrowColor.DownRegulated.value
                         elif f_c == 'INF':
-                            col = red
+                            col = ArrowColor.UpRegulated.value
                         width = str(maxT)
                     dash = 'none'
                 else: # p-value is not OK
                     dash = '5,5'
-                    col = grey
+                    col = ArrowColor.Invalid.value
                     width = str(minT)
                 el.set('style', fix_style(el.get('style', ""), col, width, dash))
     return core_map
