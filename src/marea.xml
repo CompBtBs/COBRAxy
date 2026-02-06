@@ -89,8 +89,8 @@
 			--generate_svg ${advanced.generateSvg}
 			--generate_pdf ${advanced.generatePdf}
 			--net ${advanced.netRPS}
-			--upRegCol ${advanced.upRegCol}
-			--downRegCol ${advanced.downRegCol}
+			--upRegCol '#${advanced.upRegCol}'
+			--downRegCol '#${advanced.downRegCol}'
 		#else 
 			--test 'ks'
 			--pValue 0.05

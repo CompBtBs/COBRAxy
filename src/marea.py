@@ -315,13 +315,13 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 if p_val <= threshold_P_V: # p-value is OK
                     if not isinstance(f_c, str): # FC is finite
                         if abs(f_c) < ((threshold_F_C - 1) / (abs(threshold_F_C) + 1)): # FC is not OK
-                            col = ArrowColor.Invalid.value
+                            col = ArrowColor.Invalid
                             width = str(minT)
                         else: # FC is OK
                             if f_c < 0:
-                                col = ArrowColor.DownRegulated.value
+                                col = ArrowColor.DownRegulated
                             elif f_c > 0:
-                                col = ArrowColor.UpRegulated.value
+                                col = ArrowColor.UpRegulated
                             width = str(
                                 min(
                                     max(abs(z_score * maxT) / max_z_score, minT),
@@ -329,14 +329,14 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                     
                     else: # FC is infinite
                         if f_c == '-INF':
-                            col = ArrowColor.DownRegulated.value
+                            col = ArrowColor.DownRegulated
                         elif f_c == 'INF':
-                            col = ArrowColor.UpRegulated.value
+                            col = ArrowColor.UpRegulated
                         width = str(maxT)
                     dash = 'none'
                 else: # p-value is not OK
                     dash = '5,5'
-                    col = ArrowColor.Invalid.value
+                    col = ArrowColor.Invalid
                     width = str(minT)
                 el.set('style', fix_style(el.get('style', ""), col, width, dash))
     return core_map
@@ -404,25 +404,51 @@ def getArrowHeadElementId(reactionId :str) -> Tuple[str, str]:
 
     return f"F_{reactionId}", f"B_{reactionId}"
 
-class ArrowColor(Enum):
+# class ArrowColor(Enum):
+#     """
+#     Encodes possible arrow colors based on their meaning in the enrichment process.
+#     """
+#     Invalid       = "#BEBEBE" # gray, fold-change under treshold or not significant p-value
+#     Transparent   = "#ffffff00" # transparent, to make some arrow segments disappear
+#     UpRegulated   = "#ecac68" # orange, up-regulated reaction
+#     DownRegulated = "#6495ed" # lightblue, down-regulated reaction
+
+#     UpRegulatedInv = "#FF0000"  # bright red for reversible with conflicting directions
+
+#     DownRegulatedInv = "#0000FF"  # bright blue for reversible with conflicting directions
+
+#     @classmethod
+#     def fromFoldChangeSign(cls, foldChange :float, *, useAltColor = False) -> "ArrowColor":
+#         colors = (cls.DownRegulated, cls.DownRegulatedInv) if foldChange < 0 else (cls.UpRegulated, cls.UpRegulatedInv)
+#         return colors[useAltColor]
+
+#     def __str__(self) -> str: return self.value
+
+
+class ArrowColor:
     """
     Encodes possible arrow colors based on their meaning in the enrichment process.
     """
-    Invalid       = "#BEBEBE" # gray, fold-change under treshold or not significant p-value
-    Transparent   = "#ffffff00" # transparent, to make some arrow segments disappear
-    UpRegulated   = "#ecac68" # orange, up-regulated reaction
-    DownRegulated = "#6495ed" # lightblue, down-regulated reaction
-
-    UpRegulatedInv = "#FF0000"  # bright red for reversible with conflicting directions
-
-    DownRegulatedInv = "#0000FF"  # bright blue for reversible with conflicting directions
-
+    # Definisci come attributi di classe direttamente
+    Invalid = "#BEBEBE"
+    Transparent = "#ffffff00"
+    UpRegulated = "#ecac68"
+    DownRegulated = "#6495ed"
+    UpRegulatedInv = "#FF0000"
+    DownRegulatedInv = "#0000FF"
+    
     @classmethod
-    def fromFoldChangeSign(cls, foldChange :float, *, useAltColor = False) -> "ArrowColor":
+    def fromFoldChangeSign(cls, foldChange: float, *, useAltColor=False) -> str:
         colors = (cls.DownRegulated, cls.DownRegulatedInv) if foldChange < 0 else (cls.UpRegulated, cls.UpRegulatedInv)
         return colors[useAltColor]
+    
+    @classmethod
+    def updateColors(cls, **kwargs):
+        """Aggiorna i colori dopo il parsing degli argomenti"""
+        for key, value in kwargs.items():
+            if hasattr(cls, key):
+                setattr(cls, key, value)
 
-    def __str__(self) -> str: return self.value
 
 class Arrow:
     """
@@ -431,7 +457,7 @@ class Arrow:
     MIN_W = 2
     MAX_W = 12
 
-    def __init__(self, width :int, col: ArrowColor, *, isDashed = False) -> None:
+    def __init__(self, width :int, col: str, *, isDashed = False) -> None:
         """
         (Private) Initializes an instance of Arrow.
 
@@ -991,9 +1017,11 @@ def main(args:List[str] = None) -> None:
     """
     global ARGS
     ARGS = process_args(args)
-
-    ArrowColor.DownRegulated.value = ARGS.downRegCol
-    ArrowColor.UpRegulated.value   = ARGS.upRegCol
+    
+    ArrowColor.updateColors(
+        UpRegulated=ARGS.upRegCol,
+        DownRegulated=ARGS.downRegCol,
+    )
 
     # Create output folder
     if not os.path.isdir(ARGS.output_path):
