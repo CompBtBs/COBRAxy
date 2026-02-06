@@ -200,8 +200,8 @@
 				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
 				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
 				<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
-				<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="#ecac68" help="Color for up-regulated reactions	" />
-				<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="#6495ed" help="Color for down-regulated reactions	" />
+				<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions	" />
+				<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions	" />
 			
 				<param name="netRPS" argument="--net" type="boolean" checked="false" label="Should RPS enrichment use net values?" help="If checked and RPS datasets are present the arrow tips of a reversible arrow will be colored with the net contribution of both directions' RPS values" />
 			</when>
