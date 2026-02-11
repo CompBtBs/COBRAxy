@@ -268,19 +268,6 @@ def main(args:List[str] = None) -> None:
             if substrateName not in substrateFreqTable: substrateFreqTable[substrateName] = 0
             substrateFreqTable[substrateName] += 1
 
-    # Debug prints (can be enabled during troubleshooting)
-    # print(f"Reactions: {reactions}")
-    # print(f"Substrate Frequencies: {substrateFreqTable}")
-    # print(f"Synonyms: {syn_dict}")
-        tmp_dict = {}
-        for metabName, freq in substrateFreqTable.items():
-            tmp_metabName = clean_metabolite_name(metabName)
-            for syn_key, syn_list in syn_dict.items():
-                if tmp_metabName in syn_list or tmp_metabName == clean_metabolite_name(syn_key):
-                    # print(f"Mapping {tmp_metabName} to {syn_key}")
-                    tmp_dict[syn_key] = syn_list
-                    tmp_dict[syn_key].append(tmp_metabName)
-
     rps_for_cell_lines(dataset, reactions, black_list, syn_dict, substrateFreqTable)
     print('Execution succeeded')
 
