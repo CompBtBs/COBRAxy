@@ -17,6 +17,7 @@
         --out_log $log	
         --rps_output $rps_output
         --model_upload $model_upload
+        --dict_rps_output $dict_rps_output
         ]]>
     </command>
     <inputs> 
@@ -30,6 +31,7 @@
     <outputs>
         <data format="txt" name="log" label="Expression2RPS - $name - Log" />
         <data format="tabular" name="rps_output" label="$name"/>
+        <data format="tabular" name="dict_rps_output" label="$name"/>
     </outputs>
 
     <help>
@@ -53,6 +55,7 @@ Output:
 
 The tool generates:
     - a tab-separated file(.csv): reporting the RPS values for each reaction and each cell line in the dataset.
+    - a tab-separated file(.csv): reporting the mapping between the metabolite IDs in the input file and the corresponding metabolites in HMDB.
     - a log file (.txt).
 ]]>
     </help>

@@ -57,6 +57,11 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
                         required = True,
                         help = 'rps output')
     
+    parser.add_argument('-drp', '--dict_rps_output',
+                        type = str,
+                        required = True,
+                        help = 'dict_rps output')
+
     args = parser.parse_args(args)
     return args
 
@@ -81,7 +86,6 @@ def name_dataset(name_data :str, count :int) -> str:
 def get_abund_data(dataset: pd.DataFrame, cell_line_index:int) -> Optional[pd.Series]:
     """
     Extracts abundance data and turns it into a series for a specific cell line from the dataset, which rows are
-    metabolites and columns are cell lines.
 
     Args:
         dataset (pandas.DataFrame): The DataFrame containing abundance data for all cell lines and metabolites.
@@ -184,19 +188,18 @@ def calculate_rps(reactions: Dict[str, Dict[str, int]], abundances: Dict[str, fl
     for reaction_name, substrates in reactions.items():
         total_contribution = 0
         metab_significant  = False
-        for metabolite, stoichiometry in substrates.items():
+        for metabolite, stoichiometry in substrates.items():    
             abundance = 1 if math.isnan(abundances[metabolite]) else abundances[metabolite]
             if metabolite not in black_list and metabolite not in missing_list:
                 metab_significant = True
-            
             total_contribution += math.log((abundance + np.finfo(float).eps) / substrateFreqTable[metabolite]) * stoichiometry
-        
+
         rps_scores[reaction_name] = total_contribution if metab_significant else math.nan
     
     return rps_scores
 
 ############################ rps_for_cell_lines ####################################
-def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, int]], black_list: List[str], syn_dict: Dict[str, List[str]], substrateFreqTable: Dict[str, int]) -> None:
+def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, int]], black_list: List[str], tpm_dict: Dict[str, List[str]], substrateFreqTable: Dict[str, int]) -> None:
     """
     Calculate Reaction Propensity Scores (RPS) for each cell line represented in the dataframe and creates an output file.
 
@@ -204,7 +207,7 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
         dataset : the dataset's data, by rows
         reactions (dict): A dictionary representing reactions where keys are reaction names and values are dictionaries containing metabolite names as keys and stoichiometric coefficients as values.
         black_list (list): A list containing metabolite names that should be excluded from the RPS calculation.
-        syn_dict (dict): A dictionary where keys are general metabolite names and values are lists of possible synonyms.
+        tpm_dict (dict): A dictionary where keys....
         substrateFreqTable (dict): A dictionary where each metabolite name (key) is associated with how many times it shows up in the model's reactions (value).
 
     Returns:
@@ -215,7 +218,10 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     abundances_dict = {}
 
     for row in dataset[1:]:
-        id = get_metabolite_id(row[0], syn_dict)
+        try:
+            id = tpm_dict[row[0]]
+        except:
+            id = None
         if id:
             abundances_dict[id] = list(map(utils.Float(), row[1:]))
 
@@ -224,15 +230,13 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     rps_scores :Dict[Dict[str, float]] = {}
     for pos, cell_line_name in enumerate(cell_lines):
         abundances = { metab : abundances[pos] for metab, abundances in abundances_dict.items() }
-
         rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list, substrateFreqTable)
     
     df = pd.DataFrame.from_dict(rps_scores)
     df = df.loc[list(reactions.keys()),:]
-    # Optional preview: first 10 rows
-    # print(df.head(10))
     df.index.name = 'Reactions'
     df.to_csv(ARGS.rps_output, sep='\t', na_rep='None', index=True)
+
 
 ############################ main ####################################
 def main(args:List[str] = None) -> None:
@@ -249,11 +253,10 @@ def main(args:List[str] = None) -> None:
     with open(ARGS.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
         black_list = pk.load(bl)
 
-    with open(ARGS.tool_dir + '/local/pickle files/synonyms.pickle', 'rb') as sd:
+    with open(ARGS.tool_dir + '/local/pickle files/dizionario_hmbd.pkl', 'rb') as sd:
         syn_dict = pk.load(sd)
 
     dataset = utils.readCsv(utils.FilePath.fromStrPath(ARGS.input), '\t', skipHeader=False)
-    tmp_dict = None
 
     # Parse custom reactions from uploaded file
     reactions = reactionUtils.parse_custom_reactions(ARGS.model_upload)
@@ -268,7 +271,37 @@ def main(args:List[str] = None) -> None:
             if substrateName not in substrateFreqTable: substrateFreqTable[substrateName] = 0
             substrateFreqTable[substrateName] += 1
 
-    rps_for_cell_lines(dataset, reactions, black_list, syn_dict, substrateFreqTable)
+    # consider only the keys of the dictionart for which a metabolite of the model and a metabolite of the dataset are present
+    all_syn = [el for key,value in  syn_dict.items() for el in value]
+    list_met_dataset_orig={row[0]:clean_metabolite_name(row[0]) for row in dataset[1:]}
+    list_met_model = {elem:clean_metabolite_name(elem) for elem in substrateFreqTable.keys()}
+
+    list_met_dataset ={key:value for key,value in list_met_dataset_orig.items() if value in all_syn}
+    list_met_model ={key:value for key,value in list_met_model.items() if value in all_syn}
+
+    liste_sets = [set(lista) for lista in syn_dict.values()]
+
+    tmp_dict = {}#met_dataset_original:[] for met_dataset_original in list_met_dataset.keys()}
+    for s in liste_sets:        
+        for met_dataset_original, met_dataset in list_met_dataset.items():
+            if met_dataset in s:
+                # the metabolite met_dataset of the dataset is in the list s
+                for met_mode_orig,met_model in list_met_model.items():
+                    if met_model in s:
+                        # in the list s, there is also the metabolite met_model of the model
+                        if met_dataset_original in tmp_dict.keys() and tmp_dict[met_dataset_original] != met_mode_orig:
+                            string_to_print="Multiple assignment for metabolite " + met_dataset_original + ": " + tmp_dict[met_dataset_original] +", " + met_mode_orig
+                            raise ValueError(string_to_print)
+                        tmp_dict[met_dataset_original] = met_mode_orig
+
+    # Save dictionary of traslation
+    df_translate = pd.DataFrame.from_dict(tmp_dict,orient='index',columns=['translated_name'])
+    df_translate.index.name = 'original_name'
+    df_translate=df_translate.sort_index()
+    df_translate.to_csv(ARGS.dict_rps_output, sep='\t', na_rep='None', index=True)
+
+    # compute the rps for eahc sample
+    rps_for_cell_lines(dataset, reactions, black_list, tmp_dict, substrateFreqTable)
     print('Execution succeeded')
 
 ##############################################################################
