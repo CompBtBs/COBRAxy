@@ -253,7 +253,7 @@ def main(args:List[str] = None) -> None:
     with open(ARGS.tool_dir + '/local/pickle files/black_list.pickle', 'rb') as bl:
         black_list = pk.load(bl)
 
-    with open(ARGS.tool_dir + '/local/pickle files/dizionario_hmbd.pkl', 'rb') as sd:
+    with open(ARGS.tool_dir + '/local/pickle files/dict_hmbd.pkl', 'rb') as sd:
         syn_dict = pk.load(sd)
 
     dataset = utils.readCsv(utils.FilePath.fromStrPath(ARGS.input), '\t', skipHeader=False)
@@ -293,6 +293,10 @@ def main(args:List[str] = None) -> None:
                             string_to_print="Multiple assignment for metabolite " + met_dataset_original + ": " + tmp_dict[met_dataset_original] +", " + met_mode_orig
                             raise ValueError(string_to_print)
                         tmp_dict[met_dataset_original] = met_mode_orig
+
+    for met_dataset_original,met_dataset in list_met_dataset.items():
+        if met_dataset_original not in tmp_dict.keys():
+            tmp_dict[met_dataset_original] = "None"
 
     # Save dictionary of traslation
     df_translate = pd.DataFrame.from_dict(tmp_dict,orient='index',columns=['translated_name'])
