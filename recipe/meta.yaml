@@ -1,5 +1,5 @@
 {% set name = "cobraxy" %}
-{% set version = "1.0.0" %}
+{% set version = "1.1.0" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://github.com/CompBtBs/COBRAxy/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: c42fb62f5018a8fd28fcfed9552ed485371590f6c3e0f6ee84feb52ae3cbf0d6
+  sha256: d490a1cd26eee3af14645964ade36e1bfb969cf8ae985af7d471468c75fa54bb
 
 build:
   entry_points:

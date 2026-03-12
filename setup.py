@@ -6,7 +6,7 @@ readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
 
 setup(
     name='cobraxy',
-    version='1.0.0',
+    version='1.1.0',
     description='A collection of tools for metabolic flux analysis in Galaxy.',
     long_description=open(readme_path, encoding="utf-8").read(),
     long_description_content_type='text/markdown',
