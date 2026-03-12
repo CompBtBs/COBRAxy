@@ -1,0 +1,29 @@
+name: cobraxy
+owner: CompBtBs
+description: "A collection of tools for metabolic flux analysis in Galaxy."
+type: unrestricted
+categories:
+  - Metabolic Modeling
+remote_repository_url: https://github.com/CompBtBs/COBRAxy
+long_description: |
+  COBRAxy: a set of Galaxy tools for metabolic flux simulation, visualization and analysis.
+
+tools:
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./importMetabolicModel.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./exportMetabolicModel.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./ras_generator.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./rps_generator.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./marea_cluster.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./marea.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./ras_to_bounds.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./flux_simulation.xml
+  - tool_panel_section_label: "COBRA Toolbox"
+    file: ./flux_to_map.xml
