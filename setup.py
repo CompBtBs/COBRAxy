@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 import os
 
-# Get the path to README.md in the parent directory
-readme_path = os.path.join(os.path.dirname(__file__), '..', 'README.md')
+# Get the path to README.md
+readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
 
 setup(
     name='cobraxy',
@@ -13,7 +13,7 @@ setup(
     author='Francesco Lapi',  
     author_email='f.lapi@campus.unimib.it',
     url='https://github.com/CompBtBs/COBRAxy.git',
-    license='',
+    license='MIT',
     package_dir={'': 'src'},  # The "cobraxy" package is in the src directory
     packages=find_packages(where='src'),  # Only packages under cobraxy
     package_data={
