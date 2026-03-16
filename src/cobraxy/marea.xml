@@ -19,90 +19,98 @@
 	</requirements>
 	
 	<command detect_errors="exit_code">
-		<![CDATA[
-      	python $__tool_directory__/marea.py
+    <![CDATA[
+        python $__tool_directory__/marea.py
 
-      	--tool_dir $__tool_directory__
-      	--option $cond.type_selector
+        --tool_dir $__tool_directory__
         --out_log $log
-	
-        #if $cond.type_selector == 'datasets':
 
-			--using_RAS $cond.using_ras.check
-			--using_RPS $cond.using_rps.check
-
-			#if $cond.using_ras.check == 'true':
-				--input_datas
-				#for $data in $cond.using_ras.input_datasets:
-					${data.input}
-				#end for
-
-				--names
-				#for $data in $cond.using_ras.input_datasets:
-					${data.input_name}
-				#end for
-			#end if
-
-			#if $cond.using_rps.check == 'true':
-				--input_datas_rps
-				#for $data in $cond.using_rps.input_datasets_rps:
-					${data.input_rps}
-				#end for
-
-				--names_rps
-				#for $data in $cond.using_rps.input_datasets_rps:
-					${data.input_name_rps}
-				#end for
-			#end if
-        
-        #elif $cond.type_selector == 'dataset_class':
-
-			--using_RAS $cond.using_ras_all.check
-			--using_RPS $cond.using_rps_all.check
-
-			#if $cond.using_ras_all.check == 'true':
-				--input_data ${cond.using_ras_all.input_data}
-				--input_class ${cond.using_ras_all.input_class}
-			#end if
-
-			#if $cond.using_rps_all.check == 'true':
-				--input_data_rps ${cond.using_rps_all.input_data_rps}
-				--input_class_rps ${cond.using_rps_all.input_class_rps}
-			#end if
+        #if $cond.type_selector != 'user_pvalues':
+            --option $cond.type_selector
         #end if
 
-		--comparison ${comparis.comparison}
-		#if $comparis.comparison == 'onevsmany'
-			--control '${comparis.controlgroup}'
-		#end if
+        #if $cond.type_selector == 'datasets':
 
-		--choice_map '${cond_choice_map.choice_map}'
-		#if $cond_choice_map.choice_map == 'Custom':
-			--custom_map ${cond_choice_map.custom_map}
-		#end if
-		
-		#if $advanced.choice == 'true':
-			--test ${advanced.test}
-			--pValue ${advanced.pValue}
-			--adjusted ${advanced.adjusted}
-			--fChange ${advanced.fChange}
-			--generate_svg ${advanced.generateSvg}
-			--generate_pdf ${advanced.generatePdf}
-			--net ${advanced.netRPS}
-			--upRegCol '#${advanced.upRegCol}'
-			--downRegCol '#${advanced.downRegCol}'
-		#else 
-			--test 'ks'
-			--pValue 0.05
-			--adjusted false
-			--fChange 1.2
-			--generate_svg false
-			--generate_pdf true
-			--net false
-			--upRegCol '#ecac68'
-			--downRegCol '#6495ed'
-		#end if
-        ]]>
+            --using_RAS $cond.using_ras.check
+            --using_RPS $cond.using_rps.check
+
+            #if $cond.using_ras.check == 'true':
+                --input_datas
+                #for $data in $cond.using_ras.input_datasets:
+                    ${data.input}
+                #end for
+
+                --names
+                #for $data in $cond.using_ras.input_datasets:
+                    ${data.input_name}
+                #end for
+            #end if
+
+            #if $cond.using_rps.check == 'true':
+                --input_datas_rps
+                #for $data in $cond.using_rps.input_datasets_rps:
+                    ${data.input_rps}
+                #end for
+
+                --names_rps
+                #for $data in $cond.using_rps.input_datasets_rps:
+                    ${data.input_name_rps}
+                #end for
+            #end if
+
+        #elif $cond.type_selector == 'dataset_class':
+
+            --using_RAS $cond.using_ras_all.check
+            --using_RPS $cond.using_rps_all.check
+
+            #if $cond.using_ras_all.check == 'true':
+                --input_data ${cond.using_ras_all.input_data}
+                --input_class ${cond.using_ras_all.input_class}
+            #end if
+
+            #if $cond.using_rps_all.check == 'true':
+                --input_data_rps ${cond.using_rps_all.input_data_rps}
+                --input_class_rps ${cond.using_rps_all.input_class_rps}
+            #end if
+
+        #elif $cond.type_selector == 'user_pvalues':
+            --user_pvalues ${cond.user_pvalues_file}
+            --using_RAS ${cond.using_RAS}
+
+        #end if
+
+        --comparison ${comparis.comparison}
+        #if $comparis.comparison == 'onevsmany'
+            --control '${comparis.controlgroup}'
+        #end if
+
+        --choice_map '${cond_choice_map.choice_map}'
+        #if $cond_choice_map.choice_map == 'Custom':
+            --custom_map ${cond_choice_map.custom_map}
+        #end if
+
+        #if $advanced.choice == 'true':
+            --test ${advanced.test}
+            --pValue ${advanced.pValue}
+            --adjusted ${advanced.adjusted}
+            --fChange ${advanced.fChange}
+            --generate_svg ${advanced.generateSvg}
+            --generate_pdf ${advanced.generatePdf}
+            --net ${advanced.netRPS}
+            --upRegCol '#${advanced.upRegCol}'
+            --downRegCol '#${advanced.downRegCol}'
+        #else
+            --test 'ks'
+            --pValue 0.05
+            --adjusted false
+            --fChange 1.2
+            --generate_svg false
+            --generate_pdf true
+            --net false
+            --upRegCol '#ecac68'
+            --downRegCol '#6495ed'
+        #end if
+    ]]>
 	</command>
 	
 	<inputs>
@@ -110,6 +118,7 @@
 			<param name="type_selector" argument="--option" type="select" label="Input format:">
 				<option value="datasets" selected="true">RAS of group 1 + RAS of group 2 + ... + RAS of group N</option>
 				<option value="dataset_class">RAS of all samples + sample group specification</option>
+				<option value="user_pvalues">Pre-computed enrichment file</option>
 			</param>
 
 			<when value="datasets">
@@ -153,7 +162,16 @@
 						<param name="input_data_rps" argument="--input_data_rps" type="data" format="tabular, csv, tsv" label="RPS of all samples" />
 						<param name="input_class_rps" argument="--input_class_rps" type="data" format="tabular, csv, tsv" label="Sample group specification" />
 					</when>
-			</conditional>
+				</conditional>
+			</when>
+
+			<when value="user_pvalues">
+				<param name="user_pvalues_file" argument="--user_pvalues" type="data" format="tabular, tsv"
+					label="Pre-computed enrichment file"
+					help="TSV file with columns: ids, P_Value, fold change, z-score, average_1, average_2" />
+				<param name="using_RAS" argument="--using_RAS" type="boolean" checked="true"
+					label="Treat as RAS enrichment?"
+					help="If yes, arrow bodies will be styled (RAS mode). If no, arrow heads will be styled (RPS mode)." />
 			</when>
 		</conditional>
 		
@@ -187,7 +205,7 @@
 			</param>
 
 			<when value="true">
-				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates.  Paired T-test and Wilcoxon need the same number of replicates in each group.">
+				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates. Paired T-test and Wilcoxon need the same number of replicates in each group.">
 					<option value="ks" selected="true">Kolmogorov-Smirnov</option>
 					<option value="ttest_p">T-test (paired)</option>
 					<option value="ttest_ind">T-test (unpaired)</option>
@@ -200,9 +218,8 @@
 				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
 				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
 				<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
-				<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions	" />
-				<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions	" />
-			
+				<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions" />
+				<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions" />
 				<param name="netRPS" argument="--net" type="boolean" checked="false" label="Should RPS enrichment use net values?" help="If checked and RPS datasets are present the arrow tips of a reversible arrow will be colored with the net contribution of both directions' RPS values" />
 			</when>
 		</conditional>
@@ -225,12 +242,23 @@ This tool analyzes and visualizes differences in the Reaction Activity Scores (R
 
 Accepted files are: 
     - option 1) two or more RAS datasets, each referring to samples in a given group. The user can specify a label for each group (as e.g. "classA" and "classB");
-    - option 2) one RAS dataset and one group-file specifying the group each sample belongs to.
+    - option 2) one RAS dataset and one group-file specifying the group each sample belongs to;
+    - option 3) a pre-computed enrichment file, already containing p-values, fold changes, z-scores and averages for each reaction.
 
 RAS datasets format: tab-separated text files, reporting the RAS value of each reaction (row) for a given sample (column).
 
 Column header: sample ID.
 Row header: reaction ID. 
+
+Pre-computed enrichment file format: tab-separated text file with the following columns:
+
++----------+---------+-------------+---------+-----------+-----------+
+|   ids    | P_Value | fold change | z-score | average_1 | average_2 |
++==========+=========+=============+=========+===========+===========+
+| r1642    |  0.032  |    0.45     |  1.23   |   0.52    |   0.31    |
++----------+---------+-------------+---------+-----------+-----------+
+| r1643    |  0.071  |   -0.21     | -0.87   |   0.41    |   0.53    |
++----------+---------+-------------+---------+-----------+-----------+
 
 Optional files:
     - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.
@@ -241,11 +269,11 @@ The tool generates:
     - 3) a log file (.txt).
     
 Output options:
-To calculate P-Values and Fold-Changes and to enrich maps, comparisons are performed for each possible pair of groups (default option ‘One vs One’).
+To calculate P-Values and Fold-Changes and to enrich maps, comparisons are performed for each possible pair of groups (default option 'One vs One').
 
 Alternative options are:
-    - comparison of each group vs. the rest of samples (option ‘One vs Rest’)
-    - comparison of each group vs. a control group (option ‘One vs Control). If this option is selected the user must indicate the control group label.
+    - comparison of each group vs. the rest of samples (option 'One vs Rest')
+    - comparison of each group vs. a control group (option 'One vs Control). If this option is selected the user must indicate the control group label.
 
 Output files will be named as classA_vs_classB. Reactions will conventionally be reported as up-regulated (down-regulated) if they are significantly more (less) active in class having label "classA".
 
@@ -320,9 +348,8 @@ Advanced options
 ----------------
 
 Statistical test: the statistical test to use for the analysis based on your data and the amount of replicates. The Kolmogorov-Smirnov test is the default option, but you can choose between T-test (paired), T-test (unpaired), Wilcoxon and Mann-Whitney tests.
-P-Value threshold: the threshold used for significance in the selected test, to verify whether the distributions of RASs over the samples in two sets are significantly different
-
-Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the KS test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map;
+P-Value threshold: the threshold used for significance in the selected test, to verify whether the distributions of RASs over the samples in two sets are significantly different.
+Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the KS test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map.
 
 
 .. class:: infomark
