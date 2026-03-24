@@ -109,6 +109,13 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         nargs = '+', 
         help = 'input names fluxes')
     
+    # Optional: the user can upload their pre-computed values to skip the computation part
+    parser.add_argument(
+    '-up', '--user_fluxes',
+    type=str,
+    default=None,
+    help='Path to user-provided pre-computed flux file (mean or median output from flux_simulation). If provided, dataset loading and ratio computation are skipped.')
+    
     #Output:
     parser.add_argument(
         "-gs", "--generate_svg",
@@ -1046,38 +1053,41 @@ def main(args:List[str] = None) -> None:
     if ARGS.custom_map == 'None':
         ARGS.custom_map = None
 
-    if os.path.isdir(ARGS.output_path) == False: os.makedirs(ARGS.output_path)
+    if not os.path.isdir(ARGS.output_path):
+        os.makedirs(ARGS.output_path)
     
-    core_map :ET.ElementTree = ARGS.choice_map.getMap(
+    core_map: ET.ElementTree = ARGS.choice_map.getMap(
         ARGS.tool_dir,
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
-    # TODO: ^^^ ugly but fine for now, the argument is None if the model isn't custom because no file was given.
-    # getMap will None-check the customPath and panic when the model IS custom but there's no file (good). A cleaner
-    # solution can be derived from my comment in FilePath.fromStrPath
 
-    ids, class_pat = getClassesAndIdsFromDatasets(ARGS.input_datas_fluxes, ARGS.input_data_fluxes, ARGS.input_class_fluxes, ARGS.names_fluxes)
+    if ARGS.user_fluxes:
+        ids, class_pat = getClassesAndIdsFromDatasets(
+            [ARGS.user_fluxes], None, None, ['user_provided'])
+    else:
+        ids, class_pat = getClassesAndIdsFromDatasets(
+            ARGS.input_datas_fluxes, ARGS.input_data_fluxes,
+            ARGS.input_class_fluxes, ARGS.names_fluxes)
 
-    if(ARGS.choice_map == utils.Model.HMRcore):
+    if ARGS.choice_map == utils.Model.HMRcore:
         temp_map = utils.Model.HMRcore_no_legend
         computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
-    elif(ARGS.choice_map == utils.Model.ENGRO2):
+    elif ARGS.choice_map == utils.Model.ENGRO2:
         temp_map = utils.Model.ENGRO2_no_legend
         computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
     else:
         computeEnrichmentMeanMedian(core_map, class_pat, ids, ARGS.color_map)
-
 
     enrichment_results = computeEnrichment(class_pat, ids)
     for i, j, comparisonDict, max_z_score in enrichment_results:
         map_copy = copy.deepcopy(core_map)
         temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j)
         createOutputMaps(i, j, map_copy)
-    
+
     if not ERRORS: return
     utils.logWarning(
         f"The following reaction IDs were mentioned in the dataset but weren't found in the map: {ERRORS}",
         ARGS.out_log)
-    
+
     print('Execution succeded')
 
 ###############################################################################
