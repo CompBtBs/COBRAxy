@@ -101,11 +101,17 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         choices = ['datasets', 'dataset_class'],
         help='dataset or dataset and class')
     
-    # Optional file uploaded by the user with pre-computed values 
+    # Optional file uploaded by the user with pre-computed values for RAS
     parser.add_argument(
-        '-up', '--user_pvalues',
+        '-up', '--user_pvalues_ras',
         type=str,
-        help='Path to user-provided enrichment file (with P_Value, FoldChange, Z_Score, Avg1, Avg2). If provided, no p-value calculation is performed.')
+        help='Path to user-provided RAS enrichment file (with P_Value, fold change, z-score, average_1, average_2)')
+
+    # Optional file uploaded by the user with pre-computed values for RPS
+    parser.add_argument(
+        '-ur', '--user_pvalues_rps',
+        type=str,
+        help='Path to user-provided RPS enrichment file (with P_Value, fold change, z-score, average_1, average_2)')
 
     #RAS:
     parser.add_argument(
@@ -1108,22 +1114,35 @@ def main(args:List[str] = None) -> None:
     columnNames = {}
 
     # If the user wants to use their own pre-computed data
-    if ARGS.user_pvalues:
-        user_data = read_user_enrichment(ARGS.user_pvalues)
-        dataset_name = os.path.splitext(os.path.basename(ARGS.user_pvalues))[0]
-
-        # Guard against empty user_data
-        max_z_score = max((abs(v[2]) for v in user_data.values()), default=1.0)
-
+    if ARGS.user_pvalues_ras or ARGS.user_pvalues_rps:
         map_copy = copy.deepcopy(core_map)
-        temp_thingsInCommon(
-            user_data,
-            map_copy,
-            max_z_score,
-            dataset_name,
-            "user_provided",
-            ras_enrichment=ARGS.using_RAS
-        )
+
+        if ARGS.user_pvalues_ras:
+            ras_user_data = read_user_enrichment(ARGS.user_pvalues_ras)
+            dataset_name = os.path.splitext(os.path.basename(ARGS.user_pvalues_ras))[0]
+            max_z_score_ras = max((abs(v[2]) for v in ras_user_data.values()), default=1.0)
+            temp_thingsInCommon(
+                ras_user_data,
+                map_copy,
+                max_z_score_ras,
+                dataset_name,
+                "user_provided",
+                ras_enrichment=True
+            )
+
+        if ARGS.user_pvalues_rps:
+            rps_user_data = read_user_enrichment(ARGS.user_pvalues_rps)
+            dataset_name = os.path.splitext(os.path.basename(ARGS.user_pvalues_rps))[0]
+            max_z_score_rps = max((abs(v[2]) for v in rps_user_data.values()), default=1.0)
+            temp_thingsInCommon(
+                rps_user_data,
+                map_copy,
+                max_z_score_rps,
+                dataset_name,
+                "user_provided",
+                ras_enrichment=False
+            )
+
         createOutputMaps(dataset_name, "user_provided", map_copy)
 
     else:
