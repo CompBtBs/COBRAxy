@@ -176,6 +176,67 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
         sys.exit('Execution aborted: wrong format of ' + name + '\n')
     return dataset
 
+def read_user_enrichment(file_path: str) -> Dict[str, List[float]]:
+    """
+    Reads a user-provided TSV file containing pre-computed enrichment data and returns
+    it as a dictionary ready to be consumed by the map styling pipeline.
+
+    The file must follow the same column structure as MAREA's enrichment output,
+    with exactly these columns (order-independent):
+
+        ids         : reaction identifiers (e.g. "R_PGI")
+        P_Value     : statistical significance score in [0, 1]
+        fold change : normalized fold change value (finite float, "INF", or "-INF")
+        z-score     : z-score of the difference between the two group means
+        average_1   : mean score of the first group
+        average_2   : mean score of the second group
+
+    Args:
+        file_path (str): path to the TSV enrichment file provided by the user.
+
+    Returns:
+        Dict[str, List[float]]: a dictionary mapping each reaction ID to a list of
+        five values in the following order:
+            [P_Value, fold_change, z_score, average_1, average_2]
+
+    Raises:
+        ValueError: if any of the required columns are missing from the file.
+        ValueError: if a non-numeric value (other than "INF" / "-INF") is found
+            in any numeric column for a given reaction, with the offending
+            reaction ID and original error included in the message.
+    """
+    df = pd.read_csv(file_path, sep="\t")
+
+    required_cols = ["ids", "P_Value", "fold change", "z-score", "average_1", "average_2"]
+    if not all(col in df.columns for col in required_cols):
+        raise ValueError(
+            "User enrichment file must contain the columns:\n"
+            "ids, P_Value, fold change, z-score, average_1, average_2"
+        )
+
+    result = {}
+    for _, row in df.iterrows():
+        rid = str(row["ids"])
+        try:
+            # fold change may be stored as "INF" / "-INF",
+            # so we preserve it as a string in those cases instead of calling float()
+            fc_raw = row["fold change"]
+            fc = fc_raw if fc_raw in ("INF", "-INF") else float(fc_raw)
+
+            result[rid] = [
+                float(row["P_Value"]),
+                fc,
+                float(row["z-score"]),
+                float(row["average_1"]),
+                float(row["average_2"]),
+            ]
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Non-numeric value found for reaction '{rid}': {e}"
+            )
+
+    return result
+
 ############################ dataset name #####################################
 def name_dataset(name_data :str, count :int) -> str:
     """
@@ -1037,16 +1098,6 @@ def save_and_convert(metabMap, map_type, key):
 
 ############################ MAIN #############################################
 def main(args:List[str] = None) -> None:
-    """
-    Initializes everything and sets the program in motion based on the fronted input arguments.
-
-    Returns:
-        None
-    
-    Raises:
-        sys.exit : if a user-provided custom map is in the wrong format (ET.XMLSyntaxError, ET.XMLSchemaParseError)
-    """
-
     global ARGS
     ARGS = process_args(args)
 
@@ -1061,27 +1112,34 @@ def main(args:List[str] = None) -> None:
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
 
     if ARGS.user_fluxes:
-        ids, class_pat = getClassesAndIdsFromDatasets(
-            [ARGS.user_fluxes], None, None, ['user_provided'])
+        # User provides pre-computed enrichment data — skip all processing and just color the map
+        user_data = read_user_enrichment(ARGS.user_fluxes)
+        dataset_name = os.path.splitext(os.path.basename(ARGS.user_fluxes))[0]
+        max_z_score = max((abs(v[2]) for v in user_data.values()), default=1.0)
+        map_copy = copy.deepcopy(core_map)
+        temp_thingsInCommon(user_data, map_copy, max_z_score, dataset_name, "user_provided")
+        createOutputMaps(dataset_name, "user_provided", map_copy)
+
     else:
+        # Normal path 
         ids, class_pat = getClassesAndIdsFromDatasets(
             ARGS.input_datas_fluxes, ARGS.input_data_fluxes,
             ARGS.input_class_fluxes, ARGS.names_fluxes)
 
-    if ARGS.choice_map == utils.Model.HMRcore:
-        temp_map = utils.Model.HMRcore_no_legend
-        computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
-    elif ARGS.choice_map == utils.Model.ENGRO2:
-        temp_map = utils.Model.ENGRO2_no_legend
-        computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
-    else:
-        computeEnrichmentMeanMedian(core_map, class_pat, ids, ARGS.color_map)
+        if ARGS.choice_map == utils.Model.HMRcore:
+            temp_map = utils.Model.HMRcore_no_legend
+            computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
+        elif ARGS.choice_map == utils.Model.ENGRO2:
+            temp_map = utils.Model.ENGRO2_no_legend
+            computeEnrichmentMeanMedian(temp_map.getMap(ARGS.tool_dir), class_pat, ids, ARGS.color_map)
+        else:
+            computeEnrichmentMeanMedian(core_map, class_pat, ids, ARGS.color_map)
 
-    enrichment_results = computeEnrichment(class_pat, ids)
-    for i, j, comparisonDict, max_z_score in enrichment_results:
-        map_copy = copy.deepcopy(core_map)
-        temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j)
-        createOutputMaps(i, j, map_copy)
+        enrichment_results = computeEnrichment(class_pat, ids)
+        for i, j, comparisonDict, max_z_score in enrichment_results:
+            map_copy = copy.deepcopy(core_map)
+            temp_thingsInCommon(comparisonDict, map_copy, max_z_score, i, j)
+            createOutputMaps(i, j, map_copy)
 
     if not ERRORS: return
     utils.logWarning(
