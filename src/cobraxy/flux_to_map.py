@@ -176,6 +176,7 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
         sys.exit('Execution aborted: wrong format of ' + name + '\n')
     return dataset
 
+############################ dataset input - precomputed data ####################################
 def read_user_enrichment(file_path: str) -> Dict[str, List[float]]:
     """
     Reads a user-provided TSV file containing pre-computed enrichment data and returns
