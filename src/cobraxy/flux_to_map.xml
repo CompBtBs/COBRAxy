@@ -20,10 +20,13 @@
       	python $__tool_directory__/flux_to_map.py
 
       	--tool_dir $__tool_directory__
-      	--option $cond.type_selector
-        --out_log $log
+      	--out_log $log
 		--color_map $color_map
-	
+
+		#if $cond.type_selector != 'user_fluxes':
+			--option $cond.type_selector
+		#end if
+
         #if $cond.type_selector == 'datasets':
 
 			--input_datas_fluxes
@@ -38,8 +41,11 @@
 
         #elif $cond.type_selector == 'dataset_class':
 
-			--input_data_fluxes $input_data_fluxes
-			--input_class_fluxes $input_class_fluxes
+			--input_data_fluxes $cond.input_data_fluxes
+			--input_class_fluxes $cond.input_class_fluxes
+
+        #elif $cond.type_selector == 'user_fluxes':
+			--user_fluxes ${cond.user_fluxes_file}
 
         #end if
 
@@ -77,6 +83,7 @@
 			<param name="type_selector" argument="--option" type="select" label="Input format:">
 				<option value="datasets" selected="true">Fluxes of group 1 + Fluxes of group 2 + ... + Fluxes of group N</option>
 				<option value="dataset_class">All fluxes + sample group specification</option>
+				<option value="user_fluxes">Pre-computed enrichment file</option>
 			</param>
 
 			<when value="datasets">
@@ -89,6 +96,12 @@
 			<when value="dataset_class">
 				<param name="input_data_fluxes" argument="--input_data_fluxes" type="data" format="tabular, csv, tsv" label="Input flux data" />
 				<param name="input_class_fluxes" argument="--input_class_fluxes" type="data" format="tabular, csv, tsv" label="Sample group specification" />
+			</when>
+
+			<when value="user_fluxes">
+				<param name="user_fluxes_file" argument="--user_fluxes" type="data" format="tabular, tsv"
+					label="Pre-computed enrichment file"
+					help="TSV file with columns: ids, P_Value, fold change, z-score, average_1, average_2. This is the tabular result produced by a previous FluxToMap run." />
 			</when>
 		</conditional>
 
@@ -106,7 +119,7 @@
 		<conditional name="cond_choice_map">
 			<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
 				<option value="ENGRO2" selected="true">ENGRO2</option>
-				<option value="HMRcore" >HMRcore</option>
+				<option value="HMRcore">HMRcore</option>
 				<option value="Custom">Custom</option>
 			</param>
 
@@ -116,8 +129,8 @@
 		</conditional>
 
 		<param name="color_map" argument="--color_map" type="select" label="Color map:">
-				<option value="viridis" selected="true">Viridis</option>
-				<option value="jet">Jet</option>
+			<option value="viridis" selected="true">Viridis</option>
+			<option value="jet">Jet</option>
 		</param>
 
 		<conditional name="advanced">
@@ -160,7 +173,18 @@ This tool analyzes and visualizes differences in reactions fluxes of groups of s
 
 Accepted files are (Files must have different names): 
     - option 1) two or more fluxes datasets, each referring to samples in a given group. The user can specify a label for each group;
-    - option 2) one fluxes dataset and one group-file specifying the group each sample belongs to (e.g. the accepted group file is thought to be the one returned by the Clustering tool).
+    - option 2) one fluxes dataset and one group-file specifying the group each sample belongs to (e.g. the accepted group file is thought to be the one returned by the Clustering tool);
+    - option 3) a pre-computed enrichment file (tabular result from a previous FluxToMap run), allowing the user to skip all computation and directly color the map.
+
+Pre-computed enrichment file format: tab-separated text file with the following columns, as produced by a previous FluxToMap run:
+
++----------+---------+-------------+---------+-----------+-----------+
+|   ids    | P_Value | fold change | z-score | average_1 | average_2 |
++==========+=========+=============+=========+===========+===========+
+| r1642    |  0.032  |    0.45     |  1.23   |   0.52    |   0.31    |
++----------+---------+-------------+---------+-----------+-----------+
+| r1643    |  0.071  |   -0.21     | -0.87   |   0.41    |   0.53    |
++----------+---------+-------------+---------+-----------+-----------+
 
 Optional files:
     - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.
@@ -172,11 +196,11 @@ The tool generates:
     - A log file (.txt).
 
 Output options:
-	- To calculate P-Values and Fold-Changes and to enrich maps, comparisons are performed for each possible pair of groups (default option ‘One vs One’).
+	- To calculate P-Values and Fold-Changes and to enrich maps, comparisons are performed for each possible pair of groups (default option 'One vs One').
 
 Alternative options are:
-    - comparison of each group vs. the rest of samples (option ‘One vs Rest’)
-    - comparison of each group vs. a control group (option ‘One vs Control). If this option is selected the user must indicate the control group label.
+    - comparison of each group vs. the rest of samples (option 'One vs Rest')
+    - comparison of each group vs. a control group (option 'One vs Control). If this option is selected the user must indicate the control group label.
 
 Output files will be named as classA_vs_classB. Reactions will conventionally be reported as up-regulated (down-regulated) if they are significantly more (less) active in class having label "classA".
 
@@ -257,4 +281,3 @@ Group-file
 	<expand macro="citations" />
 
 </tool>
-

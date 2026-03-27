@@ -96,10 +96,23 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
 
     parser.add_argument(
         '-op', '--option',
-        type = str, 
+        type = str,
+        required = False,
         choices = ['datasets', 'dataset_class'],
         help='dataset or dataset and class')
     
+    # Optional file uploaded by the user with pre-computed values for RAS
+    parser.add_argument(
+        '-up', '--user_pvalues_ras',
+        type=str,
+        help='Path to user-provided RAS enrichment file (with P_Value, fold change, z-score, average_1, average_2)')
+
+    # Optional file uploaded by the user with pre-computed values for RPS
+    parser.add_argument(
+        '-ur', '--user_pvalues_rps',
+        type=str,
+        help='Path to user-provided RPS enrichment file (with P_Value, fold change, z-score, average_1, average_2)')
+
     #RAS:
     parser.add_argument(
         "-ra", "--using_RAS",
@@ -220,6 +233,68 @@ def read_dataset(data :str, name :str) -> pd.DataFrame:
     if len(dataset.columns) < 2:
         sys.exit('Execution aborted: wrong format of ' + name + '\n')
     return dataset
+
+############################ user p-values #####################################
+def read_user_enrichment(file_path: str) -> Dict[str, List[float]]:
+    """
+    Reads a user-provided TSV file containing pre-computed enrichment data and returns
+    it as a dictionary ready to be consumed by the map styling pipeline.
+
+    The file must follow the same column structure as MAREA's enrichment output,
+    with exactly these columns (order-independent):
+
+        ids         : reaction identifiers (e.g. "R_PGI")
+        P_Value     : statistical significance score in [0, 1]
+        fold change : normalized fold change value (finite float, "INF", or "-INF")
+        z-score     : z-score of the difference between the two group means
+        average_1   : mean score of the first group
+        average_2   : mean score of the second group
+
+    Args:
+        file_path (str): path to the TSV enrichment file provided by the user.
+
+    Returns:
+        Dict[str, List[float]]: a dictionary mapping each reaction ID to a list of
+        five values in the following order:
+            [P_Value, fold_change, z_score, average_1, average_2]
+
+    Raises:
+        ValueError: if any of the required columns are missing from the file.
+        ValueError: if a non-numeric value (other than "INF" / "-INF") is found
+            in any numeric column for a given reaction, with the offending
+            reaction ID and original error included in the message.
+    """
+    df = pd.read_csv(file_path, sep="\t")
+
+    required_cols = ["ids", "P_Value", "fold change", "z-score", "average_1", "average_2"]
+    if not all(col in df.columns for col in required_cols):
+        raise ValueError(
+            "User enrichment file must contain the columns:\n"
+            "ids, P_Value, fold change, z-score, average_1, average_2"
+        )
+
+    result = {}
+    for _, row in df.iterrows():
+        rid = str(row["ids"])
+        try:
+            # fold change may be stored as "INF" / "-INF",
+            # so we preserve it as a string in those cases instead of calling float()
+            fc_raw = row["fold change"]
+            fc = fc_raw if fc_raw in ("INF", "-INF") else float(fc_raw)
+
+            result[rid] = [
+                float(row["P_Value"]),
+                fc,
+                float(row["z-score"]),
+                float(row["average_1"]),
+                float(row["average_2"]),
+            ]
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Non-numeric value found for reaction '{rid}': {e}"
+            )
+
+    return result
 
 ############################ map_methods ######################################
 FoldChange = Union[float, int, str] # Union[float, Literal[0, "-INF", "INF"]]
@@ -692,6 +767,7 @@ def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath)
             writer.writerow({ field : data for field, data in zip(fieldNames, row) })
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]]
+
 def temp_thingsInCommon(tmp :OldEnrichedScores, core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
     suffix = "RAS" if ras_enrichment else "RPS"
     writeToCsv(
@@ -1034,57 +1110,90 @@ def main(args:List[str] = None) -> None:
     # Prepare enrichment results containers
     ras_results = []
     rps_results = []
+    netRPS = {}
+    columnNames = {}
 
-    # Compute RAS enrichment if requested
-    if ARGS.using_RAS: 
-        ids_ras, class_pat_ras, _ = getClassesAndIdsFromDatasets(
-            ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
-        ras_results, _ = computeEnrichment(class_pat_ras, ids_ras, fromRAS=True)
- 
-
-    # Compute RPS enrichment if requested
-    if ARGS.using_RPS:
-        ids_rps, class_pat_rps, columnNames = getClassesAndIdsFromDatasets(
-            ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-        
-        rps_results, netRPS = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
-
-    # Organize by comparison pairs
-    comparisons: Dict[Tuple[str, str], Dict[str, Tuple]] = {}
-    for i, j, comparison_data, max_z_score in ras_results:
-        comparisons[(i, j)] = {'ras': (comparison_data, max_z_score), 'rps': None}
-    
-    for i, j, comparison_data, max_z_score,  in rps_results:
-        comparisons.setdefault((i, j), {}).update({'rps': (comparison_data, max_z_score)})
-
-    # For each comparison, create a styled map with RAS bodies and RPS heads
-    for (i, j), res in comparisons.items():
+    # If the user wants to use their own pre-computed data
+    if ARGS.user_pvalues_ras or ARGS.user_pvalues_rps:
         map_copy = copy.deepcopy(core_map)
 
-        # Apply RAS styling to arrow bodies
-        if res.get('ras'):
-            tmp_ras, max_z_ras = res['ras']
-            temp_thingsInCommon(tmp_ras, map_copy, max_z_ras, i, j, ras_enrichment=True)
+        if ARGS.user_pvalues_ras:
+            ras_user_data = read_user_enrichment(ARGS.user_pvalues_ras)
+            dataset_name = os.path.splitext(os.path.basename(ARGS.user_pvalues_ras))[0]
+            max_z_score_ras = max((abs(v[2]) for v in ras_user_data.values()), default=1.0)
+            temp_thingsInCommon(
+                ras_user_data,
+                map_copy,
+                max_z_score_ras,
+                dataset_name,
+                "user_provided",
+                ras_enrichment=True
+            )
 
-        # Apply RPS styling to arrow heads
-        if res.get('rps'):
-            tmp_rps, max_z_rps = res['rps']
+        if ARGS.user_pvalues_rps:
+            rps_user_data = read_user_enrichment(ARGS.user_pvalues_rps)
+            dataset_name = os.path.splitext(os.path.basename(ARGS.user_pvalues_rps))[0]
+            max_z_score_rps = max((abs(v[2]) for v in rps_user_data.values()), default=1.0)
+            temp_thingsInCommon(
+                rps_user_data,
+                map_copy,
+                max_z_score_rps,
+                dataset_name,
+                "user_provided",
+                ras_enrichment=False
+            )
 
-            temp_thingsInCommon(tmp_rps, map_copy, max_z_rps, i, j, ras_enrichment=False)
+        createOutputMaps(dataset_name, "user_provided", map_copy)
 
-        # Output both SVG and PDF/PNG as configured
-        createOutputMaps(i, j, map_copy)
-    
-    # Add net RPS output file
-    if ARGS.net or not ARGS.using_RAS:
-        for datasetName, rows in netRPS.items():
-            writeToCsv(
-                [[reactId, *netValues] for reactId, netValues in rows.items()],
-                columnNames.get(datasetName, ["Reactions"]),
-                utils.FilePath(
-                    "Net_RPS_" + datasetName,
-                    ext = utils.FileFormat.CSV,
-                    prefix = ARGS.output_path))
+    else:
+        # Compute RAS enrichment if requested
+        if ARGS.using_RAS: 
+            ids_ras, class_pat_ras, _ = getClassesAndIdsFromDatasets(
+                ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
+            ras_results, _ = computeEnrichment(class_pat_ras, ids_ras, fromRAS=True)
+        
+        # Compute RPS enrichment if requested
+        if ARGS.using_RPS:
+            ids_rps, class_pat_rps, columnNames = getClassesAndIdsFromDatasets(
+                ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
+            
+            rps_results, netRPS = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
+
+        # Organize by comparison pairs
+        comparisons: Dict[Tuple[str, str], Dict[str, Tuple]] = {}
+        for i, j, comparison_data, max_z_score in ras_results:
+            comparisons[(i, j)] = {'ras': (comparison_data, max_z_score), 'rps': None}
+        
+        for i, j, comparison_data, max_z_score in rps_results:
+            comparisons.setdefault((i, j), {}).update({'rps': (comparison_data, max_z_score)})
+
+        # For each comparison, create a styled map with RAS bodies and RPS heads
+        for (i, j), res in comparisons.items():
+            map_copy = copy.deepcopy(core_map)
+
+            # Apply RAS styling to arrow bodies
+            if res.get('ras'):
+                tmp_ras, max_z_ras = res['ras']
+                temp_thingsInCommon(tmp_ras, map_copy, max_z_ras, i, j, ras_enrichment=True)
+
+            # Apply RPS styling to arrow heads
+            if res.get('rps'):
+                tmp_rps, max_z_rps = res['rps']
+                temp_thingsInCommon(tmp_rps, map_copy, max_z_rps, i, j, ras_enrichment=False)
+
+            # Output both SVG and PDF/PNG as configured
+            createOutputMaps(i, j, map_copy)
+        
+        # Add net RPS output file
+        if (ARGS.net or not ARGS.using_RAS) and ARGS.using_RPS:
+            for datasetName, rows in netRPS.items():
+                writeToCsv(
+                    [[reactId, *netValues] for reactId, netValues in rows.items()],
+                    columnNames.get(datasetName, ["Reactions"]),
+                    utils.FilePath(
+                        "Net_RPS_" + datasetName,
+                        ext = utils.FileFormat.CSV,
+                        prefix = ARGS.output_path))
 
     print('Execution succeeded')
 ###############################################################################
