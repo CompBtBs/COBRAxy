@@ -359,7 +359,7 @@ def fix_style(l :str, col :Optional[str], width :str, dash :str) -> str:
         tmp.append('stroke-dasharray:' + dash)
     return ';'.join(tmp)
 
-def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_z_score :float) -> ET.ElementTree:
+def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, threshold_P_V :float, threshold_F_C :float, max_z_score :float, direct_threshold=False) -> ET.ElementTree:
     """
     Edits the selected SVG map based on the p-value and fold change data (d) and some significance thresholds also passed as inputs.
 
@@ -387,12 +387,18 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                 
                 if math.isnan(p_val) or (isinstance(f_c, float) and math.isnan(f_c)): continue
 
-                if p_val <= threshold_P_V: # p-value is OK
-                    if not isinstance(f_c, str): # FC is finite
-                        if abs(f_c) < ((threshold_F_C - 1) / (abs(threshold_F_C) + 1)): # FC is not OK
+                if p_val <= threshold_P_V:
+                    if not isinstance(f_c, str):
+                        # apply threshold directly or with conversion depending on data source
+                        if direct_threshold:
+                            fc_below_threshold = abs(f_c) < threshold_F_C
+                        else:
+                            fc_below_threshold = abs(f_c) < ((threshold_F_C - 1) / (abs(threshold_F_C) + 1))
+                        
+                        if fc_below_threshold:
                             col = ArrowColor.Invalid
                             width = str(minT)
-                        else: # FC is OK
+                        else:
                             if f_c < 0:
                                 col = ArrowColor.DownRegulated
                             elif f_c > 0:
@@ -401,15 +407,14 @@ def fix_map(d :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTr
                                 min(
                                     max(abs(z_score * maxT) / max_z_score, minT),
                                     maxT))
-                    
-                    else: # FC is infinite
+                    else:
                         if f_c == '-INF':
                             col = ArrowColor.DownRegulated
                         elif f_c == 'INF':
                             col = ArrowColor.UpRegulated
                         width = str(maxT)
                     dash = 'none'
-                else: # p-value is not OK
+                else:
                     dash = '5,5'
                     col = ArrowColor.Invalid
                     width = str(minT)
@@ -578,7 +583,7 @@ INVALID_ARROW       = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
 INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
 TRANSPARENT_ARROW   = Arrow(Arrow.MIN_W, ArrowColor.Transparent) # Who cares how big it is if it's transparent
 
-def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float) -> None:
+def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float, direct_threshold=False) -> None:
     """
     Applies RPS enrichment results to the provided metabolic map.
 
@@ -586,6 +591,11 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
         rpsEnrichmentRes : RPS enrichment results.
         metabMap : the metabolic map to edit.
         maxNumericZScore : biggest finite z-score value found.
+        direct_threshold : if True, the fold-change threshold is applied directly to the
+            values in the file without conversion. This is used when the user uploads
+            pre-computed enrichment data where fold change is already in the normalized
+            range (-1, 1). If False (default), the threshold is converted from the
+            standard fold-change scale using (t-1)/(|t|+1).
     
     Side effects:
         metabMap : mut
@@ -605,7 +615,13 @@ def applyRpsEnrichmentToMap(rpsEnrichmentRes :Dict[str, Union[Tuple[float, FoldC
             INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId)
             continue
 
-        if abs(foldChange) < (ARGS.fChange - 1) / (abs(ARGS.fChange) + 1):
+        # apply threshold directly or with conversion depending on data source
+        if direct_threshold:
+            fc_below_threshold = abs(foldChange) < ARGS.fChange
+        else:
+            fc_below_threshold = abs(foldChange) < (ARGS.fChange - 1) / (abs(ARGS.fChange) + 1)
+
+        if fc_below_threshold:
             INVALID_ARROW.styleReactionElements(metabMap, reactionId)
             continue
         
@@ -768,19 +784,19 @@ def writeToCsv(rows: List[list], fieldNames :List[str], outPath :utils.FilePath)
 
 OldEnrichedScores = Dict[str, List[Union[float, FoldChange]]]
 
-def temp_thingsInCommon(tmp :OldEnrichedScores, core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest", ras_enrichment = True) -> None:
+def temp_thingsInCommon(tmp, core_map, max_z_score, dataset1Name, dataset2Name="rest", ras_enrichment=True, direct_threshold=False):
     suffix = "RAS" if ras_enrichment else "RPS"
     writeToCsv(
-        [ [reactId] + values for reactId, values in tmp.items() ],
+        [[reactId] + values for reactId, values in tmp.items()],
         ["ids", "P_Value", "fold change", "z-score", "average_1", "average_2"],
-        buildOutputPath(dataset1Name, dataset2Name, details = f"Tabular Result ({suffix})", ext = utils.FileFormat.TSV))
+        buildOutputPath(dataset1Name, dataset2Name, details=f"Tabular Result ({suffix})", ext=utils.FileFormat.TSV))
     
     if ras_enrichment:
-        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_z_score)
+        fix_map(tmp, core_map, ARGS.pValue, ARGS.fChange, max_z_score, direct_threshold=direct_threshold)
         return
 
     for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
-    applyRpsEnrichmentToMap(tmp, core_map, max_z_score)
+    applyRpsEnrichmentToMap(tmp, core_map, max_z_score, direct_threshold=direct_threshold) 
 
 def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple[float, float]:
     """
@@ -1127,8 +1143,9 @@ def main(args:List[str] = None) -> None:
                 max_z_score_ras,
                 dataset_name,
                 "user_provided",
-                ras_enrichment=True
-            )
+                ras_enrichment=True,
+                direct_threshold=True
+            )  
 
         if ARGS.user_pvalues_rps:
             rps_user_data = read_user_enrichment(ARGS.user_pvalues_rps)
@@ -1140,8 +1157,9 @@ def main(args:List[str] = None) -> None:
                 max_z_score_rps,
                 dataset_name,
                 "user_provided",
-                ras_enrichment=False
-            )
+                ras_enrichment=False,
+                direct_threshold=True
+            )  
 
         createOutputMaps(dataset_name, "user_provided", map_copy)
 

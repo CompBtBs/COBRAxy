@@ -449,7 +449,7 @@ class Arrow:
 INVALID_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid)
 INSIGNIFICANT_ARROW = Arrow(Arrow.MIN_W, ArrowColor.Invalid, isDashed = True)
 
-def applyFluxesEnrichmentToMap(fluxesEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float) -> None:
+def applyFluxesEnrichmentToMap(fluxesEnrichmentRes :Dict[str, Union[Tuple[float, FoldChange], Tuple[float, FoldChange, float, float]]], metabMap :ET.ElementTree, maxNumericZScore :float, direct_threshold=False) -> None:
     """
     Applies fluxes enrichment results to the provided metabolic map.
 
@@ -473,46 +473,40 @@ def applyFluxesEnrichmentToMap(fluxesEnrichmentRes :Dict[str, Union[Tuple[float,
             continue
 
         if isinstance(foldChange, str): foldChange = float(foldChange)
-        if pValue > ARGS.pValue: # pValue above tresh: dashed arrow
+        if pValue > ARGS.pValue:
             INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId)
-            INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
-
+            INSIGNIFICANT_ARROW.styleReactionElements(metabMap, reactionId, mindReactionDir=False)
             continue
 
-        if abs(foldChange) <  (ARGS.fChange - 1) / (abs(ARGS.fChange) + 1):
-            INVALID_ARROW.styleReactionElements(metabMap, reactionId)
-            INVALID_ARROW.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
+        # apply threshold directly or with conversion depending on data source
+        if direct_threshold:
+            fc_below_threshold = abs(foldChange) < ARGS.fChange
+        else:
+            fc_below_threshold = abs(foldChange) < (ARGS.fChange - 1) / (abs(ARGS.fChange) + 1)
 
+        if fc_below_threshold:
+            INVALID_ARROW.styleReactionElements(metabMap, reactionId)
+            INVALID_ARROW.styleReactionElements(metabMap, reactionId, mindReactionDir=False)
             continue
         
         width = Arrow.MAX_W
         if not math.isinf(z_score):
-            try: 
+            try:
                 width = min(
                     max(abs(z_score * Arrow.MAX_W) / maxNumericZScore, Arrow.MIN_W),
-                    Arrow.MAX_W) 
-
+                    Arrow.MAX_W)
             except ZeroDivisionError: pass
-        # TODO CHECK RV
-        #if not reactionId.endswith("_RV"): # RV stands for reversible reactions
-        #   Arrow(width, ArrowColor.fromFoldChangeSign(foldChange)).styleReactionElements(metabMap, reactionId)
-        #   continue
-        
-        #reactionId = reactionId[:-3] # Remove "_RV"
-        
-        inversionScore = (values[3] < 0) + (values[4] < 0) # Compacts the signs of averages into 1 easy to check score
+
+        inversionScore = (values[3] < 0) + (values[4] < 0)
         if inversionScore == 2: foldChange *= -1
-        # ^^^ Style the inverse direction with the opposite sign netValue
         
-        # If the score is 1 (opposite signs) we use alternative colors vvv
-        arrow = Arrow(width, ArrowColor.fromFoldChangeSign(foldChange, useAltColor = inversionScore == 1))
+        arrow = Arrow(width, ArrowColor.fromFoldChangeSign(foldChange, useAltColor=inversionScore == 1))
         
-        # vvv These 2 if statements can both be true and can both happen
-        if ARGS.net: # style arrow head(s):
+        if ARGS.net:
             arrow.styleReactionElements(metabMap, reactionId + ("_B" if inversionScore == 2 else "_F"))
             arrow.applyTo(("F_" if inversionScore == 2 else "B_") + reactionId, metabMap, f";stroke:{ArrowColor.Transparent};stroke-width:0;stroke-dasharray:None")
 
-        arrow.styleReactionElements(metabMap, reactionId, mindReactionDir = False)
+        arrow.styleReactionElements(metabMap, reactionId, mindReactionDir=False)
 
 
 ############################ split class ######################################
@@ -668,12 +662,12 @@ def writeTabularResult(enrichedScores : OldEnrichedScores, outPath :utils.FilePa
 
     writeToCsv([ [reactId] + values for reactId, values in enrichedScores.items() ], fieldNames, outPath)
 
-def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest") -> None:
+def temp_thingsInCommon(tmp :Dict[str, List[Union[float, FoldChange]]], core_map :ET.ElementTree, max_z_score :float, dataset1Name :str, dataset2Name = "rest", direct_threshold=False) -> None:
     # this function compiles the things always in common between comparison modes after enrichment.
     # TODO: organize, name better.
-    writeTabularResult(tmp, buildOutputPath(dataset1Name, dataset2Name, details = "Tabular Result", ext = utils.FileFormat.TSV))
+    writeTabularResult(tmp, buildOutputPath(dataset1Name, dataset2Name, details="Tabular Result", ext=utils.FileFormat.TSV))
     for reactId, enrichData in tmp.items(): tmp[reactId] = tuple(enrichData)
-    applyFluxesEnrichmentToMap(tmp, core_map, max_z_score)
+    applyFluxesEnrichmentToMap(tmp, core_map, max_z_score, direct_threshold=direct_threshold)
 
 def computePValue(dataset1Data: List[float], dataset2Data: List[float]) -> Tuple[float, float]:
     """
@@ -1113,12 +1107,19 @@ def main(args:List[str] = None) -> None:
         utils.FilePath.fromStrPath(ARGS.custom_map) if ARGS.custom_map else None)
 
     if ARGS.user_fluxes:
-        # User provides pre-computed enrichment data — skip all processing and just color the map
+        # If the user want to use their own precomputed data
         user_data = read_user_enrichment(ARGS.user_fluxes)
         dataset_name = os.path.splitext(os.path.basename(ARGS.user_fluxes))[0]
         max_z_score = max((abs(v[2]) for v in user_data.values()), default=1.0)
         map_copy = copy.deepcopy(core_map)
-        temp_thingsInCommon(user_data, map_copy, max_z_score, dataset_name, "user_provided")
+        temp_thingsInCommon(
+            user_data,
+            map_copy,
+            max_z_score,
+            dataset_name,
+            "user_provided",
+            direct_threshold=True  # threshold applied directly, no conversion
+        )
         createOutputMaps(dataset_name, "user_provided", map_copy)
 
     else:

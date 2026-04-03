@@ -58,6 +58,33 @@
 				#end for
 			#end if
 
+			--comparison ${cond.comparis.comparison}
+			#if $cond.comparis.comparison == 'onevsmany'
+				--control '${cond.comparis.controlgroup}'
+			#end if
+
+			#if $cond.advanced.choice == 'true':
+				--test ${cond.advanced.test}
+				--pValue ${cond.advanced.pValue}
+				--adjusted ${cond.advanced.adjusted}
+				--fChange ${cond.advanced.fChange}
+				--generate_svg ${cond.advanced.generateSvg}
+				--generate_pdf ${cond.advanced.generatePdf}
+				--net ${cond.advanced.netRPS}
+				--upRegCol '#${cond.advanced.upRegCol}'
+				--downRegCol '#${cond.advanced.downRegCol}'
+			#else
+				--test 'ks'
+				--pValue 0.05
+				--adjusted false
+				--fChange 1.2
+				--generate_svg false
+				--generate_pdf true
+				--net false
+				--upRegCol '#ecac68'
+				--downRegCol '#6495ed'
+			#end if
+
 		#elif $cond.type_selector == 'dataset_class':
 
 			--using_RAS $cond.using_ras_all.check
@@ -73,6 +100,33 @@
 				--input_class_rps ${cond.using_rps_all.input_class_rps}
 			#end if
 
+			--comparison ${cond.comparis.comparison}
+			#if $cond.comparis.comparison == 'onevsmany'
+				--control '${cond.comparis.controlgroup}'
+			#end if
+
+			#if $cond.advanced.choice == 'true':
+				--test ${cond.advanced.test}
+				--pValue ${cond.advanced.pValue}
+				--adjusted ${cond.advanced.adjusted}
+				--fChange ${cond.advanced.fChange}
+				--generate_svg ${cond.advanced.generateSvg}
+				--generate_pdf ${cond.advanced.generatePdf}
+				--net ${cond.advanced.netRPS}
+				--upRegCol '#${cond.advanced.upRegCol}'
+				--downRegCol '#${cond.advanced.downRegCol}'
+			#else
+				--test 'ks'
+				--pValue 0.05
+				--adjusted false
+				--fChange 1.2
+				--generate_svg false
+				--generate_pdf true
+				--net false
+				--upRegCol '#ecac68'
+				--downRegCol '#6495ed'
+			#end if
+
 		#elif $cond.type_selector == 'user_pvalues':
 			#if $cond.using_ras_user.check == 'true':
 				--user_pvalues_ras ${cond.using_ras_user.user_pvalues_ras_file}
@@ -80,39 +134,21 @@
 			#if $cond.using_rps_user.check == 'true':
 				--user_pvalues_rps ${cond.using_rps_user.user_pvalues_rps_file}
 			#end if
+			--generate_svg ${cond.generateSvg}
+			--generate_pdf ${cond.generatePdf}
+			--pValue ${cond.pValue}
+			--fChange ${cond.fChange}
+			--test 'ks'
+			--adjusted false
+			--net false
+			--upRegCol '#ecac68'
+			--downRegCol '#6495ed'
 
-		#end if
-
-		--comparison ${comparis.comparison}
-		#if $comparis.comparison == 'onevsmany'
-			--control '${comparis.controlgroup}'
 		#end if
 
 		--choice_map '${cond_choice_map.choice_map}'
 		#if $cond_choice_map.choice_map == 'Custom':
 			--custom_map ${cond_choice_map.custom_map}
-		#end if
-
-		#if $advanced.choice == 'true':
-			--test ${advanced.test}
-			--pValue ${advanced.pValue}
-			--adjusted ${advanced.adjusted}
-			--fChange ${advanced.fChange}
-			--generate_svg ${advanced.generateSvg}
-			--generate_pdf ${advanced.generatePdf}
-			--net ${advanced.netRPS}
-			--upRegCol '#${advanced.upRegCol}'
-			--downRegCol '#${advanced.downRegCol}'
-		#else
-			--test 'ks'
-			--pValue 0.05
-			--adjusted false
-			--fChange 1.2
-			--generate_svg false
-			--generate_pdf true
-			--net false
-			--upRegCol '#ecac68'
-			--downRegCol '#6495ed'
 		#end if
 	]]>
 	</command>
@@ -145,6 +181,42 @@
 						</repeat>
 					</when>
 				</conditional>
+
+				<conditional name="comparis">
+					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
+						<option value="manyvsmany" selected="true">One vs One</option>
+						<option value="onevsrest">One vs All</option>
+						<option value="onevsmany">One vs Control</option>
+					</param>
+					<when value="onevsmany">
+						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					</when>
+				</conditional>
+
+				<conditional name="advanced">
+					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+						<option value="true" selected="true">No</option>
+						<option value="false">Yes</option>
+					</param>
+					<when value="true">
+						<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates. Paired T-test and Wilcoxon need the same number of replicates in each group.">
+							<option value="ks" selected="true">Kolmogorov-Smirnov</option>
+							<option value="ttest_p">T-test (paired)</option>
+							<option value="ttest_ind">T-test (unpaired)</option>
+							<option value="wilcoxon">Wilcoxon</option>
+							<option value="mw">Mann-Whitney</option>
+							<option value="DESeq">DESeq2-like statistical test (requires at least 2 replicates per sample, to use ONLY with RAS)</option>
+						</param>
+						<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
+						<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
+						<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
+						<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
+						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+						<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions" />
+						<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions" />
+						<param name="netRPS" argument="--net" type="boolean" checked="false" label="Should RPS enrichment use net values?" help="If checked and RPS datasets are present the arrow tips of a reversible arrow will be colored with the net contribution of both directions' RPS values" />
+					</when>
+				</conditional>
 			</when>
 
 			<when value="dataset_class">
@@ -164,6 +236,42 @@
 						<param name="input_class_rps" argument="--input_class_rps" type="data" format="tabular, csv, tsv" label="Sample group specification" />
 					</when>
 					<when value="false" />
+				</conditional>
+
+				<conditional name="comparis">
+					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
+						<option value="manyvsmany" selected="true">One vs One</option>
+						<option value="onevsrest">One vs All</option>
+						<option value="onevsmany">One vs Control</option>
+					</param>
+					<when value="onevsmany">
+						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					</when>
+				</conditional>
+
+				<conditional name="advanced">
+					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
+						<option value="true" selected="true">No</option>
+						<option value="false">Yes</option>
+					</param>
+					<when value="true">
+						<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates. Paired T-test and Wilcoxon need the same number of replicates in each group.">
+							<option value="ks" selected="true">Kolmogorov-Smirnov</option>
+							<option value="ttest_p">T-test (paired)</option>
+							<option value="ttest_ind">T-test (unpaired)</option>
+							<option value="wilcoxon">Wilcoxon</option>
+							<option value="mw">Mann-Whitney</option>
+							<option value="DESeq">DESeq2-like statistical test (requires at least 2 replicates per sample, to use ONLY with RAS)</option>
+						</param>
+						<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
+						<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
+						<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
+						<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
+						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+						<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions" />
+						<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions" />
+						<param name="netRPS" argument="--net" type="boolean" checked="false" label="Should RPS enrichment use net values?" help="If checked and RPS datasets are present the arrow tips of a reversible arrow will be colored with the net contribution of both directions' RPS values" />
+					</when>
 				</conditional>
 			</when>
 
@@ -189,20 +297,18 @@
 					</when>
 					<when value="false" />
 				</conditional>
+
+				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0"
+					label="P-value threshold:"
+					help="Reactions with P-value above this threshold will be shown as dashed grey arrows." />
+				<param name="fChange" argument="--fChange" type="float" size="20" value="0.2" min="0" max="1"
+					label="Fold-change threshold (direct filter):"
+					help="Applied directly to the 'fold change' column in your file. Must be in the range (0, 1) since the fold change values are already normalized as (avg1 - avg2) / (|avg1| + |avg2|). Reactions with |fold change| below this value will be shown as grey arrows." />
+				<param name="generateSvg" argument="--generate_svg" type="boolean" checked="false" label="Generate SVG map" help="Should the program generate an editable SVG map?" />
+				<param name="generatePdf" argument="--generate_pdf" type="boolean" checked="true" label="Generate PDF map" help="Should the program return a non editable PDF map?" />
 			</when>
 		</conditional>
-		
-		<conditional name="comparis">
-			<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
-				<option value="manyvsmany" selected="true">One vs One</option>
-				<option value="onevsrest">One vs All</option>
-				<option value="onevsmany">One vs Control</option>
-			</param>
-			<when value="onevsmany">
-				<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
-			</when>
-		</conditional>
-		
+
 		<conditional name="cond_choice_map">
 			<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
 				<option value="ENGRO2" selected="true">ENGRO2</option>
@@ -211,31 +317,6 @@
 			</param>
 			<when value="Custom">				
 				<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
-			</when>
-		</conditional>
-		
-		<conditional name="advanced">
-			<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold, how to solve (A and NaN) and specify output maps.">
-				<option value="true" selected="true">No</option>
-				<option value="false">Yes</option>
-			</param>
-			<when value="true">
-				<param name="test" argument="--test" type="select" label="Statistical test to use:" help="Select the statistical test to use for the analysis based on your data and the amount of replicates. Paired T-test and Wilcoxon need the same number of replicates in each group.">
-					<option value="ks" selected="true">Kolmogorov-Smirnov</option>
-					<option value="ttest_p">T-test (paired)</option>
-					<option value="ttest_ind">T-test (unpaired)</option>
-					<option value="wilcoxon">Wilcoxon</option>
-					<option value="mw">Mann-Whitney</option>
-					<option value="DESeq">DESeq2-like statistical test (requires at least 2 replicates per sample, to use ONLY with RAS)</option>
-				</param>
-				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
-				<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
-				<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
-				<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
-				<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
-				<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions" />
-				<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions" />
-				<param name="netRPS" argument="--net" type="boolean" checked="false" label="Should RPS enrichment use net values?" help="If checked and RPS datasets are present the arrow tips of a reversible arrow will be colored with the net contribution of both directions' RPS values" />
 			</when>
 		</conditional>
 	</inputs>
@@ -263,17 +344,7 @@ Accepted files are:
 RAS datasets format: tab-separated text files, reporting the RAS value of each reaction (row) for a given sample (column).
 
 Column header: sample ID.
-Row header: reaction ID. 
-
-Pre-computed enrichment file format: tab-separated text file with the following columns:
-
-+----------+---------+-------------+---------+-----------+-----------+
-|   ids    | P_Value | fold change | z-score | average_1 | average_2 |
-+==========+=========+=============+=========+===========+===========+
-| r1642    |  0.032  |    0.45     |  1.23   |   0.52    |   0.31    |
-+----------+---------+-------------+---------+-----------+-----------+
-| r1643    |  0.071  |   -0.21     | -0.87   |   0.41    |   0.53    |
-+----------+---------+-------------+---------+-----------+-----------+
+Row header: reaction ID.
 
 Optional files:
     - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.
@@ -364,7 +435,38 @@ Advanced options
 
 Statistical test: the statistical test to use for the analysis based on your data and the amount of replicates. The Kolmogorov-Smirnov test is the default option, but you can choose between T-test (paired), T-test (unpaired), Wilcoxon and Mann-Whitney tests.
 P-Value threshold: the threshold used for significance in the selected test, to verify whether the distributions of RASs over the samples in two sets are significantly different.
-Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the KS test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map.
+Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the p-value test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map.
+
+Pre-computed enrichment file - column description
+--------------------------------------------------
+
+When uploading a pre-computed enrichment file (option 3), the file must contain the following columns:
+
++----------+---------+-------------+---------+-----------+-----------+
+|   ids    | P_Value | fold change | z-score | average_1 | average_2 |
++==========+=========+=============+=========+===========+===========+
+| r1642    |  0.032  |    0.45     |  1.23   |   0.52    |   0.31    |
++----------+---------+-------------+---------+-----------+-----------+
+| r1643    |  0.071  |   -0.21     | -0.87   |   0.41    |   0.53    |
++----------+---------+-------------+---------+-----------+-----------+
+
+**ids**: reaction identifier as encoded in the metabolic map (e.g. "GPI", "TALDO1"). Must match the IDs present in the selected map exactly.
+
+**P_Value**: statistical significance score in the range [0, 1]. Reactions with a P-value above the threshold will be shown as dashed grey arrows on the map.
+
+**fold change**: normalized fold change in the range (-1, 1), computed as::
+
+    (average_1 - average_2) / (|average_1| + |average_2|)
+
+Use "INF" when average_2 is 0 and average_1 is non-zero, and "-INF" when average_1 is 0 and average_2 is non-zero.
+
+**IMPORTANT**: this is NOT a traditional ratio-based fold change (e.g. avg1/avg2). The values must follow the normalized formula above. The fold-change threshold you set in the tool is applied directly to these normalized values using the same internal conversion used during normal computation.
+
+**z-score**: z-score of the difference between the two group means, used to scale the width of the arrows on the map. Higher absolute z-scores result in thicker arrows.
+
+**average_1**: mean RAS score of the first group or condition being compared. Used together with average_2 to determine the direction of regulation (up or down) and to handle the special INF/-INF fold change cases.
+
+**average_2**: mean RAS score of the second group or condition being compared.
 
 
 .. class:: infomark
