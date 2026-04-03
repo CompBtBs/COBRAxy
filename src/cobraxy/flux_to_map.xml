@@ -341,7 +341,27 @@ Group-file
 Pre-computed enrichment file - column description
 --------------------------------------------------
 
-When uploading a pre-computed enrichment file (option 3), the file must contain the following columns:
+When uploading a pre-computed enrichment file the tool skips all
+dataset loading and statistical computation entirely. The values in the file
+are used directly to style the metabolic map.
+
+**The only controls available to the user are the two filtering thresholds:**
+
+- **P-value threshold**: reactions with a P-value above this threshold are
+  shown as dashed grey arrows (not significant), regardless of their fold
+  change. The value is applied directly to the ``P_Value`` column in your
+  file.
+
+- **Fold-change threshold**: reactions with ``|fold change|`` below this
+  threshold are shown as solid grey arrows (below threshold). The value is
+  applied directly to the ``fold change`` column in your file. Since fold
+  change values in this file must already be in the normalized range (-1, 1),
+  the threshold you provide must also be in that range (e.g. 0.2 means only
+  reactions with |fold change| >= 0.2 will be coloured). This is NOT the
+  same as the standard fold-change threshold used in normal computation mode
+  (where the user provides a value >= 1 that is internally converted).
+
+The file must be tab-separated and contain exactly these columns:
 
 +----------+---------+-------------+---------+-----------+-----------+
 |   ids    | P_Value | fold change | z-score | average_1 | average_2 |
@@ -353,19 +373,9 @@ When uploading a pre-computed enrichment file (option 3), the file must contain 
 
 **ids**: reaction identifier as encoded in the metabolic map (e.g. "GPI", "TALDO1"). Must match the IDs present in the selected map exactly.
 
-**P_Value**: statistical significance score in the range [0, 1]. Reactions with a P-value above the threshold will be shown as dashed grey arrows on the map.
-
-**fold change**: normalized fold change in the range (-1, 1), computed as::
-
-    (average_1 - average_2) / (|average_1| + |average_2|)
-
-Use "INF" when average_2 is 0 and average_1 is non-zero, and "-INF" when average_1 is 0 and average_2 is non-zero.
-
-**IMPORTANT**: this is NOT a traditional ratio-based fold change (e.g. avg1/avg2). The values must follow the normalized formula above. When uploading pre-computed data, the fold-change threshold you set is applied DIRECTLY to these values without any conversion. For example, setting a threshold of 0.2 means only reactions with |fold change| >= 0.2 will be colored on the map. This is different from the normal computation mode, where the threshold is expressed on the standard fold-change scale (e.g. 1.5) and converted internally.
-
 **z-score**: z-score of the difference between the two group means, used to scale the width of the arrows on the map. Higher absolute z-scores result in thicker arrows.
 
-**average_1**: mean flux value of the first group or condition being compared. This is the mean across all samples belonging to the first group for a given reaction. Used together with average_2 to determine the direction of regulation (up or down) and to handle the special INF/-INF fold change cases where one of the two averages is zero.
+**average_1**: mean flux value of the first group or condition being compared. This is the mean across all samples belonging to the first group for a given reaction. 
 
 **average_2**: mean flux value of the second group or condition being compared. This is the mean across all samples belonging to the second group for a given reaction. A reaction is considered up-regulated when average_1 > average_2 and down-regulated when average_1 < average_2.
 
