@@ -203,21 +203,15 @@
 				<param name="user_fluxes_file" argument="--user_fluxes" type="data" format="tabular, tsv"
 					label="Pre-computed enrichment file"
 					help="TSV file with columns: ids, P_Value, fold change, z-score, average_1, average_2. This is the tabular result produced by a previous FluxToMap run." />
-				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0"
+				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05"
 					label="Maximum P-value to display:"
-					help="Reactions with P-value above this threshold will be shown as dashed grey arrows.
-						The value is applied directly to the P_Value column in the file." />
-				<param name="fChange" argument="--fChange" type="float" size="20" value="0.2" min="0" max="1"
-					label="Minimum |fold change| to display (normalized, range 0–1):"
-					help="This threshold is applied DIRECTLY to the 'fold change' values in the file,
-						which must be in the normalized range (-1, 1) computed as
-						(avg1 - avg2) / (|avg1| + |avg2|). Reactions with |fold change| below this
-						value will be shown as grey (non-significant) arrows.
-						This is NOT a standard ratio-based fold change threshold." />
+					help="Reactions with P-value above this threshold will be shown as dashed grey arrows." />
+				<param name="fChange" argument="--fChange" type="float" size="20" value="0.2"
+					label="Minimum |fold change| to display:"
+    				help="Applied directly to the 'fold change' column. Match the scale of your file." />
 				<param name="generateSvg" argument="--generate_svg" type="boolean" checked="false" label="Generate SVG map" help="Should the program generate an editable SVG map?" />
 				<param name="generatePdf" argument="--generate_pdf" type="boolean" checked="true" label="Generate PDF map" help="Should the program return a non editable PDF map?" />
 			</when>
-
 		</conditional>
 
 		<conditional name="cond_choice_map">
@@ -230,7 +224,6 @@
 				<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
 			</when>
 		</conditional>
-
 	</inputs>
 
 	<outputs>
@@ -338,9 +331,8 @@ Group-file
 | TCGAA62672    |    MSI    |
 +---------------+-----------+
 
-Pre-computed enrichment file - column description
---------------------------------------------------
-
+Pre-computed enrichment file
+----------------------------
 When uploading a pre-computed enrichment file the tool skips all
 dataset loading and statistical computation entirely. The values in the file
 are used directly to style the metabolic map.
@@ -354,12 +346,7 @@ are used directly to style the metabolic map.
 
 - **Fold-change threshold**: reactions with ``|fold change|`` below this
   threshold are shown as solid grey arrows (below threshold). The value is
-  applied directly to the ``fold change`` column in your file. Since fold
-  change values in this file must already be in the normalized range (-1, 1),
-  the threshold you provide must also be in that range (e.g. 0.2 means only
-  reactions with |fold change| >= 0.2 will be coloured). This is NOT the
-  same as the standard fold-change threshold used in normal computation mode
-  (where the user provides a value >= 1 that is internally converted).
+  applied directly to the ``fold change`` column in your file.
 
 The file must be tab-separated and contain exactly these columns:
 
@@ -378,7 +365,6 @@ The file must be tab-separated and contain exactly these columns:
 **average_1**: mean flux value of the first group or condition being compared. This is the mean across all samples belonging to the first group for a given reaction. 
 
 **average_2**: mean flux value of the second group or condition being compared. This is the mean across all samples belonging to the second group for a given reaction. A reaction is considered up-regulated when average_1 > average_2 and down-regulated when average_1 < average_2.
-
 
 **TIP**: If the user provides just one dataset for analysis:
 		-Use the Cluster Analysis tool to assign group labels when no prior division information is available

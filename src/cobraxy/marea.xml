@@ -298,12 +298,12 @@
 					<when value="false" />
 				</conditional>
 
-				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0"
+				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" 
 					label="P-value threshold:"
 					help="Reactions with P-value above this threshold will be shown as dashed grey arrows." />
-				<param name="fChange" argument="--fChange" type="float" size="20" value="0.2" min="0" max="1"
+				<param name="fChange" argument="--fChange" type="float" size="20" value="0.2"
 					label="Fold-change threshold (direct filter):"
-					help="Applied directly to the 'fold change' column in your file. Must be in the range (0, 1) since the fold change values are already normalized as (avg1 - avg2) / (|avg1| + |avg2|). Reactions with |fold change| below this value will be shown as grey arrows." />
+					help="Applied directly to the 'fold change' column in your file." />
 				<param name="generateSvg" argument="--generate_svg" type="boolean" checked="false" label="Generate SVG map" help="Should the program generate an editable SVG map?" />
 				<param name="generatePdf" argument="--generate_pdf" type="boolean" checked="true" label="Generate PDF map" help="Should the program return a non editable PDF map?" />
 			</when>
@@ -437,12 +437,8 @@ Statistical test: the statistical test to use for the analysis based on your dat
 P-Value threshold: the threshold used for significance in the selected test, to verify whether the distributions of RASs over the samples in two sets are significantly different.
 Fold-Change threshold: threshold of the fold-change between the average RAS of two groups. Among the reactions that pass the p-value test, only fold-change values larger than the indicated threshold will be visualized on the output metabolic map.
 
-Pre-computed enrichment file - column description
---------------------------------------------------
-
 Pre-computed enrichment file
 ----------------------------
-
 When uploading one or both pre-computed enrichment files the tool
 skips all dataset loading and statistical computation entirely. The values in
 the file are used directly to style the metabolic map.
@@ -456,12 +452,7 @@ the file are used directly to style the metabolic map.
 
 - **Fold-change threshold**: reactions with ``|fold change|`` below this
   threshold are shown as solid grey arrows (below threshold). The value is
-  applied directly to the ``fold change`` column in your file. Since fold
-  change values in this file must already be in the normalized range (-1, 1),
-  the threshold must also be in that range (e.g. 0.2 means only reactions
-  with |fold change| >= 0.2 will be coloured). This differs from normal
-  computation mode, where the threshold is expressed on the standard
-  fold-change scale (>= 1) and converted internally.
+  applied directly to the ``fold change`` column in your file.
 
 Both RAS and RPS enrichment files follow the same format. If both are
 provided, RAS styling is applied to arrow bodies and RPS styling to arrow
