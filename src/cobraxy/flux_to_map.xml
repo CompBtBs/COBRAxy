@@ -1,0 +1,377 @@
+<tool id="FluxToMap" name="Metabolic Flux Enrichment Analysis" version="2.0.0">
+	<macros>
+		<import>marea_macros.xml</import>
+	</macros>
+	
+	<requirements>
+		<requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2.0.3">pandas</requirement>
+		<requirement type="package" version="0.13.0">seaborn</requirement>
+        <requirement type="package" version="1.11">scipy</requirement>
+		<requirement type="package" version="1.5.1">svglib</requirement>
+		<requirement type="package" version="2.2.3">pyvips</requirement>
+		<requirement type="package" version="2.7.1">cairosvg</requirement>
+		<requirement type="package" version="0.29.0">cobra</requirement>
+		<requirement type="package" version="5.2.2">lxml</requirement>
+	</requirements>
+	
+	<command detect_errors="exit_code">
+	<![CDATA[
+		python $__tool_directory__/flux_to_map.py
+
+		--tool_dir $__tool_directory__
+		--out_log $log
+
+		#if $cond.type_selector != 'user_fluxes':
+			--option $cond.type_selector
+			--color_map $cond.color_map
+		#end if
+
+		#if $cond.type_selector == 'datasets':
+
+			--input_datas_fluxes
+			#for $data in $cond.input_datasets_fluxes:
+				${data.input_fluxes}
+			#end for
+
+			--names_fluxes
+			#for $data in $cond.input_datasets_fluxes:
+				${data.input_name_fluxes}
+			#end for
+
+			--comparison ${cond.comparis.comparison}
+			#if $cond.comparis.comparison == 'onevsmany'
+				--control '${cond.comparis.controlgroup}'
+			#end if
+
+			#if $cond.advanced.choice == 'true':
+				--test ${cond.advanced.test}
+				--pValue ${cond.advanced.pValue}
+				--adjusted ${cond.advanced.adjusted}
+				--fChange ${cond.advanced.fChange}
+				--generate_svg ${cond.advanced.generateSvg}
+				--generate_pdf ${cond.advanced.generatePdf}
+			#else
+				--test 'ks'
+				--pValue 0.05
+				--adjusted false
+				--fChange 1.2
+				--generate_svg false
+				--generate_pdf true
+			#end if
+
+		#elif $cond.type_selector == 'dataset_class':
+
+			--input_data_fluxes $cond.input_data_fluxes
+			--input_class_fluxes $cond.input_class_fluxes
+
+			--comparison ${cond.comparis.comparison}
+			#if $cond.comparis.comparison == 'onevsmany'
+				--control '${cond.comparis.controlgroup}'
+			#end if
+
+			#if $cond.advanced.choice == 'true':
+				--test ${cond.advanced.test}
+				--pValue ${cond.advanced.pValue}
+				--adjusted ${cond.advanced.adjusted}
+				--fChange ${cond.advanced.fChange}
+				--generate_svg ${cond.advanced.generateSvg}
+				--generate_pdf ${cond.advanced.generatePdf}
+			#else
+				--test 'ks'
+				--pValue 0.05
+				--adjusted false
+				--fChange 1.2
+				--generate_svg false
+				--generate_pdf true
+			#end if
+
+		#elif $cond.type_selector == 'user_fluxes':
+			--user_fluxes ${cond.user_fluxes_file}
+			--generate_svg ${cond.generateSvg}
+			--generate_pdf ${cond.generatePdf}
+			--pValue ${cond.pValue}
+			--fChange ${cond.fChange}
+			--test 'ks'
+			--adjusted false
+
+		#end if
+
+		--choice_map '${cond_choice_map.choice_map}'
+		#if $cond_choice_map.choice_map == 'Custom':
+			--custom_map ${cond_choice_map.custom_map}
+		#end if
+	]]>
+	</command>
+
+	<inputs>
+
+		<conditional name="cond">
+			<param name="type_selector" argument="--option" type="select" label="Input format:">
+				<option value="datasets" selected="true">Fluxes of group 1 + Fluxes of group 2 + ... + Fluxes of group N</option>
+				<option value="dataset_class">All fluxes + sample group specification</option>
+				<option value="user_fluxes">Pre-computed enrichment file</option>
+			</param>
+
+			<when value="datasets">
+				<repeat name="input_datasets_fluxes" title="Fluxes dataset" min="2">
+					<param name="input_fluxes" argument="--input_datas_fluxes" type="data" format="tabular, csv, tsv" label="add dataset" />
+					<param name="input_name_fluxes" argument="--names_fluxes" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
+				</repeat>
+
+				<conditional name="comparis">
+					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
+						<option value="manyvsmany" selected="true">One vs One</option>
+						<option value="onevsrest">One vs All</option>
+						<option value="onevsmany">One vs Control</option>
+					</param>
+					<when value="onevsmany">
+						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					</when>
+				</conditional>
+
+				<param name="color_map" argument="--color_map" type="select" label="Color map:">
+					<option value="viridis" selected="true">Viridis</option>
+					<option value="jet">Jet</option>
+				</param>
+
+				<conditional name="advanced">
+					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold and specify output maps.">
+						<option value="true" selected="true">No</option>
+						<option value="false">Yes</option>
+					</param>
+					<when value="true">
+						<param name="test" argument="--test" type="select" label="Statistical test to use" help="Select the statistical test to use for the analysis based on your data and the amount of replicates. Paired T-test and Wilcoxon need the same number of replicates in each group.">
+							<option value="ks" selected="true">Kolmogorov-Smirnov</option>
+							<option value="ttest_p">T-test (paired)</option>
+							<option value="ttest_ind">T-test (unpaired)</option>
+							<option value="wilcoxon">Wilcoxon</option>
+							<option value="mw">Mann-Whitney</option>
+						</param>
+						<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
+						<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
+						<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
+						<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
+						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+					</when>
+				</conditional>
+			</when>
+
+			<when value="dataset_class">
+				<param name="input_data_fluxes" argument="--input_data_fluxes" type="data" format="tabular, csv, tsv" label="Input flux data" />
+				<param name="input_class_fluxes" argument="--input_class_fluxes" type="data" format="tabular, csv, tsv" label="Sample group specification" />
+
+				<conditional name="comparis">
+					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
+						<option value="manyvsmany" selected="true">One vs One</option>
+						<option value="onevsrest">One vs All</option>
+						<option value="onevsmany">One vs Control</option>
+					</param>
+					<when value="onevsmany">
+						<param name="controlgroup" argument="--controlgroup" type="text" label="Control group label:" value="0" help="Name of group label to be compared to others"/>
+					</when>
+				</conditional>
+
+				<param name="color_map" argument="--color_map" type="select" label="Color map:">
+					<option value="viridis" selected="true">Viridis</option>
+					<option value="jet">Jet</option>
+				</param>
+
+				<conditional name="advanced">
+					<param name="choice" type="boolean" checked="false" label="Use advanced options?" help="Use this options to choose custom parameters for evaluation: statistical test, pValue, Fold-Change threshold and specify output maps.">
+						<option value="true" selected="true">No</option>
+						<option value="false">Yes</option>
+					</param>
+					<when value="true">
+						<param name="test" argument="--test" type="select" label="Statistical test to use" help="Select the statistical test to use for the analysis based on your data and the amount of replicates. Paired T-test and Wilcoxon need the same number of replicates in each group.">
+							<option value="ks" selected="true">Kolmogorov-Smirnov</option>
+							<option value="ttest_p">T-test (paired)</option>
+							<option value="ttest_ind">T-test (unpaired)</option>
+							<option value="wilcoxon">Wilcoxon</option>
+							<option value="mw">Mann-Whitney</option>
+						</param>
+						<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" max="1" min="0" label="P-value threshold:" help="min value 0" />
+						<param name="adjusted" argument="--adjusted" type="boolean" checked="false" label="Use adjusted p-values" help="Should the program adjust the P-values based on the FDR (Benjamini-Hochberg) correction?" />
+						<param name="fChange" argument="--fChange" type="float" size="20" value="1.2" min="1" label="Fold-Change threshold:" help="min value 1" />
+						<param name="generateSvg" argument="--generateSvg" type="boolean" checked="false" label="Generate SVG map" help="should the program generate an editable svg map of the processes?" />
+						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
+					</when>
+				</conditional>
+			</when>
+
+			<when value="user_fluxes">
+				<param name="user_fluxes_file" argument="--user_fluxes" type="data" format="tabular, tsv"
+					label="Pre-computed enrichment file"
+					help="TSV file with columns: ids, P_Value, fold change, z-score, average_1, average_2. This is the tabular result produced by a previous FluxToMap run." />
+				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05"
+					label="Maximum P-value to display:"
+					help="Reactions with P-value above this threshold will be shown as dashed grey arrows." />
+				<param name="fChange" argument="--fChange" type="float" size="20" value="0.2"
+					label="Minimum |fold change| to display:"
+    				help="Applied directly to the 'fold change' column. Match the scale of your file." />
+				<param name="generateSvg" argument="--generate_svg" type="boolean" checked="false" label="Generate SVG map" help="Should the program generate an editable SVG map?" />
+				<param name="generatePdf" argument="--generate_pdf" type="boolean" checked="true" label="Generate PDF map" help="Should the program return a non editable PDF map?" />
+			</when>
+		</conditional>
+
+		<conditional name="cond_choice_map">
+			<param name="choice_map" argument="--choice_map" type="select" label="Choose metabolic map:">
+				<option value="ENGRO2" selected="true">ENGRO2</option>
+				<option value="HMRcore">HMRcore</option>
+				<option value="Custom">Custom</option>
+			</param>
+			<when value="Custom">				
+				<param name="custom_map" argument="--custom_map" type="data" format="xml, svg" label="custom-map.svg"/>
+			</when>
+		</conditional>
+	</inputs>
+
+	<outputs>
+		<data format="txt" name="log" label="FluxToMap - Log" />
+		<collection name="results" type="list" label="FluxToMap - Results">
+			<discover_datasets pattern="__name_and_ext__" directory="result"/>
+		</collection>
+	</outputs>
+	
+	<help>
+	<![CDATA[
+
+What it does
+-------------
+
+This tool analyzes and visualizes differences in reactions fluxes of groups of samples, returned by the Flux Simulation tool, of groups of samples.
+
+Accepted files are (Files must have different names): 
+    - option 1) two or more fluxes datasets, each referring to samples in a given group. The user can specify a label for each group;
+    - option 2) one fluxes dataset and one group-file specifying the group each sample belongs to (e.g. the accepted group file is thought to be the one returned by the Clustering tool);
+    - option 3) a pre-computed enrichment file (tabular result from a previous FluxToMap run), allowing the user to skip all computation and directly color the map.
+
+Optional files:
+    - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.
+
+The tool generates:
+    - A tab-separated file: reporting fold-change and p-values of fluxes between a pair of conditions/classes;
+    - A metabolic map file (downloadable as .svg and .png): visualizing up- and down-regulated reactions between a pair of conditions/classes;
+    - Two metabolic maps to visualize the mean and median fluxes normalized amongst all classes. The associated color map is also generated (absolute ranges);
+    - A log file (.txt).
+
+Output options:
+    - To calculate P-Values and Fold-Changes and to enrich maps, comparisons are performed for each possible pair of groups (default option 'One vs One').
+
+Alternative options are:
+    - comparison of each group vs. the rest of samples (option 'One vs Rest')
+    - comparison of each group vs. a control group (option 'One vs Control). If this option is selected the user must indicate the control group label.
+
+Output files will be named as classA_vs_classB. Reactions will conventionally be reported as up-regulated (down-regulated) if they are significantly more (less) active in class having label "classA".
+
+Example input
+-------------
+
+"Fluxes of group 1 + Fluxes of group 2 + ... + Fluxes of group N" option:
+
+Fluxes Dataset 1:
+
++------------+----------------+----------------+----------------+ 
+| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| r1642      |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| r1643      |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| r1640      |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| r1641      |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| r1646      |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+Fluxes Dataset 2:
+
++------------+----------------+----------------+----------------+ 
+| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| r1642      |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| r1643      |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| r1640      |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| r1641      |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| r1646      |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+"Fluxes of all samples + sample group specification" option:
+
+Fluxes Dataset:
+
++------------+----------------+----------------+----------------+ 
+| Reaction ID|   TCGAA62670   |   TCGAA62671   |   TCGAA62672   |  
++============+================+================+================+
+| r1642      |    0.523167    |    0.371355    |    0.925661    |  
++------------+----------------+----------------+----------------+    
+| r1643      |    0.568765    |    0.765567    |    0.456789    |    
++------------+----------------+----------------+----------------+    
+| r1640      |    0.876545    |    0.768933    |    0.987654    |  
++------------+----------------+----------------+----------------+
+| r1641      |    0.456788    |    0.876543    |    0.876542    |    
++------------+----------------+----------------+----------------+    
+| r1646      |    0.876543    |    0.786543    |    0.897654    |   
++------------+----------------+----------------+----------------+
+
+Group-file
+
++---------------+-----------+
+| Patient ID    |   Class   | 
++===============+===========+
+| TCGAAA3529    |    MSI    | 
++---------------+-----------+  
+| TCGAA62671    |    MSS    |    
++---------------+-----------+   
+| TCGAA62672    |    MSI    |
++---------------+-----------+
+
+Pre-computed enrichment file
+----------------------------
+When uploading a pre-computed enrichment file the tool skips all
+dataset loading and statistical computation entirely. The values in the file
+are used directly to style the metabolic map.
+
+**The only controls available to the user are the two filtering thresholds:**
+
+- **P-value threshold**: reactions with a P-value above this threshold are
+  shown as dashed grey arrows (not significant), regardless of their fold
+  change. The value is applied directly to the ``P_Value`` column in your
+  file.
+
+- **Fold-change threshold**: reactions with ``|fold change|`` below this
+  threshold are shown as solid grey arrows (below threshold). The value is
+  applied directly to the ``fold change`` column in your file.
+
+The file must be tab-separated and contain exactly these columns:
+
++----------+---------+-------------+---------+-----------+-----------+
+|   ids    | P_Value | fold change | z-score | average_1 | average_2 |
++==========+=========+=============+=========+===========+===========+
+| r1642    |  0.032  |    0.45     |  1.23   |   0.52    |   0.31    |
++----------+---------+-------------+---------+-----------+-----------+
+| r1643    |  0.071  |   -0.21     | -0.87   |   0.41    |   0.53    |
++----------+---------+-------------+---------+-----------+-----------+
+
+**ids**: reaction identifier as encoded in the metabolic map (e.g. "GPI", "TALDO1"). Must match the IDs present in the selected map exactly.
+
+**z-score**: z-score of the difference between the two group means, used to scale the width of the arrows on the map. Higher absolute z-scores result in thicker arrows.
+
+**average_1**: mean flux value of the first group or condition being compared. This is the mean across all samples belonging to the first group for a given reaction. 
+
+**average_2**: mean flux value of the second group or condition being compared. This is the mean across all samples belonging to the second group for a given reaction. A reaction is considered up-regulated when average_1 > average_2 and down-regulated when average_1 < average_2.
+
+**TIP**: If the user provides just one dataset for analysis:
+		-Use the Cluster Analysis tool to assign group labels when no prior division information is available
+		-provide an external group file specifying the assignment of each sample, if the group division is known a priori
+
+]]>
+	</help>
+	<expand macro="citations" />
+
+</tool>
