@@ -56,6 +56,16 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
                         type = str,
                         required = True,
                         help = 'rps output')
+    # Optional dataset in output when the user choose to compute the net RPS
+    parser.add_argument('-nrp', '--net_rps_output',
+                    type=str,
+                    default=None,
+                    help='output of net RPS for reversible reactions')
+    # Optional param to indicate whether the user want to compute net RPS
+    parser.add_argument('-cn', '--compute_net',
+                    type=utils.Bool("compute_net"),
+                    default=False,
+                    help='whether to compute net RPS for reversible reactions')
     
     parser.add_argument('-drp', '--dict_rps_output',
                         type = str,
@@ -213,10 +223,8 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
     Returns:
         None
     """
-
     cell_lines = dataset[0][1:]
     abundances_dict = {}
-
     for row in dataset[1:]:
         try:
             id = tpm_dict[row[0]]
@@ -225,17 +233,50 @@ def rps_for_cell_lines(dataset: List[List[str]], reactions: Dict[str, Dict[str, 
         if id:
             abundances_dict[id] = list(map(utils.Float(), row[1:]))
 
-    missing_list = check_missing_metab(reactions, abundances_dict, len((cell_lines)))
+    missing_list = check_missing_metab(reactions, abundances_dict, len(cell_lines))
 
-    rps_scores :Dict[Dict[str, float]] = {}
+    rps_scores = {}
     for pos, cell_line_name in enumerate(cell_lines):
-        abundances = { metab : abundances[pos] for metab, abundances in abundances_dict.items() }
+        abundances = {metab: abundances[pos] for metab, abundances in abundances_dict.items()}
         rps_scores[cell_line_name] = calculate_rps(reactions, abundances, black_list, missing_list, substrateFreqTable)
-    
+
     df = pd.DataFrame.from_dict(rps_scores)
-    df = df.loc[list(reactions.keys()),:]
+    df = df.loc[list(reactions.keys()), :]
     df.index.name = 'Reactions'
     df.to_csv(ARGS.rps_output, sep='\t', na_rep='None', index=True)
+
+    if not ARGS.compute_net:
+        return
+
+    # Compute net RPS based on the user request
+    net_rps = {}
+    reaction_ids = list(reactions.keys())
+    processed = set()
+
+    for rxn_id in reaction_ids:
+        if rxn_id in processed:
+            continue
+        if rxn_id.endswith('_F'):
+            base = rxn_id[:-2]
+            inverse_id = base + '_B'
+            if inverse_id in reactions:
+                net_rps[base + '_RV'] = {
+                    cell_line: (
+                        rps_scores[cell_line].get(rxn_id, math.nan) -
+                        rps_scores[cell_line].get(inverse_id, math.nan)
+                    )
+                    for cell_line in cell_lines
+                }
+                processed.add(rxn_id)
+                processed.add(inverse_id)
+
+    if net_rps:
+        df_net = pd.DataFrame.from_dict(net_rps, orient='index', columns=cell_lines)
+        df_net.index.name = 'Reactions'
+        df_net.to_csv(ARGS.net_rps_output, sep='\t', na_rep='None', index=True)
+    else:
+        pd.DataFrame(columns=['Reactions'] + list(cell_lines)).to_csv(
+            ARGS.net_rps_output, sep='\t', index=False)
 
 
 ############################ main ####################################

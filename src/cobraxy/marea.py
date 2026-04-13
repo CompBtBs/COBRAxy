@@ -113,6 +113,13 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type=str,
         help='Path to user-provided RPS enrichment file (with P_Value, fold change, z-score, average_1, average_2)')
 
+    # Net RPS file uploaded by the user
+    parser.add_argument(
+        '-nri', '--net_rps_input',
+        type=str,
+        default=None,
+        help='Path to user-provided net RPS file')
+
     #RAS:
     parser.add_argument(
         "-ra", "--using_RAS",
@@ -207,7 +214,7 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         help = 'Color for down-regulated reactions (default: %(default)s)')
 
     args :argparse.Namespace = parser.parse_args(args)
-    if args.using_RAS and not args.using_RPS: args.net = False
+    if args.using_RAS and not args.using_RPS and not args.net_rps_input: args.net = False
 
     return args
           
@@ -1126,7 +1133,6 @@ def main(args:List[str] = None) -> None:
     # Prepare enrichment results containers
     ras_results = []
     rps_results = []
-    netRPS = {}
     columnNames = {}
 
     # If the user wants to use their own pre-computed data
@@ -1145,7 +1151,7 @@ def main(args:List[str] = None) -> None:
                 "user_provided",
                 ras_enrichment=True,
                 direct_threshold=True
-            )  
+            )
 
         if ARGS.user_pvalues_rps:
             rps_user_data = read_user_enrichment(ARGS.user_pvalues_rps)
@@ -1159,59 +1165,59 @@ def main(args:List[str] = None) -> None:
                 "user_provided",
                 ras_enrichment=False,
                 direct_threshold=True
-            )  
+            )
 
         createOutputMaps(dataset_name, "user_provided", map_copy)
 
     else:
-        # Compute RAS enrichment if requested
-        if ARGS.using_RAS: 
+        # 1. RAS
+        if ARGS.using_RAS:
             ids_ras, class_pat_ras, _ = getClassesAndIdsFromDatasets(
                 ARGS.input_datas, ARGS.input_data, ARGS.input_class, ARGS.names)
             ras_results, _ = computeEnrichment(class_pat_ras, ids_ras, fromRAS=True)
-        
-        # Compute RPS enrichment if requested
-        if ARGS.using_RPS:
+
+        # 2. Normal RPS (skip if net RPS file is provided)
+        if ARGS.using_RPS and not (ARGS.net and ARGS.net_rps_input):
             ids_rps, class_pat_rps, columnNames = getClassesAndIdsFromDatasets(
                 ARGS.input_datas_rps, ARGS.input_data_rps, ARGS.input_class_rps, ARGS.names_rps)
-            
-            rps_results, netRPS = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
+            rps_results, _ = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
 
-        # Organize by comparison pairs
+        # 3. Net RPS file (replaces normal RPS for tip coloring)
+        if ARGS.net and ARGS.net_rps_input:
+            values_net, ids_net = getDatasetValues(ARGS.net_rps_input, "Net RPS")
+            class_pat_net: ClassPat = {
+                col_name: list(map(list, zip(*[values_net[col_name]])))
+                for col_name in values_net
+                if values_net[col_name]
+            }
+            if len(class_pat_net) >= 2:
+                rps_results, _ = computeEnrichment(class_pat_net, ids_net, fromRAS=False)
+            else:
+                utils.logWarning(
+                    "Warning: net RPS file must contain at least 2 sample columns. "
+                    "Net RPS enrichment skipped.", ARGS.out_log)
+
+        # 4. Organize comparisons
         comparisons: Dict[Tuple[str, str], Dict[str, Tuple]] = {}
         for i, j, comparison_data, max_z_score in ras_results:
             comparisons[(i, j)] = {'ras': (comparison_data, max_z_score), 'rps': None}
-        
+
         for i, j, comparison_data, max_z_score in rps_results:
             comparisons.setdefault((i, j), {}).update({'rps': (comparison_data, max_z_score)})
 
-        # For each comparison, create a styled map with RAS bodies and RPS heads
+        # 5. Style and output maps
         for (i, j), res in comparisons.items():
             map_copy = copy.deepcopy(core_map)
 
-            # Apply RAS styling to arrow bodies
             if res.get('ras'):
                 tmp_ras, max_z_ras = res['ras']
                 temp_thingsInCommon(tmp_ras, map_copy, max_z_ras, i, j, ras_enrichment=True)
 
-            # Apply RPS styling to arrow heads
             if res.get('rps'):
                 tmp_rps, max_z_rps = res['rps']
                 temp_thingsInCommon(tmp_rps, map_copy, max_z_rps, i, j, ras_enrichment=False)
 
-            # Output both SVG and PDF/PNG as configured
             createOutputMaps(i, j, map_copy)
-        
-        # Add net RPS output file
-        if (ARGS.net or not ARGS.using_RAS) and ARGS.using_RPS:
-            for datasetName, rows in netRPS.items():
-                writeToCsv(
-                    [[reactId, *netValues] for reactId, netValues in rows.items()],
-                    columnNames.get(datasetName, ["Reactions"]),
-                    utils.FilePath(
-                        "Net_RPS_" + datasetName,
-                        ext = utils.FileFormat.CSV,
-                        prefix = ARGS.output_path))
 
     print('Execution succeeded')
 ###############################################################################
