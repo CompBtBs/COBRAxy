@@ -1184,18 +1184,12 @@ def main(args:List[str] = None) -> None:
 
         # 3. Net RPS file (replaces normal RPS for tip coloring)
         if ARGS.net and ARGS.net_rps_input:
-            values_net, ids_net = getDatasetValues(ARGS.net_rps_input, "Net RPS")
-            class_pat_net: ClassPat = {
-                col_name: list(map(list, zip(*[values_net[col_name]])))
-                for col_name in values_net
-                if values_net[col_name]
-            }
-            if len(class_pat_net) >= 2:
-                rps_results, _ = computeEnrichment(class_pat_net, ids_net, fromRAS=False)
-            else:
-                utils.logWarning(
-                    "Warning: net RPS file must contain at least 2 sample columns. "
-                    "Net RPS enrichment skipped.", ARGS.out_log)
+            saved_option = ARGS.option
+            ARGS.option = 'datasets'
+            ids_rps, class_pat_rps, _ = getClassesAndIdsFromDatasets(
+                [ARGS.net_rps_input], None, None, ['NetRPS'])
+            ARGS.option = saved_option
+            rps_results, _ = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
 
         # 4. Organize comparisons
         comparisons: Dict[Tuple[str, str], Dict[str, Tuple]] = {}
