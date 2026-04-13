@@ -93,6 +93,12 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         "-ne", "--net",
         type = utils.Bool("net"), default = False,
         help = "choose if you want net enrichment for RPS")
+    
+    parser.add_argument(
+        '--net_rps_class',
+        type=str,
+        default=None,
+        help='Path to class file for net RPS dataset')
 
     parser.add_argument(
         '-op', '--option',
@@ -1185,9 +1191,9 @@ def main(args:List[str] = None) -> None:
         # 3. Net RPS file (replaces normal RPS for tip coloring)
         if ARGS.net and ARGS.net_rps_input:
             saved_option = ARGS.option
-            ARGS.option = 'datasets'
+            ARGS.option = 'dataset_class'
             ids_rps, class_pat_rps, _ = getClassesAndIdsFromDatasets(
-                [ARGS.net_rps_input], None, None, ['NetRPS'])
+                None, ARGS.net_rps_input, ARGS.net_rps_class, None)
             ARGS.option = saved_option
             rps_results, _ = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
 

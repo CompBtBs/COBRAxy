@@ -106,6 +106,7 @@
 			--net ${cond.using_net_rps.check}
 			#if $cond.using_net_rps.check == 'true':
 				--net_rps_input ${cond.using_net_rps.net_rps_file}
+				--net_rps_class ${cond.using_net_rps.net_rps_class}
 			#end if
 
 			--comparison ${cond.comparis.comparison}
@@ -192,12 +193,13 @@
 
 				<conditional name="using_net_rps">
 					<param name="check" argument="--net" type="boolean" checked="false"
-						label="Use net RPS for arrow tip coloring?"
-						help="If checked, upload the Net RPS file produced by the Expression2RPS tool. Arrow tips of reversible reactions will be colored using the net RPS values." />
+						label="Use net RPS for arrow tip coloring?" />
 					<when value="true">
 						<param name="net_rps_file" argument="--net_rps_input" type="data" format="tabular, tsv"
-							label="Net RPS dataset"
-							help="Tab-separated file with net RPS values per reaction and sample, as produced by the Expression2RPS tool (Net RPS output). Reaction IDs must end with _RV." />
+							label="Net RPS dataset"/>
+						<param name="net_rps_class" argument="--net_rps_class" type="data" format="tabular, tsv"
+							label="Sample group specification for Net RPS"
+							help="Same class file used for the standard RPS input." />
 					</when>
 					<when value="false" />
 				</conditional>
