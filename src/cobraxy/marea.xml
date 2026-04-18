@@ -58,6 +58,11 @@
 				#end for
 			#end if
 
+			--net ${cond.using_net_rps.check}
+			#if $cond.using_net_rps.check == 'true':
+				--net_rps_input ${cond.using_net_rps.net_rps_file}
+			#end if
+
 			--comparison ${cond.comparis.comparison}
 			#if $cond.comparis.comparison == 'onevsmany'
 				--control '${cond.comparis.controlgroup}'
@@ -70,7 +75,6 @@
 				--fChange ${cond.advanced.fChange}
 				--generate_svg ${cond.advanced.generateSvg}
 				--generate_pdf ${cond.advanced.generatePdf}
-				--net ${cond.advanced.netRPS}
 				--upRegCol '#${cond.advanced.upRegCol}'
 				--downRegCol '#${cond.advanced.downRegCol}'
 			#else
@@ -80,7 +84,6 @@
 				--fChange 1.2
 				--generate_svg false
 				--generate_pdf true
-				--net false
 				--upRegCol '#ecac68'
 				--downRegCol '#6495ed'
 			#end if
@@ -100,6 +103,12 @@
 				--input_class_rps ${cond.using_rps_all.input_class_rps}
 			#end if
 
+			--net ${cond.using_net_rps.check}
+			#if $cond.using_net_rps.check == 'true':
+				--net_rps_input ${cond.using_net_rps.net_rps_file}
+				--net_rps_class ${cond.using_net_rps.net_rps_class}
+			#end if
+
 			--comparison ${cond.comparis.comparison}
 			#if $cond.comparis.comparison == 'onevsmany'
 				--control '${cond.comparis.controlgroup}'
@@ -112,7 +121,6 @@
 				--fChange ${cond.advanced.fChange}
 				--generate_svg ${cond.advanced.generateSvg}
 				--generate_pdf ${cond.advanced.generatePdf}
-				--net ${cond.advanced.netRPS}
 				--upRegCol '#${cond.advanced.upRegCol}'
 				--downRegCol '#${cond.advanced.downRegCol}'
 			#else
@@ -122,7 +130,6 @@
 				--fChange 1.2
 				--generate_svg false
 				--generate_pdf true
-				--net false
 				--upRegCol '#ecac68'
 				--downRegCol '#6495ed'
 			#end if
@@ -170,6 +177,7 @@
 							<param name="input_name" argument="--names" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
 						</repeat>
 					</when>
+    				<when value="false" />
 				</conditional>
 
 				<conditional name="using_rps">
@@ -180,6 +188,20 @@
 							<param name="input_name_rps" argument="--names_rps" type="text" label="Dataset's name:" value="Dataset" help="Default: Dataset" />
 						</repeat>
 					</when>
+					<when value="false" />
+				</conditional>
+
+				<conditional name="using_net_rps">
+					<param name="check" argument="--net" type="boolean" checked="false"
+						label="Use net RPS for arrow tip coloring?" />
+					<when value="true">
+						<param name="net_rps_file" argument="--net_rps_input" type="data" format="tabular, tsv"
+							label="Net RPS dataset"/>
+						<param name="net_rps_class" argument="--net_rps_class" type="data" format="tabular, tsv"
+							label="Sample group specification for Net RPS"
+							help="Same class file used for the standard RPS input." />
+					</when>
+					<when value="false" />
 				</conditional>
 
 				<conditional name="comparis">
@@ -214,8 +236,8 @@
 						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
 						<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions" />
 						<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions" />
-						<param name="netRPS" argument="--net" type="boolean" checked="false" label="Should RPS enrichment use net values?" help="If checked and RPS datasets are present the arrow tips of a reversible arrow will be colored with the net contribution of both directions' RPS values" />
 					</when>
+    				<when value="false" />
 				</conditional>
 			</when>
 
@@ -238,6 +260,18 @@
 					<when value="false" />
 				</conditional>
 
+				<conditional name="using_net_rps">
+					<param name="check" argument="--net" type="boolean" checked="false"
+						label="Use net RPS for arrow tip coloring?"
+						help="If checked, upload the Net RPS file produced by the Expression2RPS tool. Arrow tips of reversible reactions will be colored using the net RPS values." />
+					<when value="true">
+						<param name="net_rps_file" argument="--net_rps_input" type="data" format="tabular, tsv"
+							label="Net RPS dataset"
+							help="Tab-separated file with net RPS values per reaction and sample, as produced by the Expression2RPS tool (Net RPS output). Reaction IDs must end with _RV." />
+					</when>
+					<when value="false" />
+				</conditional>
+
 				<conditional name="comparis">
 					<param name="comparison" argument="--comparison" type="select" label="Groups comparison:">
 						<option value="manyvsmany" selected="true">One vs One</option>
@@ -270,8 +304,8 @@
 						<param name="generatePdf" argument="--generatePdf" type="boolean" checked="true" label="Generate PDF map" help="should the program return a non editable (but displayble) pdf map of the processes?" />
 						<param name="upRegCol" argument="--upRegCol" type="text" label="Up-regulated color" value="ecac68" help="Color for up-regulated reactions" />
 						<param name="downRegCol" argument="--downRegCol" type="text" label="Down-regulated color" value="6495ed" help="Color for down-regulated reactions" />
-						<param name="netRPS" argument="--net" type="boolean" checked="false" label="Should RPS enrichment use net values?" help="If checked and RPS datasets are present the arrow tips of a reversible arrow will be colored with the net contribution of both directions' RPS values" />
 					</when>
+					<when value="false" />
 				</conditional>
 			</when>
 
@@ -298,7 +332,7 @@
 					<when value="false" />
 				</conditional>
 
-				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05" 
+				<param name="pValue" argument="--pValue" type="float" size="20" value="0.05"
 					label="P-value threshold:"
 					help="Reactions with P-value above this threshold will be shown as dashed grey arrows." />
 				<param name="fChange" argument="--fChange" type="float" size="20" value="0.2"
@@ -348,6 +382,7 @@ Row header: reaction ID.
 
 Optional files:
     - custom svg map. Graphical elements must have the same IDs of reactions. See HmrCore svg map for an example.
+    - Net RPS file (from Expression2RPS tool): if provided, arrow tips of reversible reactions will be colored using the net RPS values instead of being computed internally.
 
 The tool generates:
     - 1) a tab-separated file: reporting fold-change and p-values of reaction activity scores (RASs) between a pair of conditions/classes;
@@ -472,7 +507,7 @@ The file must be tab-separated and contain exactly these columns:
 
 **z-score**: z-score of the difference between the two group means, used to scale the width of the arrows on the map. Higher absolute z-scores result in thicker arrows.
 
-**average_1**: mean RAS score of the first group or condition being compared. 
+**average_1**: mean RAS score of the first group or condition being compared.
 
 **average_2**: mean RAS score of the second group or condition being compared.
 
