@@ -88,17 +88,6 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type = float, 
         default = 1.5, 
         help = 'Fold-Change threshold (default: %(default)s)')
-    
-    parser.add_argument(
-        "-ne", "--net",
-        type = utils.Bool("net"), default = False,
-        help = "choose if you want net enrichment for RPS")
-    
-    parser.add_argument(
-        '--net_rps_class',
-        type=str,
-        default=None,
-        help='Path to class file for net RPS dataset')
 
     parser.add_argument(
         '-op', '--option',
@@ -119,12 +108,31 @@ def process_args(args:List[str] = None) -> argparse.Namespace:
         type=str,
         help='Path to user-provided RPS enrichment file (with P_Value, fold change, z-score, average_1, average_2)')
 
-    # Net RPS file uploaded by the user
+    # Net RPS file(s) uploaded by the user
     parser.add_argument(
         '-nri', '--net_rps_input',
         type=str,
+        nargs='+',
         default=None,
-        help='Path to user-provided net RPS file')
+        help='Path(s) to user-provided net RPS file(s)')
+
+    parser.add_argument(
+        '--net_rps_names',
+        type=str,
+        nargs='+',
+        default=None,
+        help='Names for net RPS datasets')
+    
+    parser.add_argument(
+        "-ne", "--net",
+        type = utils.Bool("net"), default = False,
+        help = "choose if you want net enrichment for RPS")
+    
+    parser.add_argument(
+        '--net_rps_class',
+        type=str,
+        default=None,
+        help='Path to class file for net RPS dataset')
 
     #RAS:
     parser.add_argument(
@@ -1191,9 +1199,16 @@ def main(args:List[str] = None) -> None:
         # 3. Net RPS file (replaces normal RPS for tip coloring)
         if ARGS.net and ARGS.net_rps_input:
             saved_option = ARGS.option
-            ARGS.option = 'dataset_class'
-            ids_rps, class_pat_rps, _ = getClassesAndIdsFromDatasets(
-                None, ARGS.net_rps_input, ARGS.net_rps_class, None)
+            if ARGS.net_rps_class:
+                # dataset_class mode: one file + class file
+                ARGS.option = 'dataset_class'
+                ids_rps, class_pat_rps, _ = getClassesAndIdsFromDatasets(
+                    None, ARGS.net_rps_input[0], ARGS.net_rps_class, None)
+            else:
+                # datasets mode: multiple files, one per group
+                ARGS.option = 'datasets'
+                ids_rps, class_pat_rps, _ = getClassesAndIdsFromDatasets(
+                    ARGS.net_rps_input, None, None, ARGS.net_rps_names)
             ARGS.option = saved_option
             rps_results, _ = computeEnrichment(class_pat_rps, ids_rps, fromRAS=False)
 

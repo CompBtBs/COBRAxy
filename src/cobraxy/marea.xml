@@ -60,8 +60,14 @@
 
 			--net ${cond.using_net_rps.check}
 			#if $cond.using_net_rps.check == 'true':
-				--net_rps_input ${cond.using_net_rps.net_rps_file}
-				--net_rps_class ${cond.using_net_rps.net_rps_class}
+				--net_rps_input
+				#for $data in $cond.using_net_rps.input_net_rps_datasets:
+					${data.net_rps_file}
+				#end for
+				--net_rps_names
+				#for $data in $cond.using_net_rps.input_net_rps_datasets:
+					${data.net_rps_name}
+				#end for
 			#end if
 
 			--comparison ${cond.comparis.comparison}
@@ -195,14 +201,16 @@
 				<conditional name="using_net_rps">
 					<param name="check" argument="--net" type="boolean" checked="false"
 						label="Use net RPS for arrow tip coloring?"
-						help="If checked, upload the Net RPS file produced by the Expression2RPS tool. Arrow tips of reversible reactions will be colored using the net RPS values." />
+						help="If checked, upload one Net RPS file per group, produced by the Expression2RPS tool." />
 					<when value="true">
-						<param name="net_rps_file" argument="--net_rps_input" type="data" format="tabular, tsv"
-							label="Net RPS dataset"
-							help="Tab-separated file produced by Expression2RPS (Net RPS output). Reaction IDs must end with _RV." />
-						<param name="net_rps_class" argument="--net_rps_class" type="data" format="tabular, tsv"
-							label="Sample group specification for Net RPS"
-							help="Two-column TSV assigning each sample in the Net RPS file to a group." />
+						<repeat name="input_net_rps_datasets" title="Net RPS dataset" min="2">
+							<param name="net_rps_file" argument="--net_rps_input" type="data" format="tabular, tsv"
+								label="Net RPS dataset"
+								help="Tab-separated file produced by Expression2RPS (Net RPS output). Reaction IDs must end with _RV." />
+							<param name="net_rps_name" argument="--net_rps_names" type="text"
+								label="Dataset's name:" value="Dataset"
+								help="Default: Dataset" />
+						</repeat>
 					</when>
 					<when value="false" />
 				</conditional>
